@@ -2,7 +2,7 @@
 
 import * as vscode from 'vscode';
 import { AnalysisResult } from '../core/analyzer';
-import { allCategories, featuresByCategory, visibleCatalog } from '../core/featureCatalog';
+import { allCategories, Feature, featuresByCategory, visibleCatalog } from '../core/featureCatalog';
 import { implementableFeatures } from '../core/prompts';
 
 export class DashboardPanel {
@@ -152,6 +152,74 @@ export class DashboardPanel {
       margin-left: 6px;
     }
     .setup-link:hover { text-decoration: underline; }
+    .info-icon {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1px solid var(--vscode-textLink-foreground, #3794ff);
+      color: var(--vscode-textLink-foreground, #3794ff);
+      font-size: 11px;
+      font-weight: bold;
+      font-style: italic;
+      margin-left: 6px;
+      vertical-align: middle;
+      line-height: 1;
+      opacity: 0.8;
+      transition: opacity 0.15s;
+    }
+    .info-icon:hover { opacity: 1; }
+    .info-popup-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+    }
+    .info-popup-overlay.visible { display: flex; }
+    .info-popup {
+      background: var(--vscode-editor-background, #1e1e1e);
+      border: 1px solid var(--vscode-panel-border, #444);
+      border-radius: 8px;
+      padding: 20px 24px;
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    }
+    .info-popup h3 {
+      margin-top: 0;
+      color: var(--vscode-textLink-foreground, #3794ff);
+      font-size: 1.1em;
+    }
+    .info-popup p { margin: 8px 0; line-height: 1.5; }
+    .info-popup .shortcuts-label {
+      font-weight: bold;
+      margin-top: 12px;
+      margin-bottom: 4px;
+      font-size: 0.9em;
+      opacity: 0.8;
+    }
+    .info-popup ul {
+      margin: 4px 0 0 0;
+      padding-left: 18px;
+    }
+    .info-popup li { margin: 4px 0; line-height: 1.4; font-size: 0.9em; }
+    .info-popup .close-btn {
+      margin-top: 16px;
+      padding: 4px 14px;
+      background: var(--vscode-button-background, #0e639c);
+      color: var(--vscode-button-foreground, #fff);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85em;
+    }
+    .info-popup .close-btn:hover { background: var(--vscode-button-hoverBackground, #1177bb); }
   </style>
 </head>
 <body>
@@ -183,6 +251,15 @@ export class DashboardPanel {
   <h2>Feature Adoption Matrix</h2>
   ${matrixHtml}
 
+  <div class="info-popup-overlay" id="infoOverlay">
+    <div class="info-popup">
+      <h3 id="infoTitle"></h3>
+      <p id="infoDesc"></p>
+      <div id="infoShortcuts"></div>
+      <button class="close-btn" id="infoClose">Close</button>
+    </div>
+  </div>
+
   <script>
     const vscode = acquireVsCodeApi();
     document.addEventListener('click', (e) => {
@@ -190,6 +267,29 @@ export class DashboardPanel {
       if (link) {
         e.preventDefault();
         vscode.postMessage({ command: 'implement', featureID: link.dataset.implement });
+      }
+      const infoBtn = e.target.closest('.info-icon');
+      if (infoBtn) {
+        e.preventDefault();
+        document.getElementById('infoTitle').textContent = infoBtn.dataset.name;
+        document.getElementById('infoDesc').textContent = infoBtn.dataset.desc;
+        const stepsEl = document.getElementById('infoShortcuts');
+        const steps = JSON.parse(infoBtn.dataset.steps || '[]');
+        if (steps.length > 0) {
+          stepsEl.innerHTML = '<div class="shortcuts-label">Setup &amp; Shortcuts</div><ul>' +
+            steps.map(s => '<li>' + s + '</li>').join('') + '</ul>';
+        } else {
+          stepsEl.innerHTML = '';
+        }
+        document.getElementById('infoOverlay').classList.add('visible');
+      }
+    });
+    document.getElementById('infoClose').addEventListener('click', () => {
+      document.getElementById('infoOverlay').classList.remove('visible');
+    });
+    document.getElementById('infoOverlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        document.getElementById('infoOverlay').classList.remove('visible');
       }
     });
   </script>
@@ -226,13 +326,20 @@ export class DashboardPanel {
         const setupLink = canSetup
           ? ` <a class="setup-link" data-implement="${f.id}" title="Let Copilot help you set this up">▶ Set up</a>`
           : '';
-        html += `<tr><td>${escapeHtml(f.name)}</td><td>${status}${setupLink}</td></tr>`;
+        const infoIcon = buildInfoIcon(f);
+        html += `<tr><td>${escapeHtml(f.name)}${infoIcon}</td><td>${status}${setupLink}</td></tr>`;
       }
       html += '</tbody></table>';
     }
 
     return html;
   }
+}
+
+function buildInfoIcon(f: Feature): string {
+  const desc = escapeHtml(f.description);
+  const steps = JSON.stringify(f.setupSteps.map(s => escapeHtml(s)));
+  return ` <span class="info-icon" data-name="${escapeHtml(f.name)}" data-desc="${desc}" data-steps='${steps}' title="More info">i</span>`;
 }
 
 function escapeHtml(text: string): string {
