@@ -107,7 +107,7 @@ export function catalog(): Feature[] {
         'Dedicated sidebar panel for extended conversations with Copilot.',
       docsURL:
         'https://code.visualstudio.com/docs/copilot/chat/copilot-chat',
-      detectHints: ['chat panel', 'copilot.chat', 'chat-panel'],
+      detectHints: ['chat panel', 'copilot.chat', 'chat-panel', 'copilot chat', 'ccreq', 'chat request'],
       tags: ['core'],
       impact: 'high',
       difficulty: 'low',
@@ -159,6 +159,10 @@ export function catalog(): Feature[] {
         'github.copilot-chat.models',
         'model selection',
         'modelSelection',
+        'languageModel',
+        'gpt-4o', 'gpt-4-turbo', 'gpt-4.1',
+        'claude-sonnet', 'claude-opus', 'claude-haiku',
+        'o1-preview', 'o1-mini', 'o3-mini', 'o4-mini', 'gemini-2',
       ],
       tags: ['advanced'],
       impact: 'high',
@@ -225,9 +229,9 @@ export function catalog(): Feature[] {
       docsURL:
         'https://code.visualstudio.com/docs/copilot/ai-powered-suggestions',
       detectHints: [
-        'inline suggest',
         'inlineSuggest',
         'completionAccepted',
+        'completionSuggested',
         'completion',
       ],
       tags: ['core'],
@@ -246,7 +250,7 @@ export function catalog(): Feature[] {
         'Copilot predicts your next likely edit location and suggests changes proactively.',
       docsURL:
         'https://code.visualstudio.com/docs/copilot/ai-powered-suggestions#_next-edit-suggestions',
-      detectHints: ['next edit', 'nextEdit', 'NES', 'github.copilot.nexteditsuggestions', 'nexteditsuggestions.enabled'],
+      detectHints: ['next edit', 'nextEdit', 'github.copilot.nexteditsuggestions'],
       tags: ['advanced', 'new'],
       impact: 'low',
       difficulty: 'low',
@@ -263,7 +267,7 @@ export function catalog(): Feature[] {
         'Copilot generates multi-line code blocks including entire functions or control structures.',
       docsURL:
         'https://code.visualstudio.com/docs/copilot/ai-powered-suggestions',
-      detectHints: ['multi-line', 'multiline'],
+      detectHints: ['multi-line', 'multiline', 'completion', 'inlineSuggest'],
       tags: ['core'],
       impact: 'low',
       difficulty: 'low',
@@ -332,7 +336,7 @@ export function catalog(): Feature[] {
         'Provide separate custom instructions for Ask, Edit, and Agent modes to tailor behavior per workflow.',
       docsURL:
         'https://code.visualstudio.com/docs/copilot/copilot-customization#_custom-instructions',
-      detectHints: ['chat.modeinstructions', 'modeinstructions', 'github.copilot.chat.modeinstructions', 'github.copilot-chat.modeinstructions'],
+      detectHints: ['modeinstructions', 'mode instructions', 'github.copilot.chat.modeinstructions', 'github.copilot-chat.modeinstructions'],
       tags: ['advanced', 'new'],
       impact: 'medium',
       difficulty: 'medium',
@@ -367,7 +371,7 @@ export function catalog(): Feature[] {
         "Define custom skills that Copilot Agent mode can invoke — extend what the agent can do with project-specific tools and actions.",
       docsURL:
         'https://code.visualstudio.com/docs/copilot/copilot-customization',
-      detectHints: ['tools', 'copilot.tools', 'agent-skill', 'customTool'],
+      detectHints: ['copilot.tools', 'agent-skill', 'customTool'],
       tags: ['advanced', 'new'],
       impact: 'high',
       difficulty: 'high',
@@ -389,8 +393,6 @@ export function catalog(): Feature[] {
         'custom agent',
         'customAgent',
         '.prompt.md',
-        'mode:',
-        'agents',
       ],
       tags: ['advanced', 'new'],
       impact: 'high',
@@ -480,6 +482,7 @@ export function catalog(): Feature[] {
         'mcp.json',
         'mcpServers',
         'mcp-server',
+        'mcp server',
         'model context protocol',
       ],
       tags: ['advanced', 'new'],

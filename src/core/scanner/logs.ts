@@ -25,19 +25,31 @@ export interface LogSummary {
 
 /** Known feature-usage hints to scan for in log text. */
 const knownHints: string[] = [
+  // Modes
   'ask mode', 'askmode', 'mode:ask',
   'edit mode', 'editmode', 'mode:edit', 'copilot-edits',
   'agent mode', 'agentmode', 'mode:agent', 'agentic',
+  // Chat
+  'copilot chat', 'ccreq', 'chat request', 'chat-panel',
   'inline chat', 'inlinechat',
   'quick chat', 'quickchat',
+  'model selection', 'modelselection', 'languagemodel',
+  'gpt-4o', 'gpt-4-turbo', 'gpt-4.1',
+  'claude-sonnet', 'claude-opus', 'claude-haiku',
+  'o1-preview', 'o1-mini', 'o3-mini', 'o4-mini', 'gemini-2',
+  // Participants & Context
   '@workspace', '@terminal', '@vscode',
-  '#file', '#selection', '#codebase', '#terminallastcommand', '#problems',
-  'mcp', 'mcpservers', 'mcp-server',
-  'completion', 'inlinesuggest',
-  'copilot-instructions.md', '.copilotignore',
-  '.prompt.md',
+  '#file', '#selection', '#codebase', '#problems',
+  // Completion
+  'completion', 'completionaccepted', 'completionsuggested',
+  'inlinesuggest', 'multi-line', 'multiline',
   'next edit', 'nextedit',
+  // Customization
+  'copilot-instructions.md', '.copilotignore', '.prompt.md',
+  'copilot.enable', 'modeinstructions', 'mode instructions',
   'custom agent', 'customagent', 'agent-skill', 'customtool', 'copilot.tools',
+  // MCP
+  'mcp server', 'mcp.json', 'mcpservers', 'mcp-server', 'model context protocol',
 ];
 
 /** detectHintsInText checks a lowercased text for known feature-usage hints. */

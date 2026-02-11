@@ -2,7 +2,7 @@
 
 import * as vscode from 'vscode';
 import { AnalysisResult } from '../core/analyzer';
-import { allCategories, featuresByCategory, visibleCatalog } from '../core/featureCatalog';
+import { allCategories, Feature, featuresByCategory, visibleCatalog } from '../core/featureCatalog';
 import { implementableFeatures } from '../core/prompts';
 
 export class DashboardPanel {
@@ -62,17 +62,18 @@ export class DashboardPanel {
   }
 
   private getHtml(result: AnalysisResult): string {
+    const impl = implementableFeatures();
     const recsHtml = result.topRecommendations
       .map(
-        (rec, i) => `
+        (rec, i) => {
+          return `
         <tr>
           <td>${i + 1}.</td>
-          <td>${rec.stars}</td>
           <td>${escapeHtml(rec.title)}</td>
           <td><span class="badge badge-${rec.impact}">${rec.impact}</span></td>
-          <td><span class="badge badge-${rec.difficulty}">${rec.difficulty}</span></td>
-          <td><a href="${rec.docsURL}">Docs</a></td>
-        </tr>`,
+          <td>${buildLinksCell(rec.featureID, rec.docsURL, impl)}</td>
+        </tr>`;
+        },
       )
       .join('');
 
@@ -152,6 +153,76 @@ export class DashboardPanel {
       margin-left: 6px;
     }
     .setup-link:hover { text-decoration: underline; }
+    .links-cell { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .links-cell a { white-space: nowrap; }
+    .info-icon {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1px solid var(--vscode-textLink-foreground, #3794ff);
+      color: var(--vscode-textLink-foreground, #3794ff);
+      font-size: 11px;
+      font-weight: bold;
+      font-style: italic;
+      margin-left: 6px;
+      vertical-align: middle;
+      line-height: 1;
+      opacity: 0.8;
+      transition: opacity 0.15s;
+    }
+    .info-icon:hover { opacity: 1; }
+    .info-popup-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+    }
+    .info-popup-overlay.visible { display: flex; }
+    .info-popup {
+      background: var(--vscode-editor-background, #1e1e1e);
+      border: 1px solid var(--vscode-panel-border, #444);
+      border-radius: 8px;
+      padding: 20px 24px;
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    }
+    .info-popup h3 {
+      margin-top: 0;
+      color: var(--vscode-textLink-foreground, #3794ff);
+      font-size: 1.1em;
+    }
+    .info-popup p { margin: 8px 0; line-height: 1.5; }
+    .info-popup .shortcuts-label {
+      font-weight: bold;
+      margin-top: 12px;
+      margin-bottom: 4px;
+      font-size: 0.9em;
+      opacity: 0.8;
+    }
+    .info-popup ul {
+      margin: 4px 0 0 0;
+      padding-left: 18px;
+    }
+    .info-popup li { margin: 4px 0; line-height: 1.4; font-size: 0.9em; }
+    .info-popup .close-btn {
+      margin-top: 16px;
+      padding: 4px 14px;
+      background: var(--vscode-button-background, #0e639c);
+      color: var(--vscode-button-foreground, #fff);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85em;
+    }
+    .info-popup .close-btn:hover { background: var(--vscode-button-hoverBackground, #1177bb); }
   </style>
 </head>
 <body>
@@ -175,13 +246,22 @@ export class DashboardPanel {
   <h2>🔥 Top Recommendations</h2>
   <table>
     <thead>
-      <tr><th>#</th><th>Rating</th><th>Recommendation</th><th>Impact</th><th>Difficulty</th><th>Docs</th></tr>
+      <tr><th>#</th><th>Recommendation</th><th>Impact</th><th>Links</th></tr>
     </thead>
     <tbody>${recsHtml}</tbody>
   </table>
 
   <h2>Feature Adoption Matrix</h2>
   ${matrixHtml}
+
+  <div class="info-popup-overlay" id="infoOverlay">
+    <div class="info-popup">
+      <h3 id="infoTitle"></h3>
+      <p id="infoDesc"></p>
+      <div id="infoShortcuts"></div>
+      <button class="close-btn" id="infoClose">Close</button>
+    </div>
+  </div>
 
   <script>
     const vscode = acquireVsCodeApi();
@@ -190,6 +270,29 @@ export class DashboardPanel {
       if (link) {
         e.preventDefault();
         vscode.postMessage({ command: 'implement', featureID: link.dataset.implement });
+      }
+      const infoBtn = e.target.closest('.info-icon');
+      if (infoBtn) {
+        e.preventDefault();
+        document.getElementById('infoTitle').textContent = infoBtn.dataset.name;
+        document.getElementById('infoDesc').textContent = infoBtn.dataset.desc;
+        const stepsEl = document.getElementById('infoShortcuts');
+        const steps = JSON.parse(infoBtn.dataset.steps || '[]');
+        if (steps.length > 0) {
+          stepsEl.innerHTML = '<div class="shortcuts-label">Setup &amp; Shortcuts</div><ul>' +
+            steps.map(s => '<li>' + s + '</li>').join('') + '</ul>';
+        } else {
+          stepsEl.innerHTML = '';
+        }
+        document.getElementById('infoOverlay').classList.add('visible');
+      }
+    });
+    document.getElementById('infoClose').addEventListener('click', () => {
+      document.getElementById('infoOverlay').classList.remove('visible');
+    });
+    document.getElementById('infoOverlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        document.getElementById('infoOverlay').classList.remove('visible');
       }
     });
   </script>
@@ -217,22 +320,39 @@ export class DashboardPanel {
 
       html += `<h3>${escapeHtml(cat)} <small>${used}/${catFeatures.length}</small></h3>`;
       html += `<div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
-      html += '<table><thead><tr><th>Feature</th><th>Status</th></tr></thead><tbody>';
+      html += '<table><thead><tr><th>Feature</th><th>Status</th><th>Links</th></tr></thead><tbody>';
       const impl = implementableFeatures();
       for (const f of catFeatures) {
         const isUsed = usedIDs.has(f.id);
-        const canSetup = !isUsed && impl.has(f.id);
         const status = isUsed ? '✅ Using' : '⬜ Not detected';
-        const setupLink = canSetup
-          ? ` <a class="setup-link" data-implement="${f.id}" title="Let Copilot help you set this up">▶ Set up</a>`
-          : '';
-        html += `<tr><td>${escapeHtml(f.name)}</td><td>${status}${setupLink}</td></tr>`;
+        const infoIcon = buildInfoIcon(f);
+        html += `<tr><td>${escapeHtml(f.name)}${infoIcon}</td><td>${status}</td><td>${buildLinksCell(f.id, f.docsURL, impl)}</td></tr>`;
       }
       html += '</tbody></table>';
     }
 
     return html;
   }
+}
+
+function buildLinksCell(featureID: string, docsURL: string, impl: Set<string>, tutorialURL?: string): string {
+  const links: string[] = [];
+  if (docsURL) {
+    links.push(`<a href="${docsURL}" title="Documentation">📖 Docs</a>`);
+  }
+  if (tutorialURL) {
+    links.push(`<a href="${tutorialURL}" title="Tutorial">🎓 Tutorial</a>`);
+  }
+  if (impl.has(featureID)) {
+    links.push(`<a class="setup-link" data-implement="${featureID}" title="Let Copilot help you set this up">▶ Set up</a>`);
+  }
+  return links.length > 0 ? `<span class="links-cell">${links.join(' ')}</span>` : '';
+}
+
+function buildInfoIcon(f: Feature): string {
+  const desc = escapeHtml(f.description);
+  const steps = JSON.stringify(f.setupSteps.map(s => escapeHtml(s)));
+  return ` <span class="info-icon" data-name="${escapeHtml(f.name)}" data-desc="${desc}" data-steps='${steps}' title="More info">i</span>`;
 }
 
 function escapeHtml(text: string): string {
