@@ -14,7 +14,7 @@ import { RecommendationTreeProvider } from './views/recommendationTree';
 import { StatusBarManager } from './views/statusBar';
 import { DashboardPanel } from './views/dashboardPanel';
 import { SettingsPanel } from './views/settingsPanel';
-import { Recommendation } from './core/agents';
+import { Recommendation, buildRecommendation } from './core/agents';
 
 let statusBar: StatusBarManager;
 let featureTree: FeatureTreeProvider;
@@ -173,7 +173,23 @@ function handleFeatureCatalog(): void {
   vscode.commands.executeCommand('copilotEnabler.features.focus');
 }
 
-async function handleImplement(rec?: Recommendation): Promise<void> {
+async function handleImplement(arg?: Recommendation | { recommendation: Recommendation } | { featureID: string }): Promise<void> {
+  // When invoked from a tree view context menu, VS Code passes the TreeItem
+  // (RecommendationItem) which wraps the Recommendation in a .recommendation property.
+  // When invoked from the dashboard webview, we receive { featureID }.
+  let rec: Recommendation | undefined;
+  if (arg && 'recommendation' in arg) {
+    rec = arg.recommendation;
+  } else if (arg && 'featureID' in arg && !('matrixScore' in arg)) {
+    // From dashboard webview — look up the feature and build a minimal rec
+    const feature = catalog().find((f) => f.id === arg.featureID);
+    if (feature) {
+      rec = buildRecommendation(feature, 'Set up');
+    }
+  } else {
+    rec = arg as Recommendation | undefined;
+  }
+
   if (!rec) {
     // No recommendation passed — let user pick one
     if (!lastResult) {
