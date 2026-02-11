@@ -66,16 +66,12 @@ export class DashboardPanel {
     const recsHtml = result.topRecommendations
       .map(
         (rec, i) => {
-          const titleHtml = impl.has(rec.featureID)
-            ? `<a class="setup-link rec-setup" data-implement="${rec.featureID}" title="Let Copilot help you set this up">${escapeHtml(rec.title)} ▶</a>`
-            : escapeHtml(rec.title);
           return `
         <tr>
           <td>${i + 1}.</td>
-          <td>${rec.stars}</td>
-          <td>${titleHtml}</td>
+          <td>${escapeHtml(rec.title)}</td>
           <td><span class="badge badge-${rec.impact}">${rec.impact}</span></td>
-          <td><a href="${rec.docsURL}">Docs</a></td>
+          <td>${buildLinksCell(rec.featureID, rec.docsURL, impl)}</td>
         </tr>`;
         },
       )
@@ -157,7 +153,8 @@ export class DashboardPanel {
       margin-left: 6px;
     }
     .setup-link:hover { text-decoration: underline; }
-    .rec-setup { font-size: 1em; margin-left: 0; }
+    .links-cell { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .links-cell a { white-space: nowrap; }
     .info-icon {
       cursor: pointer;
       display: inline-flex;
@@ -249,7 +246,7 @@ export class DashboardPanel {
   <h2>🔥 Top Recommendations</h2>
   <table>
     <thead>
-      <tr><th>#</th><th>Rating</th><th>Recommendation</th><th>Impact</th><th>Docs</th></tr>
+      <tr><th>#</th><th>Recommendation</th><th>Impact</th><th>Links</th></tr>
     </thead>
     <tbody>${recsHtml}</tbody>
   </table>
@@ -323,23 +320,33 @@ export class DashboardPanel {
 
       html += `<h3>${escapeHtml(cat)} <small>${used}/${catFeatures.length}</small></h3>`;
       html += `<div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
-      html += '<table><thead><tr><th>Feature</th><th>Status</th></tr></thead><tbody>';
+      html += '<table><thead><tr><th>Feature</th><th>Status</th><th>Links</th></tr></thead><tbody>';
       const impl = implementableFeatures();
       for (const f of catFeatures) {
         const isUsed = usedIDs.has(f.id);
-        const canSetup = !isUsed && impl.has(f.id);
         const status = isUsed ? '✅ Using' : '⬜ Not detected';
-        const setupLink = canSetup
-          ? ` <a class="setup-link" data-implement="${f.id}" title="Let Copilot help you set this up">▶ Set up</a>`
-          : '';
         const infoIcon = buildInfoIcon(f);
-        html += `<tr><td>${escapeHtml(f.name)}${infoIcon}</td><td>${status}${setupLink}</td></tr>`;
+        html += `<tr><td>${escapeHtml(f.name)}${infoIcon}</td><td>${status}</td><td>${buildLinksCell(f.id, f.docsURL, impl)}</td></tr>`;
       }
       html += '</tbody></table>';
     }
 
     return html;
   }
+}
+
+function buildLinksCell(featureID: string, docsURL: string, impl: Set<string>, tutorialURL?: string): string {
+  const links: string[] = [];
+  if (docsURL) {
+    links.push(`<a href="${docsURL}" title="Documentation">📖 Docs</a>`);
+  }
+  if (tutorialURL) {
+    links.push(`<a href="${tutorialURL}" title="Tutorial">🎓 Tutorial</a>`);
+  }
+  if (impl.has(featureID)) {
+    links.push(`<a class="setup-link" data-implement="${featureID}" title="Let Copilot help you set this up">▶ Set up</a>`);
+  }
+  return links.length > 0 ? `<span class="links-cell">${links.join(' ')}</span>` : '';
 }
 
 function buildInfoIcon(f: Feature): string {
