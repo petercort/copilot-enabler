@@ -128,39 +128,21 @@ Three specialized agents evaluate different dimensions of Copilot adoption:
 
 ---
 
-## 🧪 Testing
-
-```sh
-npm test
-```
-
-Tests cover the feature catalog, agent helpers, prompt definitions, and log scanner.
-
----
-
 ## 🛠 Development
 
 ```sh
-# Install dependencies
+# 1. Install dependencies
 npm install
 
-# Compile
+# 2. Compile TypeScript
 npm run compile
 
-# Watch mode
-npm run watch
+# 3. Package as a .vsix file (install vsce first if you don't have it)
+npm install -g @vscode/vsce
+vsce package
 
-# Lint
-npm run lint
-
-# Run tests
-npm test
-```
-
-### Building a VSIX
-
-```sh
-npx @vscode/vsce package
+# 4. Install the generated .vsix in VS Code
+code --install-extension copilot-enabler-0.1.0.vsix
 ```
 
 ---
