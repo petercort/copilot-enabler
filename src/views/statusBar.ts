@@ -10,7 +10,7 @@ export class StatusBarManager {
       vscode.StatusBarAlignment.Right,
       100,
     );
-    this.statusBarItem.command = 'developerEnabler.analyze';
+    this.statusBarItem.command = 'copilotEnabler.analyze';
     this.statusBarItem.tooltip = 'Copilot Enabler — Click to run analysis';
     this.statusBarItem.text = '$(pulse) Copilot: --/100';
     this.statusBarItem.show();

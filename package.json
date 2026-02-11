@@ -53,6 +53,25 @@
         "command": "copilotEnabler.refresh",
         "title": "Copilot Enabler: Refresh Analysis",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "copilotEnabler.hideFeature",
+        "title": "Copilot Enabler: Hide Feature",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "copilotEnabler.unhideFeature",
+        "title": "Copilot Enabler: Unhide Feature",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "copilotEnabler.resetHiddenFeatures",
+        "title": "Copilot Enabler: Reset Hidden Features"
+      },
+      {
+        "command": "copilotEnabler.settings",
+        "title": "Copilot Enabler: Settings",
+        "icon": "$(gear)"
       }
     ],
     "viewsContainers": {
@@ -82,6 +101,11 @@
           "command": "copilotEnabler.refresh",
           "when": "view == copilotEnabler.features || view == copilotEnabler.recommendations",
           "group": "navigation"
+        },
+        {
+          "command": "copilotEnabler.settings",
+          "when": "view == copilotEnabler.features || view == copilotEnabler.recommendations",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -89,8 +113,26 @@
           "command": "copilotEnabler.implement",
           "when": "view == copilotEnabler.recommendations && viewItem == implementable",
           "group": "inline"
+        },
+        {
+          "command": "copilotEnabler.hideFeature",
+          "when": "view == copilotEnabler.features && viewItem =~ /^feature/",
+          "group": "inline"
         }
       ]
+    },
+    "configuration": {
+      "title": "Copilot Enabler",
+      "properties": {
+        "copilotEnabler.hiddenFeatures": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Feature IDs to hide from analysis, recommendations, and tree views. Use the context menu on features to hide/unhide them, or the command palette to reset."
+        }
+      }
     },
     "walkthroughs": [
       {

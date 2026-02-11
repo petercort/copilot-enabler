@@ -6,8 +6,7 @@ export type Category =
   | 'Chat'
   | 'Completion'
   | 'Customization'
-  | 'Context'
-  | 'Settings';
+  | 'Context';
 
 /** AllCategories returns every category in display order. */
 export const allCategories: Category[] = [
@@ -16,7 +15,6 @@ export const allCategories: Category[] = [
   'Completion',
   'Customization',
   'Context',
-  'Settings',
 ];
 
 /** Feature describes a single Copilot capability. */
@@ -150,6 +148,26 @@ export function catalog(): Feature[] {
       ],
     },
     {
+      id: 'setting-model-selection',
+      name: 'Model Selection',
+      category: 'Chat',
+      description:
+        'Choose which AI model Copilot uses for suggestions and chat responses.',
+      docsURL:
+        'https://code.visualstudio.com/docs/copilot/copilot-settings',
+      detectHints: [
+        'github.copilot-chat.models',
+        'model selection',
+        'modelSelection',
+      ],
+      tags: ['advanced'],
+      impact: 'high',
+      difficulty: 'low',
+      setupSteps: [
+        'Click the model name in the Copilot Chat panel header to switch models.',
+      ],
+    },
+    {
       id: 'chat-participant-workspace',
       name: '@workspace Participant',
       category: 'Chat',
@@ -159,7 +177,7 @@ export function catalog(): Feature[] {
         'https://code.visualstudio.com/docs/copilot/chat/copilot-chat#_chat-participants',
       detectHints: ['@workspace'],
       tags: ['core', 'context'],
-      impact: 'high',
+      impact: 'medium',
       difficulty: 'low',
       setupSteps: [
         'Type @workspace in the chat panel followed by your question.',
@@ -191,7 +209,7 @@ export function catalog(): Feature[] {
         'https://code.visualstudio.com/docs/copilot/chat/copilot-chat#_chat-participants',
       detectHints: ['@vscode'],
       tags: ['core'],
-      impact: 'medium',
+      impact: 'low',
       difficulty: 'low',
       setupSteps: [
         'Type @vscode in the chat panel to ask about editor configuration.',
@@ -231,7 +249,7 @@ export function catalog(): Feature[] {
       detectHints: ['next edit', 'nextEdit', 'NES', 'github.copilot.nexteditsuggestions', 'nexteditsuggestions.enabled'],
       tags: ['advanced', 'new'],
       impact: 'low',
-      difficulty: 'medium',
+      difficulty: 'low',
       setupSteps: [
         'Enable in settings: github.copilot.nextEditSuggestions.enabled = true',
         "Copilot will highlight the next location it thinks you'll edit.",
@@ -395,7 +413,7 @@ export function catalog(): Feature[] {
         'https://code.visualstudio.com/docs/copilot/chat/copilot-chat#_chat-variables',
       detectHints: ['#file'],
       tags: ['core'],
-      impact: 'high',
+      impact: 'medium',
       difficulty: 'low',
       setupSteps: [
         'Type #file: in the chat panel and select a file from the picker.',
@@ -427,26 +445,10 @@ export function catalog(): Feature[] {
         'https://code.visualstudio.com/docs/copilot/chat/copilot-chat#_chat-variables',
       detectHints: ['#codebase'],
       tags: ['advanced'],
-      impact: 'high',
-      difficulty: 'low',
-      setupSteps: [
-        'Type #codebase in the chat panel — Copilot will search the full project for relevant code.',
-      ],
-    },
-    {
-      id: 'context-terminal-last',
-      name: '#terminalLastCommand Variable',
-      category: 'Context',
-      description:
-        'Reference the output of your last terminal command in chat for debugging help.',
-      docsURL:
-        'https://code.visualstudio.com/docs/copilot/chat/copilot-chat#_chat-variables',
-      detectHints: ['#terminalLastCommand'],
-      tags: ['core'],
       impact: 'medium',
       difficulty: 'low',
       setupSteps: [
-        'Run a command in the terminal, then type #terminalLastCommand in chat.',
+        'Type #codebase in the chat panel — Copilot will search the full project for relevant code.',
       ],
     },
     {
@@ -489,58 +491,26 @@ export function catalog(): Feature[] {
         'Copilot Agent mode will automatically discover and use configured MCP tools.',
       ],
     },
-    // ── Settings ──
-    {
-      id: 'setting-model-selection',
-      name: 'Model Selection',
-      category: 'Settings',
-      description:
-        'Choose which AI model Copilot uses for suggestions and chat responses.',
-      docsURL:
-        'https://code.visualstudio.com/docs/copilot/copilot-settings',
-      detectHints: [
-        'github.copilot-chat.models',
-        'model selection',
-        'modelSelection',
-      ],
-      tags: ['advanced'],
-      impact: 'medium',
-      difficulty: 'low',
-      setupSteps: [
-        'Click the model name in the Copilot Chat panel header to switch models.',
-      ],
-    },
-    {
-      id: 'setting-suggestion-delay',
-      name: 'Suggestion Delay',
-      category: 'Settings',
-      description:
-        'Control how quickly inline suggestions appear after you stop typing.',
-      docsURL:
-        'https://code.visualstudio.com/docs/copilot/copilot-settings',
-      detectHints: ['editor.inlineSuggest.delay', 'inlineSuggestDelay'],
-      tags: ['core'],
-      impact: 'low',
-      difficulty: 'low',
-      setupSteps: [
-        'Open settings and search for editor.inlineSuggest to adjust timing.',
-      ],
-    },
-    {
-      id: 'setting-editor-inline',
-      name: 'Inline Suggest Settings',
-      category: 'Settings',
-      description:
-        'Fine-tune how inline suggestions are displayed — font style, show on hover, etc.',
-      docsURL:
-        'https://code.visualstudio.com/docs/copilot/copilot-settings',
-      detectHints: ['editor.inlineSuggest'],
-      tags: ['core'],
-      impact: 'low',
-      difficulty: 'low',
-      setupSteps: [
-        'Search for editor.inlineSuggest in VS Code settings to see all options.',
-      ],
-    },
   ];
+}
+
+/** Returns the set of feature IDs the user has hidden via settings. Uses vscode API when available. */
+export function getHiddenFeatureIDs(): Set<string> {
+  try {
+    // Dynamic import to avoid breaking non-vscode test environments
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const vscode = require('vscode');
+    const config = vscode.workspace.getConfiguration('copilotEnabler');
+    const hidden: string[] = config.get('hiddenFeatures', []);
+    return new Set(hidden);
+  } catch {
+    return new Set();
+  }
+}
+
+/** Returns the catalog filtered to only visible (non-hidden) features. */
+export function visibleCatalog(): Feature[] {
+  const hidden = getHiddenFeatureIDs();
+  if (hidden.size === 0) { return catalog(); }
+  return catalog().filter((f) => !hidden.has(f.id));
 }

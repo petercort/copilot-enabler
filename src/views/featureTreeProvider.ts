@@ -1,7 +1,7 @@
 // Feature Catalog TreeView — port of handleFeatureCatalog() from cli.go
 
 import * as vscode from 'vscode';
-import { Feature, Category, allCategories, featuresByCategory, catalog } from '../core/featureCatalog';
+import { Feature, Category, allCategories, featuresByCategory, visibleCatalog, getHiddenFeatureIDs } from '../core/featureCatalog';
 
 type TreeItem = CategoryItem | FeatureItem;
 
@@ -18,7 +18,7 @@ class CategoryItem extends vscode.TreeItem {
   }
 }
 
-class FeatureItem extends vscode.TreeItem {
+export class FeatureItem extends vscode.TreeItem {
   constructor(
     public readonly feature: Feature,
     public readonly detected: boolean,
@@ -60,7 +60,7 @@ export class FeatureTreeProvider implements vscode.TreeDataProvider<TreeItem> {
   getChildren(element?: TreeItem): TreeItem[] {
     if (!element) {
       // Root: return categories
-      const features = catalog();
+      const features = visibleCatalog();
       const byCat = featuresByCategory(features);
       return allCategories
         .filter((cat) => (byCat.get(cat)?.length ?? 0) > 0)

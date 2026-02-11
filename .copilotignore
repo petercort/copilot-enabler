@@ -1,0 +1,24 @@
+# Compiled output — duplicates src/
+out/
+
+# Dependencies
+node_modules/
+
+# Packaged extension binaries
+*.vsix
+
+# Auto-generated lock file
+package-lock.json
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Logs
+*.log
+
+# VS Code test runner artifacts
+.vscode-test/
+
+# OS files
+.DS_Store
