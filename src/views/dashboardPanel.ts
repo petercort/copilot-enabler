@@ -3,6 +3,7 @@
 import * as vscode from 'vscode';
 import { AnalysisResult } from '../core/analyzer';
 import { allCategories, featuresByCategory, visibleCatalog } from '../core/featureCatalog';
+import { implementableFeatures } from '../core/prompts';
 
 export class DashboardPanel {
   private static currentPanel: DashboardPanel | undefined;
@@ -17,6 +18,16 @@ export class DashboardPanel {
         DashboardPanel.currentPanel = undefined;
         for (const d of this.disposables) {
           d.dispose();
+        }
+      },
+      null,
+      this.disposables,
+    );
+
+    this.panel.webview.onDidReceiveMessage(
+      (message) => {
+        if (message.command === 'implement') {
+          vscode.commands.executeCommand('copilotEnabler.implement', { featureID: message.featureID });
         }
       },
       null,
@@ -39,7 +50,7 @@ export class DashboardPanel {
       'copilotEnablerDashboard',
       'Copilot Enabler — Scorecard',
       column || vscode.ViewColumn.One,
-      { enableScripts: false },
+      { enableScripts: true },
     );
 
     DashboardPanel.currentPanel = new DashboardPanel(panel, extensionUri);
@@ -133,6 +144,14 @@ export class DashboardPanel {
     .feature-item { padding: 2px 0; }
     .feature-used { color: #28a745; }
     .feature-unused { opacity: 0.6; }
+    .setup-link {
+      cursor: pointer;
+      color: var(--vscode-textLink-foreground, #3794ff);
+      text-decoration: none;
+      font-size: 0.85em;
+      margin-left: 6px;
+    }
+    .setup-link:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -163,6 +182,17 @@ export class DashboardPanel {
 
   <h2>Feature Adoption Matrix</h2>
   ${matrixHtml}
+
+  <script>
+    const vscode = acquireVsCodeApi();
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest('[data-implement]');
+      if (link) {
+        e.preventDefault();
+        vscode.postMessage({ command: 'implement', featureID: link.dataset.implement });
+      }
+    });
+  </script>
 </body>
 </html>`;
   }
@@ -188,9 +218,15 @@ export class DashboardPanel {
       html += `<h3>${escapeHtml(cat)} <small>${used}/${catFeatures.length}</small></h3>`;
       html += `<div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
       html += '<table><thead><tr><th>Feature</th><th>Status</th></tr></thead><tbody>';
+      const impl = implementableFeatures();
       for (const f of catFeatures) {
-        const status = usedIDs.has(f.id) ? '✅ Using' : '⬜ Not detected';
-        html += `<tr><td>${escapeHtml(f.name)}</td><td>${status}</td></tr>`;
+        const isUsed = usedIDs.has(f.id);
+        const canSetup = !isUsed && impl.has(f.id);
+        const status = isUsed ? '✅ Using' : '⬜ Not detected';
+        const setupLink = canSetup
+          ? ` <a class="setup-link" data-implement="${f.id}" title="Let Copilot help you set this up">▶ Set up</a>`
+          : '';
+        html += `<tr><td>${escapeHtml(f.name)}</td><td>${status}${setupLink}</td></tr>`;
       }
       html += '</tbody></table>';
     }
