@@ -62,17 +62,22 @@ export class DashboardPanel {
   }
 
   private getHtml(result: AnalysisResult): string {
+    const impl = implementableFeatures();
     const recsHtml = result.topRecommendations
       .map(
-        (rec, i) => `
+        (rec, i) => {
+          const titleHtml = impl.has(rec.featureID)
+            ? `<a class="setup-link rec-setup" data-implement="${rec.featureID}" title="Let Copilot help you set this up">${escapeHtml(rec.title)} ▶</a>`
+            : escapeHtml(rec.title);
+          return `
         <tr>
           <td>${i + 1}.</td>
           <td>${rec.stars}</td>
-          <td>${escapeHtml(rec.title)}</td>
+          <td>${titleHtml}</td>
           <td><span class="badge badge-${rec.impact}">${rec.impact}</span></td>
-          <td><span class="badge badge-${rec.difficulty}">${rec.difficulty}</span></td>
           <td><a href="${rec.docsURL}">Docs</a></td>
-        </tr>`,
+        </tr>`;
+        },
       )
       .join('');
 
@@ -152,6 +157,7 @@ export class DashboardPanel {
       margin-left: 6px;
     }
     .setup-link:hover { text-decoration: underline; }
+    .rec-setup { font-size: 1em; margin-left: 0; }
     .info-icon {
       cursor: pointer;
       display: inline-flex;
@@ -243,7 +249,7 @@ export class DashboardPanel {
   <h2>🔥 Top Recommendations</h2>
   <table>
     <thead>
-      <tr><th>#</th><th>Rating</th><th>Recommendation</th><th>Impact</th><th>Difficulty</th><th>Docs</th></tr>
+      <tr><th>#</th><th>Rating</th><th>Recommendation</th><th>Impact</th><th>Docs</th></tr>
     </thead>
     <tbody>${recsHtml}</tbody>
   </table>
