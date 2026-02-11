@@ -125,6 +125,8 @@ const REAL_LOG_LINES = {
     'Registering default platform agent...',
   gitInit:
     '[GitExtensionServiceImpl] Initializing Git extension service.',
+  chatModelRequest:
+    'request to https://proxy.example.com/v1/chat/completions finished with 200 | model: claude-sonnet-4-20250514 | tokens: 1234',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -403,6 +405,36 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
     expect(featureDetected(feature, hints)).toBe(true);
   });
 
+  test('setting-model-selection: detects "gpt-4o" model name in log text', () => {
+    const hints = new Map<string, boolean>();
+    detectHintsInText('request to api with model gpt-4o completed in 450ms', hints);
+    expect(hints.get('gpt-4o')).toBe(true);
+    const feature = byId('setting-model-selection');
+    expect(featureDetected(feature, hints)).toBe(true);
+  });
+
+  test('setting-model-selection: detects "claude-sonnet" model name in log text', () => {
+    const hints = new Map<string, boolean>();
+    detectHintsInText('chat response from claude-sonnet-4-20250514 received', hints);
+    expect(hints.get('claude-sonnet')).toBe(true);
+    const feature = byId('setting-model-selection');
+    expect(featureDetected(feature, hints)).toBe(true);
+  });
+
+  test('setting-model-selection: detects "languagemodel" from settings key', () => {
+    const hints = new Map<string, boolean>();
+    detectHintsInText('github.copilot.chat.languagemodel.override set to claude-sonnet-4', hints);
+    expect(hints.get('languagemodel')).toBe(true);
+    const feature = byId('setting-model-selection');
+    expect(featureDetected(feature, hints)).toBe(true);
+  });
+
+  test('setting-model-selection: detected via extension scanner hint', () => {
+    const extHints = hintsFrom(['model selection']);
+    const feature = byId('setting-model-selection');
+    expect(featureDetected(feature, extHints)).toBe(true);
+  });
+
   test('completion-multiline: detected via "completion" hint (inherent to inline completions)', () => {
     const hints = new Map<string, boolean>();
     detectHintsInText(REAL_LOG_LINES.fetchCompletions.toLowerCase(), hints);
@@ -503,6 +535,16 @@ describe('analyzeLogs — realistic log entries', () => {
     expect(summary.detectedHints.get('mcp.json')).toBe(true);
     // The feature should be detectable from log text now
     const feature = byId('skill-mcp-servers');
+    expect(featureDetected(feature, summary.detectedHints)).toBe(true);
+  });
+
+  test('detects model selection from chat model request entries', () => {
+    const entries: LogEntry[] = [
+      logEntry(REAL_LOG_LINES.chatModelRequest),
+    ];
+    const summary = analyzeLogs(entries);
+    expect(summary.detectedHints.get('claude-sonnet')).toBe(true);
+    const feature = byId('setting-model-selection');
     expect(featureDetected(feature, summary.detectedHints)).toBe(true);
   });
 
@@ -699,6 +741,13 @@ describe('Feature detection via scanner sources', () => {
     test('chat-panel detected from copilot-chat extension hint', () => {
       const extHints = hintsFrom(['copilot.chat']);
       const feature = byId('chat-panel');
+      expect(featureDetected(feature, extHints)).toBe(true);
+    });
+
+    test('setting-model-selection detected from copilot-chat extension hint', () => {
+      // The extensions scanner emits 'model selection' when github.copilot-chat is installed
+      const extHints = hintsFrom(['model selection']);
+      const feature = byId('setting-model-selection');
       expect(featureDetected(feature, extHints)).toBe(true);
     });
   });

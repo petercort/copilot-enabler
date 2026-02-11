@@ -53,12 +53,12 @@ export function runAnalysis(
     }
   }
 
-  // Deduplicate recommendations across agents
+  // Deduplicate recommendations across agents by feature ID
   const recSet = new Map<string, Recommendation>();
   for (const r of reports) {
     for (const rec of r.recommendations) {
-      if (!recSet.has(rec.title)) {
-        recSet.set(rec.title, rec);
+      if (!recSet.has(rec.featureID)) {
+        recSet.set(rec.featureID, rec);
       }
     }
   }

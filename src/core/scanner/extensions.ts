@@ -49,6 +49,7 @@ export function scanExtensions(): ExtensionsResult {
     } else if (lower === 'github.copilot-chat') {
       r.copilotChat = info;
       r.detectedHints.set('copilot.chat', true);
+      r.detectedHints.set('model selection', true);
     }
 
     if (lower.includes('mcp')) {

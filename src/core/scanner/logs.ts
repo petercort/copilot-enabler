@@ -33,7 +33,10 @@ const knownHints: string[] = [
   'copilot chat', 'ccreq', 'chat request', 'chat-panel',
   'inline chat', 'inlinechat',
   'quick chat', 'quickchat',
-  'model selection', 'modelselection',
+  'model selection', 'modelselection', 'languagemodel',
+  'gpt-4o', 'gpt-4-turbo', 'gpt-4.1',
+  'claude-sonnet', 'claude-opus', 'claude-haiku',
+  'o1-preview', 'o1-mini', 'o3-mini', 'o4-mini', 'gemini-2',
   // Participants & Context
   '@workspace', '@terminal', '@vscode',
   '#file', '#selection', '#codebase', '#problems',
