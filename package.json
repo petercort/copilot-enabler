@@ -1,0 +1,147 @@
+{
+  "name": "copilot-enabler",
+  "displayName": "Copilot Enabler",
+  "description": "Analyze and improve your GitHub Copilot adoption — discover unused features, get actionable recommendations, and implement them interactively.",
+  "version": "0.1.0",
+  "publisher": "petercort",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/petercort/copilot-enabler"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "copilot",
+    "adoption",
+    "github",
+    "ai",
+    "developer-productivity"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "copilotEnabler.analyze",
+        "title": "Copilot Enabler: Run Full Analysis",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "copilotEnabler.featureMatrix",
+        "title": "Copilot Enabler: Feature Matrix"
+      },
+      {
+        "command": "copilotEnabler.exportReport",
+        "title": "Copilot Enabler: Export Report"
+      },
+      {
+        "command": "copilotEnabler.featureCatalog",
+        "title": "Copilot Enabler: Browse Feature Catalog"
+      },
+      {
+        "command": "copilotEnabler.implement",
+        "title": "Copilot Enabler: Implement Recommendation"
+      },
+      {
+        "command": "copilotEnabler.refresh",
+        "title": "Copilot Enabler: Refresh Analysis",
+        "icon": "$(refresh)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "copilotEnabler",
+          "title": "Copilot Enabler",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "copilotEnabler": [
+        {
+          "id": "copilotEnabler.features",
+          "name": "Feature Catalog"
+        },
+        {
+          "id": "copilotEnabler.recommendations",
+          "name": "Recommendations"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "copilotEnabler.refresh",
+          "when": "view == copilotEnabler.features || view == copilotEnabler.recommendations",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "copilotEnabler.implement",
+          "when": "view == copilotEnabler.recommendations && viewItem == implementable",
+          "group": "inline"
+        }
+      ]
+    },
+    "walkthroughs": [
+      {
+        "id": "copilot-enabler-setup",
+        "title": "Maximize Your Copilot Usage",
+        "description": "Discover and adopt GitHub Copilot features to boost your productivity.",
+        "steps": [
+          {
+            "id": "run-analysis",
+            "title": "Run your first analysis",
+            "description": "Scan your environment to see which Copilot features you're using.\n[Run Analysis](command:copilotEnabler.analyze)",
+            "media": {
+              "markdown": "media/walkthrough/run-analysis.md"
+            }
+          },
+          {
+            "id": "review-score",
+            "title": "Review your adoption score",
+            "description": "Check the status bar and dashboard for your overall Copilot adoption score.",
+            "media": {
+              "markdown": "media/walkthrough/review-score.md"
+            }
+          },
+          {
+            "id": "implement-first",
+            "title": "Implement your first recommendation",
+            "description": "Let Copilot help you set up a recommended feature.\n[Implement](command:copilotEnabler.implement)",
+            "media": {
+              "markdown": "media/walkthrough/implement.md"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "test": "jest --config jest.config.js"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.3.0"
+  }
+}
