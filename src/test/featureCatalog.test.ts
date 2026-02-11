@@ -1,4 +1,13 @@
-import { catalog, featuresByCategory, featureIDs, allCategories, Feature } from '../core/featureCatalog';
+import { catalog, featuresByCategory, featureIDs, allCategories, Feature, visibleCatalog, getHiddenFeatureIDs } from '../core/featureCatalog';
+
+// Mock vscode module for tests
+jest.mock('vscode', () => ({
+  workspace: {
+    getConfiguration: jest.fn(() => ({
+      get: jest.fn(() => []),
+    })),
+  },
+}), { virtual: true });
 
 describe('Feature Catalog', () => {
   let features: Feature[];
@@ -7,8 +16,8 @@ describe('Feature Catalog', () => {
     features = catalog();
   });
 
-  test('catalog returns 31 features', () => {
-    expect(features.length).toBe(31);
+  test('catalog returns all features', () => {
+    expect(features.length).toBe(25);
   });
 
   test('every feature has required fields', () => {
@@ -59,5 +68,41 @@ describe('Feature Catalog', () => {
     for (const f of features) {
       expect(() => new URL(f.docsURL)).not.toThrow();
     }
+  });
+
+  test('visibleCatalog returns full catalog when no features hidden', () => {
+    const visible = visibleCatalog();
+    expect(visible.length).toBe(features.length);
+  });
+
+  test('visibleCatalog filters hidden features', () => {
+    // Override the vscode mock to return hidden features
+    const vscode = require('vscode');
+    vscode.workspace.getConfiguration.mockReturnValueOnce({
+      get: jest.fn(() => ['mode-edit', 'mode-agent']),
+    });
+
+    const visible = visibleCatalog();
+    expect(visible.length).toBe(features.length - 2);
+    expect(visible.find((f: Feature) => f.id === 'mode-edit')).toBeUndefined();
+    expect(visible.find((f: Feature) => f.id === 'mode-agent')).toBeUndefined();
+    expect(visible.find((f: Feature) => f.id === 'mode-ask')).toBeDefined();
+  });
+
+  test('getHiddenFeatureIDs returns empty set when no features hidden', () => {
+    const hidden = getHiddenFeatureIDs();
+    expect(hidden.size).toBe(0);
+  });
+
+  test('getHiddenFeatureIDs returns set of hidden IDs', () => {
+    const vscode = require('vscode');
+    vscode.workspace.getConfiguration.mockReturnValueOnce({
+      get: jest.fn(() => ['mode-edit', 'custom-instructions-file']),
+    });
+
+    const hidden = getHiddenFeatureIDs();
+    expect(hidden.size).toBe(2);
+    expect(hidden.has('mode-edit')).toBe(true);
+    expect(hidden.has('custom-instructions-file')).toBe(true);
   });
 });

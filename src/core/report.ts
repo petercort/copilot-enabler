@@ -1,7 +1,7 @@
 // Port of internal/report/markdown.go ExportMarkdown()
 
 import { AnalysisResult } from '../core/analyzer';
-import { allCategories, featuresByCategory, catalog } from '../core/featureCatalog';
+import { allCategories, featuresByCategory, visibleCatalog } from '../core/featureCatalog';
 
 /** Generate a markdown report string from an analysis result. */
 export function generateMarkdownReport(r: AnalysisResult): string {
@@ -44,7 +44,7 @@ export function generateMarkdownReport(r: AnalysisResult): string {
       usedIDs.add(f.id);
     }
   }
-  const features = catalog();
+  const features = visibleCatalog();
   const byCat = featuresByCategory(features);
   for (const cat of allCategories) {
     const catFeatures = byCat.get(cat) ?? [];

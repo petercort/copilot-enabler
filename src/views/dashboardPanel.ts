@@ -2,7 +2,7 @@
 
 import * as vscode from 'vscode';
 import { AnalysisResult } from '../core/analyzer';
-import { allCategories, featuresByCategory, catalog } from '../core/featureCatalog';
+import { allCategories, featuresByCategory, visibleCatalog } from '../core/featureCatalog';
 
 export class DashboardPanel {
   private static currentPanel: DashboardPanel | undefined;
@@ -36,7 +36,7 @@ export class DashboardPanel {
     }
 
     const panel = vscode.window.createWebviewPanel(
-      'developerEnablerDashboard',
+      'copilotEnablerDashboard',
       'Copilot Enabler — Scorecard',
       column || vscode.ViewColumn.One,
       { enableScripts: false },
@@ -175,7 +175,7 @@ export class DashboardPanel {
       }
     }
 
-    const features = catalog();
+    const features = visibleCatalog();
     const byCat = featuresByCategory(features);
     let html = '';
 

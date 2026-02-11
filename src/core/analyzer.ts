@@ -1,6 +1,6 @@
 // Port of internal/analyzer/analyzer.go
 
-import { catalog } from './featureCatalog';
+import { visibleCatalog } from './featureCatalog';
 import { allAgents, AgentReport, Recommendation } from './agents';
 import { LogEntry, LogSummary, SettingsResult, WorkspaceResult, ExtensionsResult, analyzeLogs } from './scanner';
 
@@ -21,7 +21,7 @@ export function runAnalysis(
   workspace: WorkspaceResult,
   extensions: ExtensionsResult,
 ): AnalysisResult {
-  const featureCatalog = catalog();
+  const featureCatalog = visibleCatalog();
   const logSummary = analyzeLogs(logEntries);
 
   const ctx = {
