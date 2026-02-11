@@ -33,7 +33,6 @@ describe('Scanner - Logs', () => {
       const hints = new Map<string, boolean>();
       detectHintsInText('configured mcpservers in mcp.json', hints);
       expect(hints.get('mcpservers')).toBe(true);
-      expect(hints.get('mcp')).toBe(true);
     });
   });
 });

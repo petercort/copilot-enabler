@@ -69,6 +69,7 @@ export async function scanWorkspace(): Promise<WorkspaceResult> {
     const relPath = vscode.workspace.asRelativePath(inf);
     r.filesFound.set(relPath, true);
     r.detectedHints.set('copilot-instructions.md', true);
+    r.detectedHints.set('modeinstructions', true);
   }
 
   return r;
