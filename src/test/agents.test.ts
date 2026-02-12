@@ -29,7 +29,7 @@ describe('Agent Helpers', () => {
     const feature: Feature = {
       id: 'test',
       name: 'Test Feature',
-      category: 'Modes',
+      category: 'Agents',
       description: 'test',
       docsURL: 'https://example.com',
       detectHints: ['ask mode', 'askMode'],
@@ -58,8 +58,8 @@ describe('Agent Helpers', () => {
   describe('featureNames', () => {
     test('returns names', () => {
       const features: Feature[] = [
-        { id: 'a', name: 'Alpha', category: 'Modes', description: '', docsURL: '', detectHints: [], tags: [], impact: 'low', difficulty: 'low', setupSteps: [] },
-        { id: 'b', name: 'Beta', category: 'Modes', description: '', docsURL: '', detectHints: [], tags: [], impact: 'low', difficulty: 'low', setupSteps: [] },
+        { id: 'a', name: 'Alpha', category: 'Agents', description: '', docsURL: '', detectHints: [], tags: [], impact: 'low', difficulty: 'low', setupSteps: [] },
+        { id: 'b', name: 'Beta', category: 'Agents', description: '', docsURL: '', detectHints: [], tags: [], impact: 'low', difficulty: 'low', setupSteps: [] },
       ];
       expect(featureNames(features)).toEqual(['Alpha', 'Beta']);
     });
@@ -109,7 +109,7 @@ describe('Agent Helpers', () => {
       const feature: Feature = {
         id: 'mode-agent',
         name: 'Agent Mode',
-        category: 'Modes',
+        category: 'Agents',
         description: 'Autonomous agent mode',
         docsURL: 'https://example.com',
         detectHints: ['agent mode'],

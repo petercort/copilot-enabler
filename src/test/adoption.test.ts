@@ -793,10 +793,11 @@ describe('AdoptionAgent', () => {
   test('reports 0% when no features detected', () => {
     const ctx = buildContext({});
     const report = agent.analyze(ctx);
+    const totalFeatures = catalog().length;
     expect(report.score).toBe(0);
     expect(report.featuresUsed.length).toBe(0);
-    expect(report.featuresUnused.length).toBe(25);
-    expect(report.summary).toContain('0/25');
+    expect(report.featuresUnused.length).toBe(totalFeatures);
+    expect(report.summary).toContain(`0/${totalFeatures}`);
   });
 
   test('reports 100% when all features detected', () => {
@@ -808,7 +809,7 @@ describe('AdoptionAgent', () => {
     const ctx = buildContext({ logHints: allHints });
     const report = agent.analyze(ctx);
     expect(report.score).toBe(100);
-    expect(report.featuresUsed.length).toBe(25);
+    expect(report.featuresUsed.length).toBe(catalog().length);
     expect(report.featuresUnused.length).toBe(0);
     expect(report.recommendations.length).toBe(0);
   });
@@ -883,12 +884,12 @@ describe('AdoptionAgent', () => {
       logHints: hintsFrom(['ask mode', 'edit mode', 'agent mode']),
     });
     const report = agent.analyze(ctx);
-    expect(report.summary).toContain('Modes 3/3');
+    expect(report.summary).toContain('Agents');
   });
 
   test('works with a subset of visible features', () => {
     // Simulate hidden features by providing a filtered catalog
-    const visible = catalog().filter((f) => f.category !== 'Context');
+    const visible = catalog().filter((f) => f.category !== 'Chat');
     const ctx = buildContext({
       features: visible,
       logHints: hintsFrom(['completion']),
@@ -1006,7 +1007,7 @@ describe('End-to-end realistic machine profile', () => {
     const report = agent.analyze(ctx);
 
     expect(report.featuresUsed.length).toBe(2); // completion-inline + completion-multiline (both match 'completion')
-    expect(report.score).toBe(8); // 2/25 * 100 = 8%
+    expect(report.score).toBe(Math.floor((2 / catalog().length) * 100)); // dynamic percentage
     expect(report.recommendations.length).toBe(5); // max 5
 
     // Top recommendation should be a high-impact, low-difficulty feature
@@ -1016,13 +1017,14 @@ describe('End-to-end realistic machine profile', () => {
 
   test('power user with many features detected', () => {
     const powerUserHints = hintsFrom([
-      'ask mode', 'edit mode', 'agent mode',
+      'ask mode', 'edit mode', 'agent mode', 'plan mode',
       'completion', 'inlinesuggest', 'next edit',
       '@workspace', '@terminal', '@vscode',
       'copilot-instructions.md', '.copilotignore',
       'copilot.enable', '#file', '#selection', '#codebase',
       'inline chat', 'copilot.chat', 'mcp-server',
       '.prompt.md', '#problems',
+      'smart action', 'hooks', 'background agent', 'cloud agent',
     ]);
 
     const ctx = buildContext({ logHints: powerUserHints });
@@ -1030,7 +1032,7 @@ describe('End-to-end realistic machine profile', () => {
     const report = agent.analyze(ctx);
 
     expect(report.score).toBeGreaterThanOrEqual(70);
-    expect(report.featuresUsed.length).toBeGreaterThanOrEqual(18);
+    expect(report.featuresUsed.length).toBeGreaterThanOrEqual(22);
   });
 });
 

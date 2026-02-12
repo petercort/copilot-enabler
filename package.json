@@ -174,7 +174,8 @@
     "watch": "tsc -watch -p ./",
     "lint": "eslint src --ext ts",
     "test": "jest --config jest.config.js",
-    "installextension": "vsce package && code --install-extension copilot-enabler-*.vsix"
+    "installextension": "vsce package && code --install-extension copilot-enabler-*.vsix",
+    "new-feature": "node scripts/new-feature.js"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

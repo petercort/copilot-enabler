@@ -351,8 +351,8 @@ function buildLinksCell(featureID: string, docsURL: string, impl: Set<string>, t
 
 function buildInfoIcon(f: Feature): string {
   const desc = escapeHtml(f.description);
-  const steps = JSON.stringify(f.setupSteps.map(s => escapeHtml(s)));
-  return ` <span class="info-icon" data-name="${escapeHtml(f.name)}" data-desc="${desc}" data-steps='${steps}' title="More info">i</span>`;
+  const steps = escapeHtml(JSON.stringify(f.setupSteps));
+  return ` <span class="info-icon" data-name="${escapeHtml(f.name)}" data-desc="${desc}" data-steps="${steps}" title="More info">i</span>`;
 }
 
 function escapeHtml(text: string): string {
