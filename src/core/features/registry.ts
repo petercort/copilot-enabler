@@ -27,10 +27,12 @@ import { contextSelection } from './context-selection';
 import { contextCodebase } from './context-codebase';
 import { contextProblems } from './context-problems';
 import { skillMcpServers } from './skill-mcp-servers';
+import { webSearch } from './context-web-search';
+// ── END IMPORTS ──
 
 /**
  * All registered feature definitions.
- * Import new feature files here and add them to the array.
+ * Import new feature files above the END IMPORTS marker, then add to the array.
  */
 export const allFeatureDefinitions: FeatureDefinition[] = [
   modeAsk,
@@ -58,6 +60,8 @@ export const allFeatureDefinitions: FeatureDefinition[] = [
   contextCodebase,
   contextProblems,
   skillMcpServers,
+  webSearch,
+  // ── END DEFINITIONS ──
 ];
 
 /**

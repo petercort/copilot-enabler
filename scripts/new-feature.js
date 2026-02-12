@@ -54,8 +54,9 @@ async function main() {
 
   rl.close();
 
-  // Generate filename
-  const filename = `${id}.ts`;
+  // Generate filename with category prefix (e.g., chat-inline, completion-nes)
+  const categoryPrefix = category.toLowerCase();
+  const filename = `${categoryPrefix}-${id}.ts`;
   const filepath = path.join(__dirname, '..', 'src', 'core', 'features', filename);
 
   // Generate feature definition
@@ -96,15 +97,23 @@ export const ${toCamelCase(id)} = defineFeature({
   const registryPath = path.join(__dirname, '..', 'src', 'core', 'features', 'registry.ts');
   let registryContent = fs.readFileSync(registryPath, 'utf8');
 
-  // Add import
-  const importStatement = `import { ${toCamelCase(id)} } from './${id}';\n`;
-  const importInsertPos = registryContent.indexOf('export const allFeatureDefinitions');
-  registryContent = registryContent.slice(0, importInsertPos) + importStatement + registryContent.slice(importInsertPos);
+  // Add import before the END IMPORTS sentinel
+  const importMarker = '// ── END IMPORTS ──';
+  const importStatement = `import { ${toCamelCase(id)} } from './${categoryPrefix}-${id}';\n`;
+  if (!registryContent.includes(importMarker)) {
+    console.error('❌ Could not find "// ── END IMPORTS ──" marker in registry.ts');
+    process.exit(1);
+  }
+  registryContent = registryContent.replace(importMarker, importStatement + importMarker);
 
-  // Add to array
-  const arrayInsertPos = registryContent.indexOf('// Features will be added here as they are migrated');
-  const featureEntry = `  ${toCamelCase(id)},\n  `;
-  registryContent = registryContent.slice(0, arrayInsertPos) + featureEntry + registryContent.slice(arrayInsertPos);
+  // Add to array before the END DEFINITIONS sentinel
+  const defMarker = '// ── END DEFINITIONS ──';
+  const featureEntry = `${toCamelCase(id)},\n  `;
+  if (!registryContent.includes(defMarker)) {
+    console.error('❌ Could not find "// ── END DEFINITIONS ──" marker in registry.ts');
+    process.exit(1);
+  }
+  registryContent = registryContent.replace(defMarker, featureEntry + defMarker);
 
   fs.writeFileSync(registryPath, registryContent);
   console.log(`✅ Updated registry.ts`);
