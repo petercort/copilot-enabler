@@ -2,19 +2,20 @@
 // This file is automatically updated when you run `npm run new-feature`
 
 import { FeatureDefinition } from './definition';
-import { modeAsk } from './mode-ask';
-import { modeEdit } from './mode-edit';
-import { modeAgent } from './mode-agent';
-import { chatPanel } from './chat-panel';
+import { modeAsk } from './agent-mode-ask';
+import { modeEdit } from './agent-mode-edit';
+import { modeAgent } from './agent-mode-agent';
+import { modePlan } from './agent-mode-plan';
+import { chatPanel } from './agent-chat-panel';
 import { chatInline } from './chat-inline';
 import { chatQuick } from './chat-quick';
-import { settingModelSelection } from './setting-model-selection';
-import { chatParticipantWorkspace } from './chat-participant-workspace';
-import { chatParticipantTerminal } from './chat-participant-terminal';
-import { chatParticipantVscode } from './chat-participant-vscode';
-import { completionInline } from './completion-inline';
-import { completionNes } from './completion-nes';
-import { completionMultiline } from './completion-multiline';
+import { settingModelSelection } from './chat-model-selection';
+import { chatParticipantWorkspace } from './agent-participant-workspace';
+import { chatParticipantTerminal } from './agent-participant-terminal';
+import { chatParticipantVscode } from './agent-participant-vscode';
+import { completionInline } from './chat-completion-inline';
+import { completionNes } from './chat-completion-nes';
+import { completionMultiline } from './chat-completion-multiline';
 import { customInstructionsFile } from './custom-instructions-file';
 import { customCopilotignore } from './custom-copilotignore';
 import { customLanguageEnable } from './custom-language-enable';
@@ -22,12 +23,17 @@ import { customModeInstructions } from './custom-mode-instructions';
 import { customPromptFiles } from './custom-prompt-files';
 import { customAgentSkills } from './custom-agent-skills';
 import { customAgents } from './custom-agents';
-import { contextFile } from './context-file';
-import { contextSelection } from './context-selection';
-import { contextCodebase } from './context-codebase';
-import { contextProblems } from './context-problems';
-import { skillMcpServers } from './skill-mcp-servers';
-import { webSearch } from './context-web-search';
+import { customHooks } from './custom-hooks';
+import { contextFile } from './chat-context-file';
+import { contextSelection } from './chat-context-selection';
+import { contextCodebase } from './chat-context-codebase';
+import { contextProblems } from './chat-context-problems';
+import { skillMcpServers } from './custom-mcp-servers';
+import { webSearch } from './chat-web-search';
+import { runSubAgent } from './agent-subagent';
+import { smartActions } from './chat-smart-actions';
+import { agentBackground } from './agent-background';
+import { agentCloud } from './agent-cloud';
 // ── END IMPORTS ──
 
 /**
@@ -35,32 +41,41 @@ import { webSearch } from './context-web-search';
  * Import new feature files above the END IMPORTS marker, then add to the array.
  */
 export const allFeatureDefinitions: FeatureDefinition[] = [
+  // ── Agents ──
+  modeAgent,
   modeAsk,
   modeEdit,
-  modeAgent,
+  modePlan,
   chatPanel,
-  chatInline,
-  chatQuick,
-  settingModelSelection,
+  runSubAgent,
+  agentBackground,
+  agentCloud,
   chatParticipantWorkspace,
   chatParticipantTerminal,
   chatParticipantVscode,
+  // ── Chat ──
+  chatInline,
+  chatQuick,
+  smartActions,
   completionInline,
-  completionNes,
   completionMultiline,
-  customInstructionsFile,
-  customCopilotignore,
-  customLanguageEnable,
-  customModeInstructions,
-  customPromptFiles,
-  customAgentSkills,
-  customAgents,
+  completionNes,
+  settingModelSelection,
   contextFile,
   contextSelection,
   contextCodebase,
   contextProblems,
-  skillMcpServers,
   webSearch,
+  // ── Customization ──
+  customInstructionsFile,
+  customModeInstructions,
+  customPromptFiles,
+  customAgentSkills,
+  customAgents,
+  skillMcpServers,
+  customHooks,
+  customCopilotignore,
+  customLanguageEnable,
   // ── END DEFINITIONS ──
 ];
 

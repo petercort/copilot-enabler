@@ -884,12 +884,12 @@ describe('AdoptionAgent', () => {
       logHints: hintsFrom(['ask mode', 'edit mode', 'agent mode']),
     });
     const report = agent.analyze(ctx);
-    expect(report.summary).toContain('Modes 3/3');
+    expect(report.summary).toContain('Agents');
   });
 
   test('works with a subset of visible features', () => {
     // Simulate hidden features by providing a filtered catalog
-    const visible = catalog().filter((f) => f.category !== 'Context');
+    const visible = catalog().filter((f) => f.category !== 'Chat');
     const ctx = buildContext({
       features: visible,
       logHints: hintsFrom(['completion']),
@@ -1017,13 +1017,14 @@ describe('End-to-end realistic machine profile', () => {
 
   test('power user with many features detected', () => {
     const powerUserHints = hintsFrom([
-      'ask mode', 'edit mode', 'agent mode',
+      'ask mode', 'edit mode', 'agent mode', 'plan mode',
       'completion', 'inlinesuggest', 'next edit',
       '@workspace', '@terminal', '@vscode',
       'copilot-instructions.md', '.copilotignore',
       'copilot.enable', '#file', '#selection', '#codebase',
       'inline chat', 'copilot.chat', 'mcp-server',
       '.prompt.md', '#problems',
+      'smart action', 'hooks', 'background agent', 'cloud agent',
     ]);
 
     const ctx = buildContext({ logHints: powerUserHints });
@@ -1031,7 +1032,7 @@ describe('End-to-end realistic machine profile', () => {
     const report = agent.analyze(ctx);
 
     expect(report.score).toBeGreaterThanOrEqual(70);
-    expect(report.featuresUsed.length).toBeGreaterThanOrEqual(18);
+    expect(report.featuresUsed.length).toBeGreaterThanOrEqual(22);
   });
 });
 

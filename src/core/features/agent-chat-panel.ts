@@ -3,7 +3,7 @@ import { defineFeature } from './definition';
 export const chatPanel = defineFeature({
   id: 'chat-panel',
   name: 'Chat Panel',
-  category: 'Chat',
+  category: 'Agents',
   description:
     'Dedicated sidebar panel for extended conversations with Copilot.',
   docsURL:

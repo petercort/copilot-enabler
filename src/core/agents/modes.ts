@@ -3,14 +3,14 @@
 import { Agent, AgentReport, AnalysisContext } from './agent';
 import { mergeHints, featureDetected, featureNames, buildRecommendation } from './helpers';
 
-/** ModesAgent evaluates which Copilot interaction modes the user is engaging with. */
+/** AgentsAgent evaluates which Copilot agent features the user is engaging with. */
 export class ModesAgent implements Agent {
   name(): string {
-    return 'Modes';
+    return 'Agents';
   }
 
   description(): string {
-    return 'Analyzes Copilot mode usage (Ask / Edit / Agent)';
+    return 'Analyzes Copilot agent usage (Agent / Ask / Edit / Plan / Background / Cloud)';
   }
 
   analyze(ctx: AnalysisContext): AgentReport {
@@ -31,7 +31,7 @@ export class ModesAgent implements Agent {
     );
 
     for (const f of ctx.featureCatalog) {
-      if (f.category !== 'Modes') {
+      if (f.category !== 'Agents') {
         continue;
       }
       if (featureDetected(f, allHints)) {
@@ -52,9 +52,9 @@ export class ModesAgent implements Agent {
 
     const usedNames = featureNames(report.featuresUsed);
     if (usedNames.length === 0) {
-      report.summary = 'No Copilot mode usage detected yet. You have 3 powerful modes to explore!';
+      report.summary = 'No Copilot agent usage detected yet. Explore powerful agent features!';
     } else {
-      report.summary = `Using ${report.featuresUsed.length} of 3 modes: ${usedNames.join(', ')}.`;
+      report.summary = `Using ${report.featuresUsed.length} of ${total} agent features: ${usedNames.join(', ')}.`;
     }
 
     return report;

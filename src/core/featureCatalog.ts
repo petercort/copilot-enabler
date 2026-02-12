@@ -2,19 +2,15 @@
 
 /** Category represents a grouping of Copilot features. */
 export type Category =
-  | 'Modes'
+  | 'Agents'
   | 'Chat'
-  | 'Completion'
-  | 'Customization'
-  | 'Context';
+  | 'Customization';
 
 /** AllCategories returns every category in display order. */
 export const allCategories: Category[] = [
-  'Modes',
+  'Agents',
   'Chat',
-  'Completion',
   'Customization',
-  'Context',
 ];
 
 /** Feature describes a single Copilot capability. */

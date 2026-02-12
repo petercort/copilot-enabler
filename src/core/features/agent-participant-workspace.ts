@@ -3,7 +3,7 @@ import { defineFeature } from './definition';
 export const chatParticipantWorkspace = defineFeature({
   id: 'chat-participant-workspace',
   name: '@workspace Participant',
-  category: 'Chat',
+  category: 'Agents',
   description:
     "Chat participant that scopes Copilot's context to your entire workspace for project-wide questions.",
   docsURL:

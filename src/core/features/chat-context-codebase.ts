@@ -3,7 +3,7 @@ import { defineFeature } from './definition';
 export const contextCodebase = defineFeature({
   id: 'context-codebase',
   name: '#codebase Variable',
-  category: 'Context',
+  category: 'Chat',
   description:
     'Let Copilot search your entire codebase to find relevant context for your question.',
   docsURL:

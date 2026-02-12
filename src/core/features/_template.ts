@@ -6,7 +6,7 @@ import { defineFeature } from './definition';
 export const featureTemplate = defineFeature({
   id: 'your-feature-id',
   name: 'Your Feature Name',
-  category: 'Chat', // Modes | Chat | Completion | Customization | Context
+  category: 'Chat', // Agents | Chat | Customization
   description: 'A brief description of what this feature does and its benefits.',
   docsURL: 'https://code.visualstudio.com/docs/copilot/...',
   detectHints: [

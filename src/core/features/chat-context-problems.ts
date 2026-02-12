@@ -3,7 +3,7 @@ import { defineFeature } from './definition';
 export const contextProblems = defineFeature({
   id: 'context-problems',
   name: '#problems Variable',
-  category: 'Context',
+  category: 'Chat',
   description:
     'Reference current errors and warnings from the Problems panel in chat.',
   docsURL:

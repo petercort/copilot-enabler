@@ -3,7 +3,7 @@ import { defineFeature } from './definition';
 export const modeAgent = defineFeature({
   id: 'mode-agent',
   name: 'Agent Mode',
-  category: 'Modes',
+  category: 'Agents',
   description:
     'Autonomous agent mode — Copilot plans multi-step tasks, runs terminal commands, and edits multiple files.',
   docsURL: 'https://code.visualstudio.com/docs/copilot/chat/chat-modes',

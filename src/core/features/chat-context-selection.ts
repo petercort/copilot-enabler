@@ -3,7 +3,7 @@ import { defineFeature } from './definition';
 export const contextSelection = defineFeature({
   id: 'context-selection',
   name: '#selection Variable',
-  category: 'Context',
+  category: 'Chat',
   description:
     'Reference the currently selected code in chat for focused assistance.',
   docsURL:

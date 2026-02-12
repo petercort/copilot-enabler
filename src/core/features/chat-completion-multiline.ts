@@ -3,7 +3,7 @@ import { defineFeature } from './definition';
 export const completionMultiline = defineFeature({
   id: 'completion-multiline',
   name: 'Multi-line Completions',
-  category: 'Completion',
+  category: 'Chat',
   description:
     'Copilot generates multi-line code blocks including entire functions or control structures.',
   docsURL:

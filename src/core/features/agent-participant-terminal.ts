@@ -3,7 +3,7 @@ import { defineFeature } from './definition';
 export const chatParticipantTerminal = defineFeature({
   id: 'chat-participant-terminal',
   name: '@terminal Participant',
-  category: 'Chat',
+  category: 'Agents',
   description:
     'Chat participant specialized for terminal and shell command assistance.',
   docsURL:

@@ -3,7 +3,7 @@ import { defineFeature } from './definition';
 export const webSearch = defineFeature({
   id: 'web-search',
   name: 'Web Search',
-  category: 'Context',
+  category: 'Chat',
   description: 'Fetch information from the web',
   docsURL: 'https://code.visualstudio.com/docs/copilot/reference/copilot-vscode-features#_chat-tools',
   detectHints: ['fetch'],

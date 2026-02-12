@@ -3,7 +3,7 @@ import { defineFeature } from './definition';
 export const completionInline = defineFeature({
   id: 'completion-inline',
   name: 'Inline Suggestions',
-  category: 'Completion',
+  category: 'Chat',
   description:
     'Ghost-text code suggestions that appear as you type, accepted with Tab.',
   docsURL:

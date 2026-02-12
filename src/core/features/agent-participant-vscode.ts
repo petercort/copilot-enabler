@@ -3,7 +3,7 @@ import { defineFeature } from './definition';
 export const chatParticipantVscode = defineFeature({
   id: 'chat-participant-vscode',
   name: '@vscode Participant',
-  category: 'Chat',
+  category: 'Agents',
   description:
     'Chat participant for VS Code settings, keybindings, and editor configuration questions.',
   docsURL:

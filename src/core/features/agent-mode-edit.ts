@@ -3,7 +3,7 @@ import { defineFeature } from './definition';
 export const modeEdit = defineFeature({
   id: 'mode-edit',
   name: 'Edit Mode',
-  category: 'Modes',
+  category: 'Agents',
   description:
     'Direct editing mode — Copilot applies changes to your files in-place with a diff review before accepting.',
   docsURL: 'https://code.visualstudio.com/docs/copilot/chat/chat-modes',

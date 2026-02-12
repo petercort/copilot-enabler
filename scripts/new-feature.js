@@ -19,7 +19,7 @@ function question(prompt) {
   });
 }
 
-const categories = ['Modes', 'Chat', 'Completion', 'Customization', 'Context'];
+const categories = ['Agents', 'Chat', 'Customization'];
 const impacts = ['low', 'medium', 'high'];
 const difficulties = ['low', 'medium', 'high'];
 
@@ -32,7 +32,7 @@ async function main() {
   
   console.log('\nSelect category:');
   categories.forEach((cat, i) => console.log(`  ${i + 1}. ${cat}`));
-  const categoryIndex = parseInt(await question('Category (1-5): ')) - 1;
+  const categoryIndex = parseInt(await question('Category (1-3): ')) - 1;
   const category = categories[categoryIndex] || 'Chat';
 
   const description = await question('Brief description: ');

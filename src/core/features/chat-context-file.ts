@@ -3,7 +3,7 @@ import { defineFeature } from './definition';
 export const contextFile = defineFeature({
   id: 'context-file',
   name: '#file Variable',
-  category: 'Context',
+  category: 'Chat',
   description:
     'Reference a specific file in chat to give Copilot targeted context.',
   docsURL:

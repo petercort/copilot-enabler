@@ -3,7 +3,7 @@ import { defineFeature } from './definition';
 export const completionNes = defineFeature({
   id: 'completion-nes',
   name: 'Next Edit Suggestions (NES)',
-  category: 'Completion',
+  category: 'Chat',
   description:
     'Copilot predicts your next likely edit location and suggests changes proactively.',
   docsURL:
