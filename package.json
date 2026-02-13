@@ -159,7 +159,7 @@
           {
             "id": "implement-first",
             "title": "Implement your first recommendation",
-            "description": "Let Copilot help you set up a recommended feature.\n[Implement](command:copilotEnabler.implement)",
+            "description": "Try a recommended feature with Copilot.\n[Try it](command:copilotEnabler.implement)",
             "media": {
               "markdown": "media/walkthrough/implement.md"
             }
@@ -172,20 +172,21 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "lint": "eslint src --ext ts",
+    "lint": "eslint src/",
     "test": "jest --config jest.config.js",
     "installextension": "vsce package && code --install-extension copilot-enabler-*.vsix",
     "new-feature": "node scripts/new-feature.js"
   },
   "devDependencies": {
+    "@eslint/js": "^9.0.0",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.85.0",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
-    "eslint": "^8.56.0",
+    "eslint": "^9.0.0",
+    "globals": "^17.3.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.1.2",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "typescript-eslint": "^8.55.0"
   }
 }
