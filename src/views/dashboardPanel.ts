@@ -344,7 +344,7 @@ function buildLinksCell(featureID: string, docsURL: string, impl: Set<string>, t
     links.push(`<a href="${tutorialURL}" title="Tutorial">🎓 Tutorial</a>`);
   }
   if (impl.has(featureID)) {
-    links.push(`<a class="setup-link" data-implement="${featureID}" title="Let Copilot help you set this up">▶ Set up</a>`);
+    links.push(`<a class="setup-link" data-implement="${featureID}" title="Try this feature with Copilot">▶ Try it</a>`);
   }
   return links.length > 0 ? `<span class="links-cell">${links.join(' ')}</span>` : '';
 }
