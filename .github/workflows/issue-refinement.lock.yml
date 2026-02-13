@@ -28,6 +28,7 @@ name: "Issue Refinement Workflow"
   issues:
     types:
     - opened
+    - reopened
 
 permissions: {}
 
