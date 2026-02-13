@@ -21,13 +21,17 @@
 #
 # Refine GitHub issues by validating 'To-do' label, fetching Figma mockups, and gathering requirements
 #
-# frontmatter-hash: 61595d4e653445bb55709364b0e793ebc1c45ad138432bf6628685731a6e87c7
+# frontmatter-hash: 900bdd42b920a26e6755d58ccb72bf39ba4f08a87bc8a2da8f2d643008ea9581
 
 name: "Issue Refinement Workflow"
 "on":
+  issue_comment:
+    types:
+    - created
   issues:
     types:
     - opened
+    - reopened
 
 permissions: {}
 
