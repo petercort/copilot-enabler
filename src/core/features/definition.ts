@@ -9,6 +9,8 @@ import { Feature, Category } from '../featureCatalog';
 export interface FeatureDefinition extends Feature {
   /** Optional system prompt for interactive Copilot implementation sessions */
   systemPrompt?: string;
+  /** Optional tutorial prompt for interactive feature walkthroughs */
+  tutorialPrompt?: string;
 }
 
 /**
