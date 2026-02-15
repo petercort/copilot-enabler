@@ -50,6 +50,10 @@
         "title": "Copilot Enabler: Implement Recommendation"
       },
       {
+        "command": "copilotEnabler.showMe",
+        "title": "Copilot Enabler: Show Me Tutorial"
+      },
+      {
         "command": "copilotEnabler.refresh",
         "title": "Copilot Enabler: Refresh Analysis",
         "icon": "$(refresh)"

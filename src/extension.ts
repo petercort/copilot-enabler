@@ -8,7 +8,7 @@ import { scanExtensions } from './core/scanner/extensions';
 import { scanCopilotLogs } from './core/scanner/logs';
 import { catalog, getHiddenFeatureIDs } from './core/featureCatalog';
 import { generateMarkdownReport } from './core/report';
-import { implementableFeatures, systemPrompts } from './core/prompts';
+import { implementableFeatures, systemPrompts, tutorialPrompts } from './core/prompts';
 import { FeatureTreeProvider, FeatureItem } from './views/featureTreeProvider';
 import { RecommendationTreeProvider } from './views/recommendationTree';
 import { StatusBarManager } from './views/statusBar';
@@ -42,6 +42,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotEnabler.exportReport', () => handleExportReport()),
     vscode.commands.registerCommand('copilotEnabler.featureCatalog', () => handleFeatureCatalog()),
     vscode.commands.registerCommand('copilotEnabler.implement', (rec?: Recommendation) => handleImplement(rec)),
+    vscode.commands.registerCommand('copilotEnabler.showMe', (rec?: Recommendation) => handleShowMe(rec)),
     vscode.commands.registerCommand('copilotEnabler.refresh', () => handleAnalyze(context)),
     vscode.commands.registerCommand('copilotEnabler.hideFeature', (item?: FeatureItem) => handleHideFeature(context, item)),
     vscode.commands.registerCommand('copilotEnabler.unhideFeature', () => handleUnhideFeature(context)),
@@ -233,15 +234,19 @@ async function handleImplement(arg?: Recommendation | { recommendation: Recommen
     rec = picked.recommendation;
   }
 
+  // At this point, rec is guaranteed to be defined
+  const featureID = rec.featureID;
+  const title = rec.title;
+
   // Get the system prompt for this feature
-  const prompt = systemPrompts[rec.featureID];
+  const prompt = systemPrompts[featureID];
   if (!prompt) {
-    vscode.window.showErrorMessage(`No interactive implementation available for: ${rec.title}`);
+    vscode.window.showErrorMessage(`No interactive implementation available for: ${title}`);
     return;
   }
 
   // Open Copilot Chat with pre-filled message
-  const message = `I want to set up ${rec.title} for my project. Here's the context:\n\n${prompt}\n\nPlease start by reading my project context and then guide me through it.`;
+  const message = `I want to set up ${title} for my project. Here's the context:\n\n${prompt}\n\nPlease start by reading my project context and then guide me through it.`;
 
   // Try to send to Copilot Chat via command
   try {
@@ -252,7 +257,95 @@ async function handleImplement(arg?: Recommendation | { recommendation: Recommen
     // Fallback: copy prompt to clipboard
     await vscode.env.clipboard.writeText(message);
     vscode.window.showInformationMessage(
-      `Prompt copied to clipboard. Open Copilot Chat and paste it to get started with setting up ${rec.title}.`,
+      `Prompt copied to clipboard. Open Copilot Chat and paste it to get started with setting up ${title}.`,
+    );
+  }
+}
+
+async function handleShowMe(arg?: Recommendation | { recommendation: Recommendation } | { featureID: string }): Promise<void> {
+  // When invoked from a tree view context menu, VS Code passes the TreeItem
+  // (RecommendationItem) which wraps the Recommendation in a .recommendation property.
+  // When invoked from the dashboard webview, we receive { featureID }.
+  let rec: Recommendation | undefined;
+  if (arg && 'recommendation' in arg) {
+    rec = arg.recommendation;
+  } else if (arg && 'featureID' in arg && !('matrixScore' in arg)) {
+    // From dashboard webview — look up the feature and build a minimal rec
+    const feature = catalog().find((f) => f.id === arg.featureID);
+    if (feature) {
+      rec = buildRecommendation(feature, 'Show me');
+    }
+  } else {
+    rec = arg as Recommendation | undefined;
+  }
+
+  if (!rec) {
+    // No recommendation passed — let user pick one
+    if (!lastResult) {
+      vscode.window.showWarningMessage('Run a full analysis first.');
+      return;
+    }
+
+    const tutorialFeatureIDs = new Set(Object.keys(tutorialPrompts));
+    const tutorialable = lastResult.topRecommendations.filter((r) => tutorialFeatureIDs.has(r.featureID));
+
+    // Also check agent reports for more tutorialable recs
+    if (tutorialable.length === 0) {
+      for (const ar of lastResult.agentReports) {
+        for (const r of ar.recommendations) {
+          if (tutorialFeatureIDs.has(r.featureID) && !tutorialable.find((i) => i.featureID === r.featureID)) {
+            tutorialable.push(r);
+          }
+        }
+      }
+    }
+
+    if (tutorialable.length === 0) {
+      vscode.window.showInformationMessage('No tutorial walkthroughs available.');
+      return;
+    }
+
+    const items = tutorialable.map((r) => ({
+      label: `${r.stars} ${r.title}`,
+      description: r.description,
+      recommendation: r,
+    }));
+
+    const picked = await vscode.window.showQuickPick(items, {
+      placeHolder: 'Select a feature to learn about with Copilot',
+    });
+
+    if (!picked) {
+      return;
+    }
+
+    rec = picked.recommendation;
+  }
+
+  // At this point, rec is guaranteed to be defined
+  const featureID = rec.featureID;
+  const title = rec.title;
+
+  // Get the tutorial prompt for this feature
+  const prompt = tutorialPrompts[featureID];
+  if (!prompt) {
+    vscode.window.showErrorMessage(`No tutorial walkthrough available for: ${title}`);
+    return;
+  }
+
+  // Open Copilot Chat with the tutorial prompt
+  const message = prompt;
+
+  // Try to send to Copilot Chat via command
+  try {
+    await vscode.commands.executeCommand('workbench.action.chat.open', {
+      query: message,
+    });
+  } catch {
+    // Fallback: copy prompt to clipboard
+    await vscode.env.clipboard.writeText(message);
+    vscode.window.showInformationMessage(
+      `Tutorial prompt copied to clipboard. Open Copilot Chat and paste it to learn about ${title}.`,
     );
   }
 }
