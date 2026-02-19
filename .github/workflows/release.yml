@@ -2,15 +2,18 @@ name: Release
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    types: [closed]
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
-  bump-version:
+  prepare-release:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -25,16 +28,33 @@ jobs:
         id: version
         run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
-      - name: Commit version bump
+      - name: Create release branch and PR
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b release-${{ steps.version.outputs.version }}
           git add package.json package-lock.json
           git commit -m "chore: bump version to v${{ steps.version.outputs.version }}"
-          git push
+          git push origin release-${{ steps.version.outputs.version }}
+          gh pr create \
+            --title "Release v${{ steps.version.outputs.version }}" \
+            --body "## Release v${{ steps.version.outputs.version }}
+
+Bumps version to v${{ steps.version.outputs.version }}.
+
+Once merged, the release workflow will automatically:
+- Build and publish the extension to the VS Code Marketplace
+- Create a GitHub Release with the generated release notes and VSIX artifact" \
+            --base main \
+            --head release-${{ steps.version.outputs.version }}
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   build-and-release:
-    needs: bump-version
+    if: >
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release-')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -47,6 +67,10 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Install vsce
         run: npm install -g @vscode/vsce
@@ -62,7 +86,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
-          tag_name: v${{ needs.bump-version.outputs.version }}
-          name: v${{ needs.bump-version.outputs.version }}
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
           files: "*.vsix"
           generate_release_notes: true
