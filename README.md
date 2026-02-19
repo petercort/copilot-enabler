@@ -1,6 +1,7 @@
 # Copilot Enabler
 
 [![VS Code](https://img.shields.io/badge/VS%20Code-%5E1.85.0-blue?logo=visual-studio-code)](https://code.visualstudio.com/)
+![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/PeterCort.Copilot-enabler)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **Analyze and improve your GitHub Copilot adoption.** Discover unused features, get actionable recommendations, and implement them interactively — all from within VS Code.
