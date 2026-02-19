@@ -23,7 +23,7 @@ describe('Prompts', () => {
   });
 
   test('all prompt values are non-empty strings', () => {
-    for (const [key, prompt] of Object.entries(systemPrompts)) {
+    for (const [, prompt] of Object.entries(systemPrompts)) {
       expect(typeof prompt).toBe('string');
       expect(prompt.length).toBeGreaterThan(50);
     }
@@ -51,7 +51,7 @@ describe('Prompts', () => {
   });
 
   test('all tutorial prompt values are non-empty strings', () => {
-    for (const [key, prompt] of Object.entries(tutorialPrompts)) {
+    for (const [, prompt] of Object.entries(tutorialPrompts)) {
       expect(typeof prompt).toBe('string');
       expect(prompt.length).toBeGreaterThan(100);
     }

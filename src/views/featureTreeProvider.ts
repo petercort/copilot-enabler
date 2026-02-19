@@ -1,7 +1,7 @@
 // Feature Catalog TreeView — port of handleFeatureCatalog() from cli.go
 
 import * as vscode from 'vscode';
-import { Feature, Category, allCategories, featuresByCategory, visibleCatalog, getHiddenFeatureIDs } from '../core/featureCatalog';
+import { Feature, Category, allCategories, featuresByCategory, visibleCatalog } from '../core/featureCatalog';
 
 type TreeItem = CategoryItem | FeatureItem;
 
