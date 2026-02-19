@@ -38,13 +38,7 @@ jobs:
           git push origin release-${{ steps.version.outputs.version }}
           gh pr create \
             --title "Release v${{ steps.version.outputs.version }}" \
-            --body "## Release v${{ steps.version.outputs.version }}
-
-Bumps version to v${{ steps.version.outputs.version }}.
-
-Once merged, the release workflow will automatically:
-- Build and publish the extension to the VS Code Marketplace
-- Create a GitHub Release with the generated release notes and VSIX artifact" \
+            --body "## Release v${{ steps.version.outputs.version }}" \
             --base main \
             --head release-${{ steps.version.outputs.version }}
         env:
