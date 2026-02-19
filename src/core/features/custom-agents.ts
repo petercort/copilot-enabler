@@ -33,4 +33,17 @@ Your workflow:
 
 Make agent prompts specific to the project's language and conventions.
 Start by understanding the project.`,
+  tutorialPrompt: `I'd like to learn about Custom Agents (Chat Modes) in GitHub Copilot and how I can use them in my workspace.
+
+Please help me understand this feature by:
+1. First, scanning my workspace to understand what programming languages, frameworks, and tools I'm using
+2. Asking me about my development workflow and what kinds of tasks I do most often (e.g., code reviews, testing, documentation, deployment)
+3. Based on my responses, suggest 2-3 specific custom agents that would be most valuable for my project
+4. For each suggested agent, show me:
+   - What problem it solves in my specific context
+   - A concrete example of how I would use it in my daily work
+   - The /command I would use to invoke it in Copilot Chat
+5. If I'm interested, walk me through creating one of these custom agents step by step
+
+Please make this conversational and tailored to my actual workspace - don't just give generic examples.`,
 });
