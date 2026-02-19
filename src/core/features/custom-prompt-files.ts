@@ -32,4 +32,27 @@ tools: ["read_file", "write_file"]
 ---
 
 Start by understanding the project, then ask what prompts they want.`,
+  tutorialPrompt: `I'd like to learn about Reusable Prompt Files and how they can streamline my common development tasks.
+
+Please help me understand this feature by:
+1. First, examining my workspace to understand what kind of project I have and what development tasks I do regularly
+2. Explaining what .prompt.md files are and how they differ from just typing prompts into Copilot Chat
+3. Asking me about repetitive tasks or workflows I do often, such as:
+   - Code reviews with specific criteria
+   - Writing tests following certain patterns
+   - Generating documentation in a specific format
+   - Refactoring code following team conventions
+   - Creating components following architectural patterns
+4. Based on my responses, suggest 3-4 reusable prompt files that would save me time:
+   - What each prompt would do
+   - What mode it would run in (ask/edit/agent)
+   - What tools it would need access to
+   - The /command I'd use to invoke it
+5. For each suggested prompt, show me:
+   - A concrete example of when I'd use it
+   - What the .prompt.md file would look like (front-matter + prompt body)
+   - How it would be tailored to my specific project and conventions
+6. Walk me through creating one prompt file that would be most useful for my workflow
+
+Please make this specific to my actual codebase - understand what I'm building and what patterns would genuinely help.`,
 });

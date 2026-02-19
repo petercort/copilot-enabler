@@ -3,7 +3,7 @@
 import * as vscode from 'vscode';
 import { AnalysisResult } from '../core/analyzer';
 import { allCategories, Feature, featuresByCategory, visibleCatalog } from '../core/featureCatalog';
-import { implementableFeatures } from '../core/prompts';
+import { implementableFeatures, tutorialPrompts } from '../core/prompts';
 
 export class DashboardPanel {
   private static currentPanel: DashboardPanel | undefined;
@@ -28,6 +28,8 @@ export class DashboardPanel {
       (message) => {
         if (message.command === 'implement') {
           vscode.commands.executeCommand('copilotEnabler.implement', { featureID: message.featureID });
+        } else if (message.command === 'showMe') {
+          vscode.commands.executeCommand('copilotEnabler.showMe', { featureID: message.featureID });
         }
       },
       null,
@@ -63,6 +65,7 @@ export class DashboardPanel {
 
   private getHtml(result: AnalysisResult): string {
     const impl = implementableFeatures();
+    const tutorials = new Set(Object.keys(tutorialPrompts));
     const recsHtml = result.topRecommendations
       .map(
         (rec, i) => {
@@ -71,7 +74,7 @@ export class DashboardPanel {
           <td>${i + 1}.</td>
           <td>${escapeHtml(rec.title)}</td>
           <td><span class="badge badge-${rec.impact}">${rec.impact}</span></td>
-          <td>${buildLinksCell(rec.featureID, rec.docsURL, impl)}</td>
+          <td>${buildLinksCell(rec.featureID, rec.docsURL, impl, tutorials)}</td>
         </tr>`;
         },
       )
@@ -153,6 +156,14 @@ export class DashboardPanel {
       margin-left: 6px;
     }
     .setup-link:hover { text-decoration: underline; }
+    .tutorial-link {
+      cursor: pointer;
+      color: var(--vscode-textLink-foreground, #3794ff);
+      text-decoration: none;
+      font-size: 0.85em;
+      margin-left: 6px;
+    }
+    .tutorial-link:hover { text-decoration: underline; }
     .links-cell { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .links-cell a { white-space: nowrap; }
     .info-icon {
@@ -271,6 +282,11 @@ export class DashboardPanel {
         e.preventDefault();
         vscode.postMessage({ command: 'implement', featureID: link.dataset.implement });
       }
+      const showMeLink = e.target.closest('[data-show-me]');
+      if (showMeLink) {
+        e.preventDefault();
+        vscode.postMessage({ command: 'showMe', featureID: showMeLink.dataset.showMe });
+      }
       const infoBtn = e.target.closest('.info-icon');
       if (infoBtn) {
         e.preventDefault();
@@ -322,11 +338,12 @@ export class DashboardPanel {
       html += `<div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
       html += '<table><thead><tr><th>Feature</th><th>Status</th><th>Links</th></tr></thead><tbody>';
       const impl = implementableFeatures();
+      const tutorials = new Set(Object.keys(tutorialPrompts));
       for (const f of catFeatures) {
         const isUsed = usedIDs.has(f.id);
         const status = isUsed ? '✅ Using' : '⬜ Not detected';
         const infoIcon = buildInfoIcon(f);
-        html += `<tr><td>${escapeHtml(f.name)}${infoIcon}</td><td>${status}</td><td>${buildLinksCell(f.id, f.docsURL, impl)}</td></tr>`;
+        html += `<tr><td>${escapeHtml(f.name)}${infoIcon}</td><td>${status}</td><td>${buildLinksCell(f.id, f.docsURL, impl, tutorials)}</td></tr>`;
       }
       html += '</tbody></table>';
     }
@@ -335,13 +352,13 @@ export class DashboardPanel {
   }
 }
 
-function buildLinksCell(featureID: string, docsURL: string, impl: Set<string>, tutorialURL?: string): string {
+function buildLinksCell(featureID: string, docsURL: string, impl: Set<string>, tutorials?: Set<string>): string {
   const links: string[] = [];
   if (docsURL) {
     links.push(`<a href="${docsURL}" title="Documentation">📖 Docs</a>`);
   }
-  if (tutorialURL) {
-    links.push(`<a href="${tutorialURL}" title="Tutorial">🎓 Tutorial</a>`);
+  if (tutorials && tutorials.has(featureID)) {
+    links.push(`<a class="tutorial-link" data-show-me="${featureID}" title="Interactive tutorial tailored to your workspace">🎓 Show me</a>`);
   }
   if (impl.has(featureID)) {
     links.push(`<a class="setup-link" data-implement="${featureID}" title="Let Copilot help you set this up">▶ Set up</a>`);

@@ -34,4 +34,25 @@ Guidelines for the file:
 - Keep it 40-80 lines with markdown formatting
 
 Start immediately by reading the project context.`,
+  tutorialPrompt: `I'd like to learn about Custom Instructions Files and how they can improve Copilot's suggestions for my project.
+
+Please help me understand this feature by:
+1. First, analyzing my workspace to understand:
+   - What programming languages and frameworks I'm using
+   - My project structure and architecture
+   - Any existing README or documentation that might hint at coding standards
+2. Explaining how a .github/copilot-instructions.md file would make Copilot's suggestions more relevant to my specific project
+3. Showing me 3-5 concrete examples of things I could include, such as:
+   - Coding style preferences (e.g., "Use async/await instead of promises")
+   - Naming conventions for my specific domain
+   - Preferred libraries or patterns I use
+   - Error handling approaches
+   - Testing patterns
+4. For each example, show me:
+   - Why it's relevant to my specific codebase
+   - How it would change Copilot's behavior
+   - A sample instruction I could add
+5. If I'm interested, show me a preview of what a good copilot-instructions.md would look like for my project
+
+Please make this specific to my actual workspace - inspect my code to understand what would be most valuable.`,
 });
