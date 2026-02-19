@@ -12,8 +12,8 @@
  *  - Proxy URLs replaced with https://proxy.example.com/...
  */
 
-import { detectHintsInText, analyzeLogs, LogEntry, LogSummary } from '../core/scanner/logs';
-import { catalog, Feature, featuresByCategory, allCategories } from '../core/featureCatalog';
+import { detectHintsInText, analyzeLogs, LogEntry } from '../core/scanner/logs';
+import { catalog, Feature, allCategories } from '../core/featureCatalog';
 import {
   featureDetected,
   mergeHints,
@@ -21,7 +21,7 @@ import {
   buildRecommendation,
 } from '../core/agents/helpers';
 import { AdoptionAgent } from '../core/agents/adoption';
-import { AnalysisContext, AgentReport } from '../core/agents/agent';
+import { AnalysisContext } from '../core/agents/agent';
 
 // ─── Mock vscode ────────────────────────────────────────────────────────────
 jest.mock('vscode', () => ({

@@ -54,7 +54,6 @@ export function catalog(): Feature[] {
 export function getHiddenFeatureIDs(): Set<string> {
   try {
     // Dynamic import to avoid breaking non-vscode test environments
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const vscode = require('vscode');
     const config = vscode.workspace.getConfiguration('copilotEnabler');
     const hidden: string[] = config.get('hiddenFeatures', []);

@@ -182,11 +182,11 @@
     "new-feature": "node scripts/new-feature.js"
   },
   "devDependencies": {
-    "@eslint/js": "^9.0.0",
+    "@eslint/js": "^10.0.1",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.3.0",
     "@types/vscode": "^1.85.0",
-    "eslint": "^9.0.0",
+    "eslint": "^10.0.0",
     "globals": "^17.3.0",
     "jest": "^30.2.0",
     "ts-jest": "^29.1.2",

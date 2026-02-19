@@ -1,6 +1,6 @@
 // Feature definition type that bundles metadata, prompts, and detection logic
 
-import { Feature, Category } from '../featureCatalog';
+import { Feature } from '../featureCatalog';
 
 /**
  * FeatureDefinition extends the base Feature interface to include
