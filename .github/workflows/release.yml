@@ -1,8 +1,7 @@
 name: Release
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -54,6 +53,11 @@ jobs:
 
       - name: Build VSIX
         run: vsce package
+
+      - name: Publish to Marketplace
+        run: vsce publish
+        env:
+          VSCE_PAT: ${{ secrets.EXTENSION_PUBLISHER }}
 
       - name: Create Release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
