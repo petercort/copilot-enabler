@@ -14,16 +14,13 @@ Get an instant snapshot of your Copilot usage with an overall adoption score (0�
 
 ### 🔍 Feature Catalog
 
-Browse all **31 tracked Copilot features** organized across six categories:
+Browse all **27 tracked Copilot features** organized across three categories:
 
 | Category | Examples |
 |---|---|
-| **Modes** | Ask, Edit, Agent |
-| **Chat** | Panel, Inline, Quick, @workspace, @terminal, @vscode |
-| **Completion** | Inline Suggestions, Next Edit Suggestions (NES), Multi-line |
-| **Customization** | Instructions file, .copilotignore, Prompt files, MCP Servers, Custom Agents |
-| **Context** | #file, #selection, #codebase, #terminalLastCommand, #problems |
-| **Settings** | Model Selection, Suggestion Delay, Inline Suggest config |
+| **Core** | Ask Mode, Agent Mode, Plan Mode, Chat Panel, Subagent, Background Agents, Cloud Agents |
+| **Tools** | Inline Completion, Quick Chat, Smart Actions, Multi-line Completes, Next Edit Suggestions (NES), Model Selection, Selection, Codebase, Problems, Web Search, Changes |
+| **Customization** | Instructions, Prompt Files, Agent Skills, Custom Agents, MCP Servers, Hooks |
 
 ### 🏆 Prioritized Recommendations
 
@@ -39,11 +36,10 @@ Click **Implement** on any supported recommendation and Copilot Enabler opens a 
 
 Supported implementations include:
 - `.github/copilot-instructions.md` — project-specific coding guidelines
-- `.copilotignore` — exclude files from Copilot's context
 - `.github/prompts/*.prompt.md` — reusable prompt templates
 - Custom agents and agent skills
-- Per-mode instructions (Ask / Edit / Agent)
 - `.vscode/mcp.json` — MCP server configuration
+- `.github/hooks/prerun.json` — Pre-run and post-run hooks
 
 ### 📝 Export Reports
 
@@ -90,7 +86,7 @@ The extension analyzes four data sources — all **local and read-only** (nothin
 | Source | What It Checks |
 |---|---|
 | **VS Code Settings** | `github.copilot.*`, `github.copilot-chat.*`, `editor.inlineSuggest.*` configuration keys |
-| **Workspace Files** | `.github/copilot-instructions.md`, `.copilotignore`, `.vscode/mcp.json`, `.github/prompts/*.prompt.md`, `.github/instructions/*` |
+| **Workspace Files** | `.github/copilot-instructions.md`, `.vscode/mcp.json`, `.github/prompts/*.prompt.md`, `.github/instructions/*`, `.github/skills/*`, `.github/hooks/*` |
 | **Extensions** | Installed extensions — Copilot Core, Copilot Chat, MCP-related, chat participants |
 | **Copilot Logs** | VS Code Copilot log files scanned for feature usage hints (completions, modes, participants, etc.) |
 
@@ -99,9 +95,9 @@ The extension analyzes four data sources — all **local and read-only** (nothin
 
 Three specialized agents evaluate different dimensions of Copilot adoption:
 
-- **CoreAgent** — Are you using Ask, Edit, and Agent modes?
-- **CustomizationsAgent** — Have you set up instructions, prompts, MCP, and ignore files?
-- **AdoptionAgent** — Full gap analysis across all 31 features with prioritized recommendations
+- **CoreAgent** — Are you using Ask, Agent, Plan, and other core modes?
+- **CustomizationsAgent** — Have you set up instructions, prompts, MCP, skills, and hooks?
+- **AdoptionAgent** — Full gap analysis across all 27 features with prioritized recommendations
 
 ---
 

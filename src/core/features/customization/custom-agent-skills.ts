@@ -9,7 +9,6 @@ export const customAgentSkills = defineFeature({
   docsURL: 'https://code.visualstudio.com/docs/copilot/customization/agent-skills',
   detectHints: [
     '.github/skills/**/*.md',
-    '.agents/skills/**/*.md',
     '.claude/skills/**/*.md',
     'copilot.tools',
     'agent-skill',

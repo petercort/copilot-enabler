@@ -51,7 +51,7 @@ export async function scanWorkspace(): Promise<WorkspaceResult> {
     const isGlob = hint.includes('*');
     const files = await vscode.workspace.findFiles(pattern, '**/node_modules/**', isGlob ? 10 : 1);
     for (const file of files) {
-      const relPath = isGlob ? vscode.workspace.asRelativePath(file) : hint;
+      const relPath = vscode.workspace.asRelativePath(file);
       r.filesFound.set(relPath, true);
       r.detectedHints.set(hint.toLowerCase(), true);
     }
