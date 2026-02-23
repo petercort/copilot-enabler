@@ -10,8 +10,6 @@ test/
 coverage/
 scripts/
 docs/
-media/
 CONTRIBUTING.md
-README.md
 jest.config.js
 tsconfig.json
