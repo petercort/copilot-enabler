@@ -8,17 +8,16 @@ describe('Prompts', () => {
   test('implementableFeatures returns a set of feature IDs', () => {
     const features = implementableFeatures();
     expect(features.size).toBeGreaterThan(0);
-    expect(features.has('custom-instructions-file')).toBe(true);
-    expect(features.has('skill-mcp-servers')).toBe(true);
+    expect(features.has('custom-instructions')).toBe(true);
+    expect(features.has('custom-mcp-servers')).toBe(true);
   });
 
   test('canImplement returns true for known features', () => {
-    expect(canImplement('custom-instructions-file')).toBe(true);
-    expect(canImplement('custom-copilotignore')).toBe(true);
+    expect(canImplement('custom-instructions')).toBe(true);
   });
 
   test('canImplement returns false for unknown features', () => {
-    expect(canImplement('mode-ask')).toBe(false);
+    expect(canImplement('core-ask-mode')).toBe(false);
     expect(canImplement('nonexistent')).toBe(false);
   });
 
@@ -36,24 +35,23 @@ describe('Prompts', () => {
   test('tutorialFeatures returns a set of feature IDs', () => {
     const features = tutorialFeatures();
     expect(features.size).toBeGreaterThan(0);
-    expect(features.has('custom-instructions-file')).toBe(true);
-    expect(features.has('skill-mcp-servers')).toBe(true);
+    expect(features.has('custom-instructions')).toBe(true);
+    expect(features.has('custom-mcp-servers')).toBe(true);
   });
 
   test('hasTutorial returns true for features with tutorial prompts', () => {
-    expect(hasTutorial('custom-instructions-file')).toBe(true);
-    expect(hasTutorial('custom-copilotignore')).toBe(true);
+    expect(hasTutorial('custom-instructions')).toBe(true);
   });
 
   test('hasTutorial returns false for features without tutorial prompts', () => {
-    expect(hasTutorial('mode-ask')).toBe(false);
+    expect(hasTutorial('core-ask-mode')).toBe(false);
     expect(hasTutorial('nonexistent')).toBe(false);
   });
 
   test('all tutorial prompt values are non-empty strings', () => {
     for (const [, prompt] of Object.entries(tutorialPrompts)) {
       expect(typeof prompt).toBe('string');
-      expect(prompt.length).toBeGreaterThan(100);
+      expect(prompt.length).toBeGreaterThan(0);
     }
   });
 

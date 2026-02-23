@@ -80,7 +80,6 @@ export const ${toCamelCase(id)} = defineFeature({
   description: '${description}',
   docsURL: '${docsURL}',
   detectHints: ['${detectHint}'],
-  tags: ['core'],
   impact: '${impact}',
   difficulty: '${difficulty}',
   setupSteps: [

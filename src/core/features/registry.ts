@@ -2,38 +2,33 @@
 // This file is automatically updated when you run `npm run new-feature`
 
 import { FeatureDefinition } from './definition';
-import { modeAsk } from './agent-mode-ask';
-import { modeEdit } from './agent-mode-edit';
-import { modeAgent } from './agent-mode-agent';
-import { modePlan } from './agent-mode-plan';
-import { chatPanel } from './agent-chat-panel';
-import { chatInline } from './chat-inline';
-import { chatQuick } from './chat-quick';
-import { settingModelSelection } from './chat-model-selection';
-import { chatParticipantWorkspace } from './agent-participant-workspace';
-import { chatParticipantTerminal } from './agent-participant-terminal';
-import { chatParticipantVscode } from './agent-participant-vscode';
-import { completionInline } from './chat-completion-inline';
-import { completionNes } from './chat-completion-nes';
-import { completionMultiline } from './chat-completion-multiline';
-import { customInstructionsFile } from './custom-instructions-file';
-import { customCopilotignore } from './custom-copilotignore';
-import { customLanguageEnable } from './custom-language-enable';
-import { customModeInstructions } from './custom-mode-instructions';
-import { customPromptFiles } from './custom-prompt-files';
-import { customAgentSkills } from './custom-agent-skills';
-import { customAgents } from './custom-agents';
-import { customHooks } from './custom-hooks';
-import { contextFile } from './chat-context-file';
-import { contextSelection } from './chat-context-selection';
-import { contextCodebase } from './chat-context-codebase';
-import { contextProblems } from './chat-context-problems';
-import { skillMcpServers } from './custom-mcp-servers';
-import { webSearch } from './chat-web-search';
-import { runSubAgent } from './agent-subagent';
-import { smartActions } from './chat-smart-actions';
-import { agentBackground } from './agent-background';
-import { agentCloud } from './agent-cloud';
+import { coreAskMode } from './core/core-ask-mode';
+import { coreAgentMode } from './core/core-agent-mode';
+import { corePlanMode } from './core/core-plan-mode';
+import { coreChatPanel } from './core/core-chat-panel';
+import { coreQuick } from './core/core-quick';
+import { coreModelSelection } from './core/core-model-selection';
+import { toolsWorkspace } from './tools/tools-workspace';
+import { toolsTerminal } from './tools/tools-terminal';
+import { toolsVscode } from './tools/tools-vscode';
+import { coreInlineCompletion } from './core/core-inline-completion';
+import { coreNes } from './core/core-nes';
+import { coreMultilineCompletes } from './core/core-multiline-completes';
+import { customInstructions } from './customization/custom-instructions';
+import { customPromptFiles } from './customization/custom-prompt-files';
+import { customAgentSkills } from './customization/custom-agent-skills';
+import { customAgents } from './customization/custom-agents';
+import { customHooks } from './customization/custom-hooks';
+import { toolsSelection } from './tools/tools-selection';
+import { toolsCodebase } from './tools/tools-codebase';
+import { toolsProblems } from './tools/tools-problems';
+import { customMcpServers } from './customization/custom-mcp-servers';
+import { toolsWebSearch } from './tools/tools-web-search';
+import { coreSubagent } from './core/core-subagent';
+import { coreSmartActions } from './core/core-smart-actions';
+import { coreBackgroundAgents } from './core/core-background-agents';
+import { coreCloudAgents } from './core/core-cloud-agents';
+import { toolsChanges } from './tools/tools-changes';
 // ── END IMPORTS ──
 
 /**
@@ -41,41 +36,36 @@ import { agentCloud } from './agent-cloud';
  * Import new feature files above the END IMPORTS marker, then add to the array.
  */
 export const allFeatureDefinitions: FeatureDefinition[] = [
-  // ── Agents ──
-  modeAgent,
-  modeAsk,
-  modeEdit,
-  modePlan,
-  chatPanel,
-  runSubAgent,
-  agentBackground,
-  agentCloud,
-  chatParticipantWorkspace,
-  chatParticipantTerminal,
-  chatParticipantVscode,
-  // ── Chat ──
-  chatInline,
-  chatQuick,
-  smartActions,
-  completionInline,
-  completionMultiline,
-  completionNes,
-  settingModelSelection,
-  contextFile,
-  contextSelection,
-  contextCodebase,
-  contextProblems,
-  webSearch,
+  // ── Core ──
+  coreAgentMode,
+  coreAskMode,
+  corePlanMode,
+  coreChatPanel,
+  coreSubagent,
+  coreBackgroundAgents,
+  coreCloudAgents,
+  toolsWorkspace,
+  toolsTerminal,
+  toolsVscode,
+  // ── Tools ──
+  coreInlineCompletion,
+  coreQuick,
+  coreSmartActions,
+  coreMultilineCompletes,
+  coreNes,
+  coreModelSelection,
+  toolsSelection,
+  toolsCodebase,
+  toolsProblems,
+  toolsWebSearch,
+  toolsChanges,
   // ── Customization ──
-  customInstructionsFile,
-  customModeInstructions,
+  customInstructions,
   customPromptFiles,
   customAgentSkills,
   customAgents,
-  skillMcpServers,
+  customMcpServers,
   customHooks,
-  customCopilotignore,
-  customLanguageEnable,
   // ── END DEFINITIONS ──
 ];
 

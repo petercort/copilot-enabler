@@ -327,23 +327,29 @@ export class DashboardPanel {
     const features = visibleCatalog();
     const byCat = featuresByCategory(features);
     let html = '';
+    const impl = implementableFeatures();
+    const tutorials = new Set(Object.keys(tutorialPrompts));
 
     for (const cat of allCategories) {
       const catFeatures = byCat.get(cat) ?? [];
       if (catFeatures.length === 0) { continue; }
-      const used = catFeatures.filter((f) => usedIDs.has(f.id)).length;
-      const pct = Math.floor((used / catFeatures.length) * 100);
+      const detectable = catFeatures.filter((f) => f.detectHints.length > 0);
+      const notDetectable = catFeatures.filter((f) => f.detectHints.length === 0);
+      const used = detectable.filter((f) => usedIDs.has(f.id)).length;
+      const pct = detectable.length > 0 ? Math.floor((used / detectable.length) * 100) : 0;
 
-      html += `<h3>${escapeHtml(cat)} <small>${used}/${catFeatures.length}</small></h3>`;
+      html += `<h3>${escapeHtml(cat)} <small>${used}/${detectable.length}</small></h3>`;
       html += `<div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
       html += '<table><thead><tr><th>Feature</th><th>Status</th><th>Links</th></tr></thead><tbody>';
-      const impl = implementableFeatures();
-      const tutorials = new Set(Object.keys(tutorialPrompts));
-      for (const f of catFeatures) {
+      for (const f of detectable) {
         const isUsed = usedIDs.has(f.id);
         const status = isUsed ? '✅ Using' : '⬜ Not detected';
         const infoIcon = buildInfoIcon(f);
         html += `<tr><td>${escapeHtml(f.name)}${infoIcon}</td><td>${status}</td><td>${buildLinksCell(f.id, f.docsURL, impl, tutorials)}</td></tr>`;
+      }
+      for (const f of notDetectable) {
+        const infoIcon = buildInfoIcon(f);
+        html += `<tr><td>${escapeHtml(f.name)}${infoIcon}</td><td></td><td>${buildLinksCell(f.id, f.docsURL, impl, tutorials)}</td></tr>`;
       }
       html += '</tbody></table>';
     }

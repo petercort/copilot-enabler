@@ -29,11 +29,10 @@ describe('Agent Helpers', () => {
     const feature: Feature = {
       id: 'test',
       name: 'Test Feature',
-      category: 'Agents',
+      category: 'Core',
       description: 'test',
       docsURL: 'https://example.com',
       detectHints: ['ask mode', 'askMode'],
-      tags: ['core'],
       impact: 'high',
       difficulty: 'low',
       setupSteps: ['step 1'],
@@ -45,7 +44,7 @@ describe('Agent Helpers', () => {
     });
 
     test('returns false when no hint matches', () => {
-      const hints = new Map([['edit mode', true]]);
+      const hints = new Map([['plan mode', true]]);
       expect(featureDetected(feature, hints)).toBe(false);
     });
 
@@ -58,8 +57,8 @@ describe('Agent Helpers', () => {
   describe('featureNames', () => {
     test('returns names', () => {
       const features: Feature[] = [
-        { id: 'a', name: 'Alpha', category: 'Agents', description: '', docsURL: '', detectHints: [], tags: [], impact: 'low', difficulty: 'low', setupSteps: [] },
-        { id: 'b', name: 'Beta', category: 'Agents', description: '', docsURL: '', detectHints: [], tags: [], impact: 'low', difficulty: 'low', setupSteps: [] },
+        { id: 'a', name: 'Alpha', category: 'Core', description: '', docsURL: '', detectHints: [], impact: 'low', difficulty: 'low', setupSteps: [] },
+        { id: 'b', name: 'Beta', category: 'Core', description: '', docsURL: '', detectHints: [], impact: 'low', difficulty: 'low', setupSteps: [] },
       ];
       expect(featureNames(features)).toEqual(['Alpha', 'Beta']);
     });
@@ -107,20 +106,19 @@ describe('Agent Helpers', () => {
   describe('buildRecommendation', () => {
     test('creates recommendation from feature', () => {
       const feature: Feature = {
-        id: 'mode-agent',
+        id: 'core-agent-mode',
         name: 'Agent Mode',
-        category: 'Agents',
+        category: 'Core',
         description: 'Autonomous agent mode',
         docsURL: 'https://example.com',
         detectHints: ['agent mode'],
-        tags: ['core'],
         impact: 'high',
         difficulty: 'low',
         setupSteps: ['Step 1', 'Step 2'],
       };
 
       const rec = buildRecommendation(feature, 'Try');
-      expect(rec.featureID).toBe('mode-agent');
+      expect(rec.featureID).toBe('core-agent-mode');
       expect(rec.title).toBe('Try Agent Mode');
       expect(rec.matrixScore).toBe(9);
       expect(rec.stars).toBe('★★★');

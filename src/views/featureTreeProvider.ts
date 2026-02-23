@@ -2,6 +2,7 @@
 
 import * as vscode from 'vscode';
 import { Feature, Category, allCategories, featuresByCategory, visibleCatalog } from '../core/featureCatalog';
+import { hasTutorial, canImplement } from '../core/prompts';
 
 type TreeItem = CategoryItem | FeatureItem;
 
@@ -12,8 +13,9 @@ class CategoryItem extends vscode.TreeItem {
     private readonly usedIDs: Set<string>,
   ) {
     super(category, vscode.TreeItemCollapsibleState.Expanded);
-    const used = features.filter((f) => usedIDs.has(f.id)).length;
-    this.description = `${used}/${features.length}`;
+    const detectable = features.filter((f) => f.detectHints.length > 0);
+    const used = detectable.filter((f) => usedIDs.has(f.id)).length;
+    this.description = detectable.length > 0 ? `${used}/${detectable.length}` : '';
     this.iconPath = new vscode.ThemeIcon('folder');
   }
 }
@@ -24,15 +26,34 @@ export class FeatureItem extends vscode.TreeItem {
     public readonly detected: boolean,
   ) {
     super(feature.name, vscode.TreeItemCollapsibleState.None);
-    this.description = detected ? 'Using' : 'Not detected';
-    this.iconPath = new vscode.ThemeIcon(detected ? 'check' : 'circle-outline');
+    if (feature.detectHints.length === 0) {
+      this.description = '';
+      this.iconPath = new vscode.ThemeIcon('dash');
+      this.contextValue = 'featureNotDetectable';
+    } else {
+      this.description = detected ? 'Using' : 'Not detected';
+      this.iconPath = new vscode.ThemeIcon(detected ? 'check' : 'circle-outline');
+      this.contextValue = detected ? 'featureUsed' : 'featureUnused';
+    }
     this.tooltip = new vscode.MarkdownString(
       `**${feature.name}**\n\n${feature.description}\n\n` +
         `[Documentation](${feature.docsURL})`,
     );
-    this.contextValue = detected ? 'featureUsed' : 'featureUnused';
 
-    if (!detected && feature.docsURL) {
+    // Click order: tutorial prompt -> setup prompt -> docs
+    if (hasTutorial(feature.id)) {
+      this.command = {
+        command: 'copilotEnabler.showMe',
+        title: 'Open Tutorial',
+        arguments: [{ featureID: feature.id }],
+      };
+    } else if (canImplement(feature.id)) {
+      this.command = {
+        command: 'copilotEnabler.implement',
+        title: 'Open Setup Prompt',
+        arguments: [{ featureID: feature.id }],
+      };
+    } else if (feature.docsURL) {
       this.command = {
         command: 'vscode.open',
         title: 'Open Documentation',

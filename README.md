@@ -76,7 +76,7 @@ Generate a full **Markdown adoption report** with scorecard, recommendations, an
 |---|---|
 | `Copilot Enabler: Run Full Analysis` | Scan settings, workspace, extensions, and logs — display the dashboard |
 | `Copilot Enabler: Refresh Analysis` | Re-scan in the background and update views |
-| `Copilot Enabler: Feature Matrix` | Open the dashboard focused on the feature adoption matrix |
+| `Copilot Enabler: Scorecard` | Open the dashboard focused on the feature adoption matrix |
 | `Copilot Enabler: Browse Feature Catalog` | Focus the Feature Catalog tree view in the sidebar |
 | `Copilot Enabler: Export Report` | Save a Markdown adoption report to a file |
 | `Copilot Enabler: Implement Recommendation` | Interactively implement a recommendation via Copilot Chat |
@@ -94,34 +94,12 @@ The extension analyzes four data sources — all **local and read-only** (nothin
 | **Extensions** | Installed extensions — Copilot Core, Copilot Chat, MCP-related, chat participants |
 | **Copilot Logs** | VS Code Copilot log files scanned for feature usage hints (completions, modes, participants, etc.) |
 
----
-
-## 🏗 Architecture
-
-The extension is structured as a port of a Go CLI tool into a native VS Code extension:
-
-```
-src/
-├── extension.ts              # Entry point — commands, watchers, activation
-├── core/
-│   ├── analyzer.ts           # Orchestrates agents and computes scores
-│   ├── featureCatalog.ts     # 31-feature registry with metadata
-│   ├── prompts.ts            # System prompts for interactive implementation
-│   ├── report.ts             # Markdown report generator
-│   ├── agents/               # Analysis agents (Modes, Customizations, Adoption)
-│   └── scanner/              # Data collectors (settings, workspace, extensions, logs)
-└── views/
-    ├── dashboardPanel.ts     # Webview scorecard dashboard
-    ├── featureTreeProvider.ts # Feature Catalog tree view
-    ├── recommendationTree.ts  # Recommendations tree view
-    └── statusBar.ts          # Status bar widget
-```
 
 ### Analysis Agents
 
 Three specialized agents evaluate different dimensions of Copilot adoption:
 
-- **ModesAgent** — Are you using Ask, Edit, and Agent modes?
+- **CoreAgent** — Are you using Ask, Edit, and Agent modes?
 - **CustomizationsAgent** — Have you set up instructions, prompts, MCP, and ignore files?
 - **AdoptionAgent** — Full gap analysis across all 31 features with prioritized recommendations
 
@@ -133,15 +111,8 @@ Three specialized agents evaluate different dimensions of Copilot adoption:
 # 1. Install dependencies
 npm install
 
-# 2. Compile TypeScript
-npm run compile
-
-# 3. Package as a .vsix file (install vsce first if you don't have it)
-npm install -g @vscode/vsce
-vsce package
-
-# 4. Install the generated .vsix in VS Code
-code --install-extension copilot-enabler-0.1.0.vsix
+## packages and installs
+npm run installextension
 ```
 
 ---

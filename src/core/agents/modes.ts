@@ -3,14 +3,14 @@
 import { Agent, AgentReport, AnalysisContext } from './agent';
 import { mergeHints, featureDetected, featureNames, buildRecommendation } from './helpers';
 
-/** AgentsAgent evaluates which Copilot agent features the user is engaging with. */
-export class ModesAgent implements Agent {
+/** CoreAgent evaluates which core Copilot features the user is engaging with. */
+export class CoreAgent implements Agent {
   name(): string {
-    return 'Agents';
+    return 'Core';
   }
 
   description(): string {
-    return 'Analyzes Copilot agent usage (Agent / Ask / Edit / Plan / Background / Cloud)';
+    return 'Analyzes core Copilot usage (Agent / Ask / Edit / Plan / Background / Cloud)';
   }
 
   analyze(ctx: AnalysisContext): AgentReport {
@@ -31,7 +31,7 @@ export class ModesAgent implements Agent {
     );
 
     for (const f of ctx.featureCatalog) {
-      if (f.category !== 'Agents') {
+      if (f.category !== 'Core' || f.detectHints.length === 0) {
         continue;
       }
       if (featureDetected(f, allHints)) {
@@ -52,9 +52,9 @@ export class ModesAgent implements Agent {
 
     const usedNames = featureNames(report.featuresUsed);
     if (usedNames.length === 0) {
-      report.summary = 'No Copilot agent usage detected yet. Explore powerful agent features!';
+      report.summary = 'No core Copilot feature usage detected yet. Explore powerful agent features!';
     } else {
-      report.summary = `Using ${report.featuresUsed.length} of ${total} agent features: ${usedNames.join(', ')}.`;
+      report.summary = `Using ${report.featuresUsed.length} of ${total} core features: ${usedNames.join(', ')}.`;
     }
 
     return report;
