@@ -27,6 +27,7 @@ export interface LogSummary {
 const knownHints: string[] = [
   // Modes
   'ask mode', 'askmode', 'mode:ask',
+  'plan mode', 'planmode', 'mode:plan', 'plan agent',
   'edit mode', 'editmode', 'mode:edit', 'copilot-edits',
   'agent mode', 'agentmode', 'mode:agent', 'agentic',
   // Chat

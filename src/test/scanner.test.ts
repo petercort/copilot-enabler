@@ -8,6 +8,18 @@ describe('Scanner - Logs', () => {
       expect(hints.get('agent mode')).toBe(true);
     });
 
+    test('detects ask mode hints', () => {
+      const hints = new Map<string, boolean>();
+      detectHintsInText('user switched to ask mode for questions', hints);
+      expect(hints.get('ask mode')).toBe(true);
+    });
+
+    test('detects plan mode hints', () => {
+      const hints = new Map<string, boolean>();
+      detectHintsInText('user used plan mode to design a feature', hints);
+      expect(hints.get('plan mode')).toBe(true);
+    });
+
     test('detects multiple hints', () => {
       const hints = new Map<string, boolean>();
       detectHintsInText('used @workspace and @terminal participants with inline chat', hints);
