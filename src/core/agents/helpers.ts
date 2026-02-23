@@ -1,6 +1,8 @@
 // Port of internal/agents/helpers.go
 
 import { Feature } from '../featureCatalog';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Recommendation } from './agent';
 
 /** Merge multiple hint maps into one. */
@@ -18,9 +20,36 @@ export function mergeHints(...maps: Map<string, boolean>[]): Map<string, boolean
 
 /** Check if a feature is detected in the hints. */
 export function featureDetected(f: Feature, hints: Map<string, boolean>): boolean {
-  for (const h of f.detectHints) {
-    if (h && hints.get(h.toLowerCase())) {
+  for (const raw of f.detectHints) {
+    // normalize simple string hints
+    if (typeof raw === 'string') {
+      const h = raw.toLowerCase();
+      if (h && hints.get(h)) {
+        return true;
+      }
+      continue;
+    }
+
+    // object form: { hint, path? }
+    const hint = (raw.hint ?? '').toLowerCase();
+    if (hint && hints.get(hint)) {
       return true;
+    }
+
+    // If a path is provided, check that file specifically for the hint text.
+    if (raw.path) {
+      try {
+        const workspaceRoot = process.cwd();
+        const filePath = path.isAbsolute(raw.path) ? raw.path : path.join(workspaceRoot, raw.path);
+        if (fs.existsSync(filePath)) {
+          const content = fs.readFileSync(filePath, { encoding: 'utf8' });
+          if (content.toLowerCase().includes(hint)) {
+            return true;
+          }
+        }
+      } catch {
+        // ignore IO errors and continue checking other hints
+      }
     }
   }
   return false;

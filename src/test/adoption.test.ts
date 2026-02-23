@@ -136,30 +136,6 @@ const REAL_LOG_LINES = {
 describe('detectHintsInText — per-feature detection from realistic logs', () => {
   // ── Modes ──
 
-  test('mode-ask: detects "ask mode" in log text', () => {
-    const hints = new Map<string, boolean>();
-    detectHintsInText('user selected ask mode from the mode picker', hints);
-    expect(hints.get('ask mode')).toBe(true);
-  });
-
-  test('mode-ask: detects "mode:ask" in log text', () => {
-    const hints = new Map<string, boolean>();
-    detectHintsInText('request sent with mode:ask parameter', hints);
-    expect(hints.get('mode:ask')).toBe(true);
-  });
-
-  test('mode-edit: detects "edit mode" in log text', () => {
-    const hints = new Map<string, boolean>();
-    detectHintsInText('switched to edit mode for diff-based editing', hints);
-    expect(hints.get('edit mode')).toBe(true);
-  });
-
-  test('mode-edit: detects "copilot-edits" in log text', () => {
-    const hints = new Map<string, boolean>();
-    detectHintsInText('applying copilot-edits to workspace files', hints);
-    expect(hints.get('copilot-edits')).toBe(true);
-  });
-
   test('mode-agent: detects "agent mode" from RunInTerminalTool entry', () => {
     const hints = new Map<string, boolean>();
     detectHintsInText(
@@ -186,16 +162,15 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
   // ── Chat ──
 
   test('chat-panel: detected via settings hint "copilot.chat"', () => {
-    // "copilot.chat" and "chat panel" are NOT in the log scanner's knownHints,
-    // so detection happens via settings scanner keys or direct hint injection.
+    // Detection via settings scanner keys or direct hint injection.
     const settingsHints = hintsFrom(['copilot.chat']);
-    const feature = byId('chat-panel');
+    const feature = byId('core-chat-panel');
     expect(featureDetected(feature, settingsHints)).toBe(true);
   });
 
   test('chat-panel: detected via direct hint "chat-panel"', () => {
     const hints = hintsFrom(['chat-panel']);
-    const feature = byId('chat-panel');
+    const feature = byId('core-chat-panel');
     expect(featureDetected(feature, hints)).toBe(true);
   });
 
@@ -203,7 +178,7 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
     const hints = new Map<string, boolean>();
     detectHintsInText(REAL_LOG_LINES.copilotChat.toLowerCase(), hints);
     expect(hints.get('copilot chat')).toBe(true);
-    const feature = byId('chat-panel');
+    const feature = byId('core-chat-panel');
     expect(featureDetected(feature, hints)).toBe(true);
   });
 
@@ -211,7 +186,7 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
     const hints = new Map<string, boolean>();
     detectHintsInText(REAL_LOG_LINES.ccreq.toLowerCase(), hints);
     expect(hints.get('ccreq')).toBe(true);
-    const feature = byId('chat-panel');
+    const feature = byId('core-chat-panel');
     expect(featureDetected(feature, hints)).toBe(true);
   });
 
@@ -219,12 +194,6 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
     const hints = new Map<string, boolean>();
     detectHintsInText('inline chat session started at cursor position', hints);
     expect(hints.get('inline chat')).toBe(true);
-  });
-
-  test('chat-quick: detects "quick chat" in log text', () => {
-    const hints = new Map<string, boolean>();
-    detectHintsInText('quick chat floating window opened', hints);
-    expect(hints.get('quick chat')).toBe(true);
   });
 
   test('chat-participant-workspace: detects "@workspace"', () => {
@@ -272,16 +241,15 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
   });
 
   test('completion-multiline: detected via direct hint "multi-line"', () => {
-    // "multi-line" and "multiline" are NOT in the log scanner's knownHints.
-    // Detection happens via direct hint map injection or settings.
+    // Detection via direct hint map injection or settings.
     const hints = hintsFrom(['multi-line']);
-    const feature = byId('completion-multiline');
+    const feature = byId('core-multiline-completes');
     expect(featureDetected(feature, hints)).toBe(true);
   });
 
   test('completion-multiline: detected via alt hint "multiline"', () => {
     const hints = hintsFrom(['multiline']);
-    const feature = byId('completion-multiline');
+    const feature = byId('core-multiline-completes');
     expect(featureDetected(feature, hints)).toBe(true);
   });
 
@@ -291,12 +259,6 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
     const hints = new Map<string, boolean>();
     detectHintsInText('.github/copilot-instructions.md loaded successfully', hints);
     expect(hints.get('copilot-instructions.md')).toBe(true);
-  });
-
-  test('custom-copilotignore: detects ".copilotignore"', () => {
-    const hints = new Map<string, boolean>();
-    detectHintsInText('found .copilotignore file in workspace root', hints);
-    expect(hints.get('.copilotignore')).toBe(true);
   });
 
   test('custom-prompt-files: detects ".prompt.md"', () => {
@@ -312,14 +274,14 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
     expect(hints.get('mcp server')).toBe(true);
     expect(hints.get('mcp.json')).toBe(true);
     // The feature can now be detected from log text alone
-    const feature = byId('skill-mcp-servers');
+    const feature = byId('custom-mcp-servers');
     expect(featureDetected(feature, hints)).toBe(true);
   });
 
   test('skill-mcp-servers: feature detected via workspace scanner hints', () => {
     // The workspace scanner finds mcp.json and adds 'mcp.json' + 'mcpservers'
     const wsHints = hintsFrom(['mcp.json', 'mcpservers']);
-    const feature = byId('skill-mcp-servers');
+    const feature = byId('custom-mcp-servers');
     expect(featureDetected(feature, wsHints)).toBe(true);
   });
 
@@ -344,16 +306,10 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
 
   // ── Context ──
 
-  test('context-file: detects "#file" variable', () => {
+  test('context-selection: detects "#terminalselection" variable', () => {
     const hints = new Map<string, boolean>();
-    detectHintsInText('user referenced #file in the chat session', hints);
-    expect(hints.get('#file')).toBe(true);
-  });
-
-  test('context-selection: detects "#selection" variable', () => {
-    const hints = new Map<string, boolean>();
-    detectHintsInText('attached #selection context to the request', hints);
-    expect(hints.get('#selection')).toBe(true);
+    detectHintsInText('attached #terminalselection context to the request', hints);
+    expect(hints.get('#terminalselection')).toBe(true);
   });
 
   test('context-codebase: detects "#codebase" variable', () => {
@@ -373,14 +329,13 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
   test('multiple hints detected in a single log line', () => {
     const hints = new Map<string, boolean>();
     detectHintsInText(
-      'user used @workspace with #file and inline chat in agent mode to fix .copilotignore',
+      'user used @workspace with inline chat in agent mode to edit .prompt.md',
       hints,
     );
     expect(hints.get('@workspace')).toBe(true);
-    expect(hints.get('#file')).toBe(true);
     expect(hints.get('inline chat')).toBe(true);
     expect(hints.get('agent mode')).toBe(true);
-    expect(hints.get('.copilotignore')).toBe(true);
+    expect(hints.get('.prompt.md')).toBe(true);
   });
 
   test('empty input produces no hints', () => {
@@ -401,7 +356,7 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
     const hints = new Map<string, boolean>();
     detectHintsInText('user opened model selection picker to switch model', hints);
     expect(hints.get('model selection')).toBe(true);
-    const feature = byId('setting-model-selection');
+    const feature = byId('core-model-selection');
     expect(featureDetected(feature, hints)).toBe(true);
   });
 
@@ -409,7 +364,7 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
     const hints = new Map<string, boolean>();
     detectHintsInText('request to api with model gpt-4o completed in 450ms', hints);
     expect(hints.get('gpt-4o')).toBe(true);
-    const feature = byId('setting-model-selection');
+    const feature = byId('core-model-selection');
     expect(featureDetected(feature, hints)).toBe(true);
   });
 
@@ -417,7 +372,7 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
     const hints = new Map<string, boolean>();
     detectHintsInText('chat response from claude-sonnet-4-20250514 received', hints);
     expect(hints.get('claude-sonnet')).toBe(true);
-    const feature = byId('setting-model-selection');
+    const feature = byId('core-model-selection');
     expect(featureDetected(feature, hints)).toBe(true);
   });
 
@@ -425,13 +380,13 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
     const hints = new Map<string, boolean>();
     detectHintsInText('github.copilot.chat.languagemodel.override set to claude-sonnet-4', hints);
     expect(hints.get('languagemodel')).toBe(true);
-    const feature = byId('setting-model-selection');
+    const feature = byId('core-model-selection');
     expect(featureDetected(feature, hints)).toBe(true);
   });
 
   test('setting-model-selection: detected via extension scanner hint', () => {
     const extHints = hintsFrom(['model selection']);
-    const feature = byId('setting-model-selection');
+    const feature = byId('core-model-selection');
     expect(featureDetected(feature, extHints)).toBe(true);
   });
 
@@ -439,13 +394,13 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
     const hints = new Map<string, boolean>();
     detectHintsInText(REAL_LOG_LINES.fetchCompletions.toLowerCase(), hints);
     expect(hints.get('completion')).toBe(true);
-    const feature = byId('completion-multiline');
+    const feature = byId('core-multiline-completes');
     expect(featureDetected(feature, hints)).toBe(true);
   });
 
   test('completion-multiline: detected via "inlinesuggest" hint', () => {
     const settingsHints = hintsFrom(['inlinesuggest']);
-    const feature = byId('completion-multiline');
+    const feature = byId('core-multiline-completes');
     expect(featureDetected(feature, settingsHints)).toBe(true);
   });
 
@@ -453,47 +408,32 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
     const hints = new Map<string, boolean>();
     detectHintsInText('multi-line completion generated for function body', hints);
     expect(hints.get('multi-line')).toBe(true);
-    const feature = byId('completion-multiline');
+    const feature = byId('core-multiline-completes');
     expect(featureDetected(feature, hints)).toBe(true);
   });
 
-  test('custom-language-enable: detects "copilot.enable" from log text', () => {
+  test('completion-inline: detects "fetchcompletions" from log source prefix', () => {
     const hints = new Map<string, boolean>();
-    detectHintsInText('reading copilot.enable configuration for python', hints);
-    expect(hints.get('copilot.enable')).toBe(true);
-    const feature = byId('custom-language-enable');
+    detectHintsInText('[fetchcompletions] request finished with 200 status', hints);
+    expect(hints.get('fetchcompletions')).toBe(true);
+    const feature = byId('core-inline-completion');
     expect(featureDetected(feature, hints)).toBe(true);
   });
 
-  test('custom-mode-instructions: detects "modeinstructions" from log text', () => {
+  test('completion-inline: detects "postinsertion" from log source prefix', () => {
     const hints = new Map<string, boolean>();
-    detectHintsInText('loading modeinstructions for agent mode', hints);
-    expect(hints.get('modeinstructions')).toBe(true);
-    const feature = byId('custom-mode-instructions');
+    detectHintsInText('[postinsertion] could not get document for file', hints);
+    expect(hints.get('postinsertion')).toBe(true);
+    const feature = byId('core-inline-completion');
     expect(featureDetected(feature, hints)).toBe(true);
   });
 
-  test('custom-mode-instructions: detects "mode instructions" from log text', () => {
+  test('custom-mcp-servers: detects "mcp server started" from CopilotCLI log', () => {
     const hints = new Map<string, boolean>();
-    detectHintsInText('applied mode instructions from settings', hints);
-    expect(hints.get('mode instructions')).toBe(true);
-    const feature = byId('custom-mode-instructions');
-    expect(featureDetected(feature, hints)).toBe(true);
-  });
-
-  test('completion-inline: detects "completionaccepted" from log event', () => {
-    const hints = new Map<string, boolean>();
-    detectHintsInText('telemetry: completionaccepted event fired', hints);
-    expect(hints.get('completionaccepted')).toBe(true);
-    const feature = byId('completion-inline');
-    expect(featureDetected(feature, hints)).toBe(true);
-  });
-
-  test('skill-mcp-servers: detects "model context protocol" from log text', () => {
-    const hints = new Map<string, boolean>();
-    detectHintsInText('connecting to model context protocol server', hints);
-    expect(hints.get('model context protocol')).toBe(true);
-    const feature = byId('skill-mcp-servers');
+    detectHintsInText('[copilotcli] mcp server started. lock file: /path/to/lock', hints);
+    expect(hints.get('mcp server started')).toBe(true);
+    expect(hints.get('copilotcli')).toBe(true);
+    const feature = byId('custom-mcp-servers');
     expect(featureDetected(feature, hints)).toBe(true);
   });
 });
@@ -534,7 +474,7 @@ describe('analyzeLogs — realistic log entries', () => {
     expect(summary.detectedHints.get('mcp server')).toBe(true);
     expect(summary.detectedHints.get('mcp.json')).toBe(true);
     // The feature should be detectable from log text now
-    const feature = byId('skill-mcp-servers');
+    const feature = byId('custom-mcp-servers');
     expect(featureDetected(feature, summary.detectedHints)).toBe(true);
   });
 
@@ -544,7 +484,7 @@ describe('analyzeLogs — realistic log entries', () => {
     ];
     const summary = analyzeLogs(entries);
     expect(summary.detectedHints.get('claude-sonnet')).toBe(true);
-    const feature = byId('setting-model-selection');
+    const feature = byId('core-model-selection');
     expect(featureDetected(feature, summary.detectedHints)).toBe(true);
   });
 
@@ -560,7 +500,7 @@ describe('analyzeLogs — realistic log entries', () => {
     // "ccreq" appears in the chat request entry
     expect(summary.detectedHints.get('ccreq')).toBe(true);
     // Both should enable chat-panel feature detection
-    const feature = byId('chat-panel');
+    const feature = byId('core-chat-panel');
     expect(featureDetected(feature, summary.detectedHints)).toBe(true);
   });
 
@@ -604,13 +544,15 @@ describe('analyzeLogs — realistic log entries', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('featureDetected — every catalog feature', () => {
-  const features = catalog();
+  const features = catalog().filter((f) => f.detectHints.length > 0);
 
-  // For each feature, we build a hint map containing exactly one of its
+  // For each detectable feature, we build a hint map containing exactly one of its
   // detectHints (the first one lowercased). The feature must be detected.
   for (const f of features) {
-    test(`detects "${f.name}" (${f.id}) from hint "${f.detectHints[0]}"`, () => {
-      const hints = hintsFrom([f.detectHints[0]]);
+    const firstHint = f.detectHints[0];
+    const hintText = typeof firstHint === 'string' ? firstHint : firstHint.hint;
+    test(`detects "${f.name}" (${f.id}) from hint "${hintText}"`, () => {
+      const hints = hintsFrom([hintText]);
       expect(featureDetected(f, hints)).toBe(true);
     });
   }
@@ -619,8 +561,9 @@ describe('featureDetected — every catalog feature', () => {
   const multiHintFeatures = features.filter((f) => f.detectHints.length > 1);
   for (const f of multiHintFeatures) {
     for (const hint of f.detectHints) {
-      test(`detects "${f.name}" via alt hint "${hint}"`, () => {
-        const hints = hintsFrom([hint]);
+      const hintText = typeof hint === 'string' ? hint : hint.hint;
+      test(`detects "${f.name}" via alt hint "${hintText}"`, () => {
+        const hints = hintsFrom([hintText]);
         expect(featureDetected(f, hints)).toBe(true);
       });
     }
@@ -633,7 +576,7 @@ describe('featureDetected — every catalog feature', () => {
   });
 
   test('returns false when hints are for a different feature', () => {
-    const askFeature = byId('mode-ask');
+    const askFeature = byId('core-ask-mode');
     const agentHints = hintsFrom(['agent mode', 'agentic']);
     expect(featureDetected(askFeature, agentHints)).toBe(false);
   });
@@ -648,13 +591,13 @@ describe('Feature detection via scanner sources', () => {
     test('completion-inline detected from fetchCompletions log', () => {
       const logHints = new Map<string, boolean>();
       detectHintsInText(REAL_LOG_LINES.fetchCompletions.toLowerCase(), logHints);
-      const feature = byId('completion-inline');
+      const feature = byId('core-inline-completion');
       expect(featureDetected(feature, logHints)).toBe(true);
     });
 
     test('mode-agent detected from agentic keyword', () => {
       const logHints = hintsFrom(['agentic']);
-      const feature = byId('mode-agent');
+      const feature = byId('core-agent-mode');
       expect(featureDetected(feature, logHints)).toBe(true);
     });
 
@@ -663,7 +606,7 @@ describe('Feature detection via scanner sources', () => {
       // which are now in the feature's detectHints.
       const logHints = new Map<string, boolean>();
       detectHintsInText(REAL_LOG_LINES.mcpOverwrite.toLowerCase(), logHints);
-      const feature = byId('skill-mcp-servers');
+      const feature = byId('custom-mcp-servers');
       expect(featureDetected(feature, logHints)).toBe(true); // now detectable from log alone
 
       // Also works when combined with workspace scanner hints:
@@ -674,33 +617,21 @@ describe('Feature detection via scanner sources', () => {
   });
 
   describe('Settings-based detection', () => {
-    test('custom-language-enable detected from copilot.enable setting', () => {
-      const settingsHints = hintsFrom(['github.copilot.enable']);
-      const feature = byId('custom-language-enable');
-      expect(featureDetected(feature, settingsHints)).toBe(true);
-    });
-
-    test('completion-inline detected from inlinesuggest setting', () => {
-      const settingsHints = hintsFrom(['inlinesuggest']);
-      const feature = byId('completion-inline');
+    test('completion-inline detected from inline chat setting', () => {
+      const settingsHints = hintsFrom(['inline chat']);
+      const feature = byId('core-inline-completion');
       expect(featureDetected(feature, settingsHints)).toBe(true);
     });
 
     test('completion-nes detected from nexteditsuggestions setting', () => {
       const settingsHints = hintsFrom(['github.copilot.nexteditsuggestions']);
-      const feature = byId('completion-nes');
-      expect(featureDetected(feature, settingsHints)).toBe(true);
-    });
-
-    test('custom-mode-instructions detected from modeinstructions setting', () => {
-      const settingsHints = hintsFrom(['modeinstructions']);
-      const feature = byId('custom-mode-instructions');
+      const feature = byId('core-nes');
       expect(featureDetected(feature, settingsHints)).toBe(true);
     });
 
     test('setting-model-selection detected from model selection hint', () => {
       const settingsHints = hintsFrom(['github.copilot-chat.models']);
-      const feature = byId('setting-model-selection');
+      const feature = byId('core-model-selection');
       expect(featureDetected(feature, settingsHints)).toBe(true);
     });
   });
@@ -708,13 +639,7 @@ describe('Feature detection via scanner sources', () => {
   describe('Workspace-based detection', () => {
     test('custom-instructions-file detected from workspace scanner', () => {
       const wsHints = hintsFrom(['copilot-instructions.md']);
-      const feature = byId('custom-instructions-file');
-      expect(featureDetected(feature, wsHints)).toBe(true);
-    });
-
-    test('custom-copilotignore detected from workspace scanner', () => {
-      const wsHints = hintsFrom(['.copilotignore']);
-      const feature = byId('custom-copilotignore');
+      const feature = byId('custom-instructions');
       expect(featureDetected(feature, wsHints)).toBe(true);
     });
 
@@ -726,45 +651,44 @@ describe('Feature detection via scanner sources', () => {
 
     test('skill-mcp-servers detected from mcp.json workspace file', () => {
       const wsHints = hintsFrom(['mcp.json', 'mcpservers']);
-      const feature = byId('skill-mcp-servers');
+      const feature = byId('custom-mcp-servers');
       expect(featureDetected(feature, wsHints)).toBe(true);
     });
   });
 
   describe('Extension-based detection', () => {
-    test('skill-mcp-servers detected from MCP extension', () => {
-      const extHints = hintsFrom(['mcp-server']);
-      const feature = byId('skill-mcp-servers');
+    test('skill-mcp-servers detected from mcp.json hint', () => {
+      const extHints = hintsFrom(['mcp.json']);
+      const feature = byId('custom-mcp-servers');
       expect(featureDetected(feature, extHints)).toBe(true);
     });
 
     test('chat-panel detected from copilot-chat extension hint', () => {
       const extHints = hintsFrom(['copilot.chat']);
-      const feature = byId('chat-panel');
+      const feature = byId('core-chat-panel');
       expect(featureDetected(feature, extHints)).toBe(true);
     });
 
     test('setting-model-selection detected from copilot-chat extension hint', () => {
       // The extensions scanner emits 'model selection' when github.copilot-chat is installed
       const extHints = hintsFrom(['model selection']);
-      const feature = byId('setting-model-selection');
+      const feature = byId('core-model-selection');
       expect(featureDetected(feature, extHints)).toBe(true);
     });
   });
 
   describe('Merged hints across sources', () => {
     test('feature detected when hint is in any source', () => {
-      const logHints = hintsFrom(['completion']);
-      const settingsHints = hintsFrom(['copilot.enable']);
+      const logHints = hintsFrom(['fetchcompletions']);
+      const settingsHints = hintsFrom(['copilot-instructions.md']);
       const wsHints = hintsFrom(['copilot-instructions.md']);
-      const extHints = hintsFrom(['mcp-server']);
+      const extHints = hintsFrom(['mcp.json']);
 
       const merged = mergeHints(logHints, settingsHints, wsHints, extHints);
 
-      expect(featureDetected(byId('completion-inline'), merged)).toBe(true);
-      expect(featureDetected(byId('custom-language-enable'), merged)).toBe(true);
-      expect(featureDetected(byId('custom-instructions-file'), merged)).toBe(true);
-      expect(featureDetected(byId('skill-mcp-servers'), merged)).toBe(true);
+      expect(featureDetected(byId('core-inline-completion'), merged)).toBe(true);
+      expect(featureDetected(byId('custom-instructions'), merged)).toBe(true);
+      expect(featureDetected(byId('custom-mcp-servers'), merged)).toBe(true);
     });
 
     test('feature not detected when no source has its hint', () => {
@@ -772,8 +696,7 @@ describe('Feature detection via scanner sources', () => {
       const settingsHints = new Map<string, boolean>();
       const merged = mergeHints(logHints, settingsHints);
 
-      expect(featureDetected(byId('mode-ask'), merged)).toBe(false);
-      expect(featureDetected(byId('context-file'), merged)).toBe(false);
+      expect(featureDetected(byId('core-ask-mode'), merged)).toBe(false);
     });
   });
 });
@@ -793,42 +716,44 @@ describe('AdoptionAgent', () => {
   test('reports 0% when no features detected', () => {
     const ctx = buildContext({});
     const report = agent.analyze(ctx);
-    const totalFeatures = catalog().length;
+    const detectableFeatures = catalog().filter((f) => f.detectHints.length > 0).length;
     expect(report.score).toBe(0);
     expect(report.featuresUsed.length).toBe(0);
-    expect(report.featuresUnused.length).toBe(totalFeatures);
-    expect(report.summary).toContain(`0/${totalFeatures}`);
+    expect(report.featuresUnused.length).toBe(detectableFeatures);
+    expect(report.summary).toContain(`0/${detectableFeatures}`);
   });
 
   test('reports 100% when all features detected', () => {
-    // Build a hint map with at least one hint per feature
+    // Build a hint map with at least one hint per detectable feature
     const allHints = new Map<string, boolean>();
     for (const f of catalog()) {
-      allHints.set(f.detectHints[0].toLowerCase(), true);
+      if (f.detectHints.length === 0) { continue; }
+      const firstHint = f.detectHints[0];
+      const hintText = typeof firstHint === 'string' ? firstHint : firstHint.hint;
+      allHints.set(hintText.toLowerCase(), true);
     }
     const ctx = buildContext({ logHints: allHints });
     const report = agent.analyze(ctx);
+    const detectableFeatures = catalog().filter((f) => f.detectHints.length > 0);
     expect(report.score).toBe(100);
-    expect(report.featuresUsed.length).toBe(catalog().length);
+    expect(report.featuresUsed.length).toBe(detectableFeatures.length);
     expect(report.featuresUnused.length).toBe(0);
     expect(report.recommendations.length).toBe(0);
   });
 
   test('detects features from mixed scanner sources', () => {
     const ctx = buildContext({
-      logHints: hintsFrom(['completion', 'agentic', 'mcp-server']),
-      settingsHints: hintsFrom(['copilot.enable', 'inlinesuggest']),
-      workspaceHints: hintsFrom(['copilot-instructions.md', '.copilotignore']),
+      logHints: hintsFrom(['completion', 'agentic', 'mcp.json']),
+      settingsHints: hintsFrom(['inline chat']),
+      workspaceHints: hintsFrom(['copilot-instructions.md']),
     });
     const report = agent.analyze(ctx);
 
     const usedIds = report.featuresUsed.map((f) => f.id);
-    expect(usedIds).toContain('completion-inline');    // completion + inlinesuggest
-    expect(usedIds).toContain('mode-agent');            // agentic
-    expect(usedIds).toContain('skill-mcp-servers');     // mcp-server
-    expect(usedIds).toContain('custom-language-enable');// copilot.enable
-    expect(usedIds).toContain('custom-instructions-file'); // copilot-instructions.md
-    expect(usedIds).toContain('custom-copilotignore');  // .copilotignore
+    expect(usedIds).toContain('core-inline-completion');    // inline chat
+    expect(usedIds).toContain('core-agent-mode');            // agentic
+    expect(usedIds).toContain('custom-mcp-servers');     // mcp.json
+    expect(usedIds).toContain('custom-instructions'); // copilot-instructions.md
 
     expect(report.score).toBeGreaterThan(0);
     expect(report.score).toBeLessThan(100);
@@ -881,27 +806,28 @@ describe('AdoptionAgent', () => {
   test('category breakdown reflects detected features', () => {
     // Detect all 3 Modes features
     const ctx = buildContext({
-      logHints: hintsFrom(['ask mode', 'edit mode', 'agent mode']),
+      logHints: hintsFrom(['ask mode', 'agent mode']),
     });
     const report = agent.analyze(ctx);
-    expect(report.summary).toContain('Agents');
+    expect(report.summary).toContain('Core');
   });
 
   test('works with a subset of visible features', () => {
     // Simulate hidden features by providing a filtered catalog
-    const visible = catalog().filter((f) => f.category !== 'Chat');
+    const visible = catalog().filter((f) => f.category !== 'Tools');
+    const detectable = visible.filter((f) => f.detectHints.length > 0);
     const ctx = buildContext({
       features: visible,
       logHints: hintsFrom(['completion']),
     });
     const report = agent.analyze(ctx);
     const total = report.featuresUsed.length + report.featuresUnused.length;
-    expect(total).toBe(visible.length);
+    expect(total).toBe(detectable.length);
     expect(total).toBeLessThan(25); // Context features excluded
   });
 
   test('handles single feature catalog', () => {
-    const singleFeature = [byId('mode-agent')];
+    const singleFeature = [byId('core-agent-mode')];
     const ctx = buildContext({
       features: singleFeature,
       logHints: hintsFrom(['agentic']),
@@ -970,7 +896,7 @@ describe('End-to-end realistic machine profile', () => {
 
     const ctx = buildContext({
       logHints,
-      settingsHints: hintsFrom(['copilot.enable', 'inlinesuggest']),
+      settingsHints: hintsFrom(['inline chat', 'next edit']),
       workspaceHints: hintsFrom(['copilot-instructions.md', 'mcp.json', 'mcpservers']),
     });
 
@@ -979,13 +905,12 @@ describe('End-to-end realistic machine profile', () => {
 
     // Should detect several features from different sources
     const usedIds = report.featuresUsed.map((f) => f.id);
-    expect(usedIds).toContain('completion-inline');
-    expect(usedIds).toContain('completion-multiline'); // detected from 'completion' + 'inlinesuggest'
-    expect(usedIds).toContain('mode-agent');
-    expect(usedIds).toContain('custom-instructions-file');
-    expect(usedIds).toContain('skill-mcp-servers');
-    expect(usedIds).toContain('custom-language-enable');
-    expect(usedIds).toContain('chat-panel'); // detected from "Copilot Chat: ..." log line
+    expect(usedIds).toContain('core-inline-completion');    // fetchcompletions from log
+    expect(usedIds).toContain('core-multiline-completes'); // detected from 'completion' + 'fetchcompletions'
+    expect(usedIds).toContain('core-agent-mode');
+    expect(usedIds).toContain('custom-instructions');
+    expect(usedIds).toContain('custom-mcp-servers');
+    expect(usedIds).toContain('core-chat-panel'); // detected from "Copilot Chat: ..." log line
 
     // Should have recommendations for unused features
     expect(report.recommendations.length).toBeGreaterThan(0);
@@ -993,9 +918,8 @@ describe('End-to-end realistic machine profile', () => {
 
     // Should NOT detect features the developer hasn't used
     const unusedIds = report.featuresUnused.map((f) => f.id);
-    expect(unusedIds).toContain('context-codebase');
-    expect(unusedIds).toContain('chat-quick');
-    expect(unusedIds).toContain('completion-nes');
+    expect(unusedIds).toContain('tools-codebase');
+    // core-quick has no detectHints so it won't appear in unused list
   });
 
   test('new developer with minimal setup', () => {
@@ -1006,8 +930,9 @@ describe('End-to-end realistic machine profile', () => {
     const agent = new AdoptionAgent();
     const report = agent.analyze(ctx);
 
-    expect(report.featuresUsed.length).toBe(2); // completion-inline + completion-multiline (both match 'completion')
-    expect(report.score).toBe(Math.floor((2 / catalog().length) * 100)); // dynamic percentage
+    expect(report.featuresUsed.length).toBe(1); // completion-multiline only (completion is its hint)
+    const detectableCount = catalog().filter((f) => f.detectHints.length > 0).length;
+    expect(report.score).toBe(Math.floor((1 / detectableCount) * 100)); // dynamic percentage
     expect(report.recommendations.length).toBe(5); // max 5
 
     // Top recommendation should be a high-impact, low-difficulty feature
@@ -1017,22 +942,25 @@ describe('End-to-end realistic machine profile', () => {
 
   test('power user with many features detected', () => {
     const powerUserHints = hintsFrom([
-      'ask mode', 'edit mode', 'agent mode', 'plan mode',
-      'completion', 'inlinesuggest', 'next edit',
+      'ask mode', 'agent mode', 'plan mode',
+      'completion', 'fetchcompletions', 'next edit',
       '@workspace', '@terminal', '@vscode',
-      'copilot-instructions.md', '.copilotignore',
-      'copilot.enable', '#file', '#selection', '#codebase',
-      'inline chat', 'copilot.chat', 'mcp-server',
+      'copilot-instructions.md',
+      '#terminalSelection', '#codebase',
+      'inline chat', 'copilot.chat', 'mcp.json',
       '.prompt.md', '#problems',
       'smart action', 'hooks', 'background agent', 'cloud agent',
+      'subagent', '#fetch',
     ]);
 
     const ctx = buildContext({ logHints: powerUserHints });
     const agent = new AdoptionAgent();
     const report = agent.analyze(ctx);
 
+    // Features with empty detectHints (ask mode, plan mode, cloud agents, quick chat) are excluded
+    const detectableCount = catalog().filter((f) => f.detectHints.length > 0).length;
     expect(report.score).toBeGreaterThanOrEqual(70);
-    expect(report.featuresUsed.length).toBeGreaterThanOrEqual(22);
+    expect(report.featuresUsed.length).toBeGreaterThanOrEqual(detectableCount - 5);
   });
 });
 
