@@ -9,3 +9,8 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+    groups:
+      # Name the group 'all-dependencies' or something similar
+      all-dependencies:
+        patterns:
+          - "*" 
