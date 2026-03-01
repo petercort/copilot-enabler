@@ -16,17 +16,17 @@ Get an instant snapshot of your Copilot usage with an overall adoption score (0�
 
 Browse all **27 tracked Copilot features** organized across three categories:
 
-| Category | Examples |
+| Category | Features |
 |---|---|
-| **Core** | Ask Mode, Agent Mode, Plan Mode, Chat Panel, Subagent, Background Agents, Cloud Agents |
-| **Tools** | Inline Completion, Quick Chat, Smart Actions, Multi-line Completes, Next Edit Suggestions (NES), Model Selection, Selection, Codebase, Problems, Web Search, Changes |
-| **Customization** | Instructions, Prompt Files, Agent Skills, Custom Agents, MCP Servers, Hooks |
+| **Core** | Ask Mode, Agent Mode, Plan Mode, Chat Panel, Run Subagent, Background Agents, Cloud Agents, Inline Chat, Quick Chat, Smart Actions, Multi-line Completions, Next Edit Suggestions (NES), Model Selection |
+| **Tools** | @workspace Participant, @terminal, @vscode Participant, #terminalSelection Variable, #codebase Variable, #problems Variable, Web Search, #Changes |
+| **Customization** | Custom Instructions File, Reusable Prompt Files, Agent Skills, Custom Agents, MCP Servers, Hooks |
 
 ### 🏆 Prioritized Recommendations
 
 Recommendations are ranked using an **Impact × Difficulty matrix** so the highest-value, lowest-effort items ("quick wins") surface first — each with a star rating (★★★ → ☆☆☆).
 
-### 🤖 Interactive Implementation
+### 🤖 Interactive Implementation & Tutorials
 
 Click **Implement** on any supported recommendation and Copilot Enabler opens a **Copilot Chat session** with a tailored prompt that:
 
@@ -40,6 +40,8 @@ Supported implementations include:
 - Custom agents and agent skills
 - `.vscode/mcp.json` — MCP server configuration
 - `.github/hooks/prerun.json` — Pre-run and post-run hooks
+
+Click **Show Me** on any feature to open a guided **tutorial walkthrough** in Copilot Chat that explains how the feature works and how to get started with it.
 
 ### 📝 Export Reports
 
@@ -76,6 +78,11 @@ Generate a full **Markdown adoption report** with scorecard, recommendations, an
 | `Copilot Enabler: Browse Feature Catalog` | Focus the Feature Catalog tree view in the sidebar |
 | `Copilot Enabler: Export Report` | Save a Markdown adoption report to a file |
 | `Copilot Enabler: Implement Recommendation` | Interactively implement a recommendation via Copilot Chat |
+| `Copilot Enabler: Show Me Tutorial` | Open a guided tutorial for a feature via Copilot Chat |
+| `Copilot Enabler: Hide Feature` | Hide a feature from analysis and recommendations |
+| `Copilot Enabler: Unhide Feature` | Restore a previously hidden feature |
+| `Copilot Enabler: Reset Hidden Features` | Restore all hidden features at once |
+| `Copilot Enabler: Settings` | Open the Copilot Enabler settings panel |
 
 ---
 
