@@ -32,7 +32,6 @@ Click **Set up** on any supported recommendation and Copilot Enabler opens a **C
 2. Asks clarifying questions
 3. Generates and writes the configuration files for you
 
-
 Click **Show Me** on any feature to open a guided **tutorial walkthrough** in Copilot Chat that reads your project structure and explains how the feature works and how to use it.
 
 ---
