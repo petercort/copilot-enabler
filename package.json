@@ -38,10 +38,6 @@
         "title": "Copilot Enabler: Scorecard"
       },
       {
-        "command": "copilotEnabler.exportReport",
-        "title": "Copilot Enabler: Export Report"
-      },
-      {
         "command": "copilotEnabler.featureCatalog",
         "title": "Copilot Enabler: Browse Feature Catalog"
       },
@@ -178,7 +174,7 @@
     "watch": "tsc -watch -p ./",
     "lint": "eslint src/",
     "test": "jest --config jest.config.js",
-    "installextension": "vsce package && code --install-extension copilot-enabler-*.vsix",
+    "installextension": "rm -rf out && vsce package && code --install-extension copilot-enabler-*.vsix",
     "new-feature": "node scripts/new-feature.js"
   },
   "devDependencies": {

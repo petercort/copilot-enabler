@@ -12,38 +12,28 @@
 
 Get an instant snapshot of your Copilot usage with an overall adoption score (0–100), feature detection counts, and log analysis — displayed in the **status bar**, a **webview dashboard**, and **sidebar tree views**.
 
-### 🔍 Feature Catalog
+Includes Copilot features organized across three categories:
 
-Browse all **27 tracked Copilot features** organized across three categories:
-
-| Category | Examples |
+| Category | Features |
 |---|---|
-| **Core** | Ask Mode, Agent Mode, Plan Mode, Chat Panel, Subagent, Background Agents, Cloud Agents |
-| **Tools** | Inline Completion, Quick Chat, Smart Actions, Multi-line Completes, Next Edit Suggestions (NES), Model Selection, Selection, Codebase, Problems, Web Search, Changes |
-| **Customization** | Instructions, Prompt Files, Agent Skills, Custom Agents, MCP Servers, Hooks |
+| **Core** | Ask Mode, Agent Mode, Plan Mode, Chat Panel, Run Subagent, Background Agents, Cloud Agents, Inline Chat, Quick Chat, Smart Actions, Multi-line Completions, Next Edit Suggestions (NES), Model Selection |
+| **Tools** | @workspace Participant, @terminal, @vscode Participant, #terminalSelection Variable, #codebase Variable, #problems Variable, Web Search, #Changes |
+| **Customization** | Custom Instructions File, Reusable Prompt Files, Agent Skills, Custom Agents, MCP Servers, Hooks |
 
 ### 🏆 Prioritized Recommendations
 
 Recommendations are ranked using an **Impact × Difficulty matrix** so the highest-value, lowest-effort items ("quick wins") surface first — each with a star rating (★★★ → ☆☆☆).
 
-### 🤖 Interactive Implementation
+### 🤖 Personalized Interactive Implementation & Tutorials
 
-Click **Implement** on any supported recommendation and Copilot Enabler opens a **Copilot Chat session** with a tailored prompt that:
+Click **Set up** on any supported recommendation and Copilot Enabler opens a **Copilot Chat session** with a tailored prompt that:
 
 1. Reads your project structure and context
 2. Asks clarifying questions
 3. Generates and writes the configuration files for you
 
-Supported implementations include:
-- `.github/copilot-instructions.md` — project-specific coding guidelines
-- `.github/prompts/*.prompt.md` — reusable prompt templates
-- Custom agents and agent skills
-- `.vscode/mcp.json` — MCP server configuration
-- `.github/hooks/prerun.json` — Pre-run and post-run hooks
 
-### 📝 Export Reports
-
-Generate a full **Markdown adoption report** with scorecard, recommendations, and a feature adoption matrix — perfect for sharing with your team or tracking progress over time.
+Click **Show Me** on any feature to open a guided **tutorial walkthrough** in Copilot Chat that reads your project structure and explains how the feature works and how to use it.
 
 ---
 
@@ -74,8 +64,12 @@ Generate a full **Markdown adoption report** with scorecard, recommendations, an
 | `Copilot Enabler: Refresh Analysis` | Re-scan in the background and update views |
 | `Copilot Enabler: Scorecard` | Open the dashboard focused on the feature adoption matrix |
 | `Copilot Enabler: Browse Feature Catalog` | Focus the Feature Catalog tree view in the sidebar |
-| `Copilot Enabler: Export Report` | Save a Markdown adoption report to a file |
 | `Copilot Enabler: Implement Recommendation` | Interactively implement a recommendation via Copilot Chat |
+| `Copilot Enabler: Show Me Tutorial` | Open a guided tutorial for a feature via Copilot Chat |
+| `Copilot Enabler: Hide Feature` | Hide a feature from analysis and recommendations |
+| `Copilot Enabler: Unhide Feature` | Restore a previously hidden feature |
+| `Copilot Enabler: Reset Hidden Features` | Restore all hidden features at once |
+| `Copilot Enabler: Settings` | Open the Copilot Enabler settings panel |
 
 ---
 
@@ -89,27 +83,6 @@ The extension analyzes four data sources — all **local and read-only** (nothin
 | **Workspace Files** | `.github/copilot-instructions.md`, `.vscode/mcp.json`, `.github/prompts/*.prompt.md`, `.github/instructions/*`, `.github/skills/*`, `.github/hooks/*` |
 | **Extensions** | Installed extensions — Copilot Core, Copilot Chat, MCP-related, chat participants |
 | **Copilot Logs** | VS Code Copilot log files scanned for feature usage hints (completions, modes, participants, etc.) |
-
-
-### Analysis Agents
-
-Three specialized agents evaluate different dimensions of Copilot adoption:
-
-- **CoreAgent** — Are you using Ask, Agent, Plan, and other core modes?
-- **CustomizationsAgent** — Have you set up instructions, prompts, MCP, skills, and hooks?
-- **AdoptionAgent** — Full gap analysis across all 27 features with prioritized recommendations
-
----
-
-## 🛠 Development
-
-```sh
-# 1. Install dependencies
-npm install
-
-## packages and installs
-npm run installextension
-```
 
 ---
 
