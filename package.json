@@ -174,7 +174,7 @@
     "watch": "tsc -watch -p ./",
     "lint": "eslint src/",
     "test": "jest --config jest.config.js",
-    "installextension": "rm -rf out && vsce package && code --install-extension copilot-enabler-*.vsix",
+    "installextension": "node -e \"require('fs').rmSync('out', { recursive: true, force: true });\" && vsce package && code --install-extension copilot-enabler-*.vsix",
     "new-feature": "node scripts/new-feature.js"
   },
   "devDependencies": {
