@@ -4,9 +4,9 @@ You are working on a VS Code extension written in TypeScript. Follow these conve
 
 ## Project Snapshot
 - TypeScript targeting VS Code ^1.85.0; entry point: src/extension.ts, output: out/
-- Core logic under src/core (analyzer, agents, feature catalog, prompts, report, scanner)
+- Core logic under src/core (analyzer, agents, feature catalog, prompts, scanner)
 - Views under src/views (webviews, tree providers); tests under src/test (Jest)
-- Packaging: exclude docs/media/test/src maps via .vscodeignore; main commands: analyze, scorecard, export report, feature catalog, implement, show me
+- Packaging: exclude docs/media/test/src maps via .vscodeignore; main commands: analyze, scorecard, feature catalog, implement, show me
 
 ## Language & Style
 - Use TypeScript with ES2020+ syntax; prefer `const`/`let`, no `var`; keep semicolons

@@ -7,7 +7,6 @@ import { scanWorkspace } from './core/scanner/workspace';
 import { scanExtensions } from './core/scanner/extensions';
 import { scanCopilotLogs } from './core/scanner/logs';
 import { catalog, getHiddenFeatureIDs } from './core/featureCatalog';
-import { generateMarkdownReport } from './core/report';
 import { implementableFeatures, systemPrompts, tutorialPrompts } from './core/prompts';
 import { FeatureTreeProvider, FeatureItem } from './views/featureTreeProvider';
 import { RecommendationTreeProvider } from './views/recommendationTree';
@@ -39,7 +38,6 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('copilotEnabler.analyze', () => handleAnalyze(context)),
     vscode.commands.registerCommand('copilotEnabler.featureMatrix', () => handleFeatureMatrix(context)),
-    vscode.commands.registerCommand('copilotEnabler.exportReport', () => handleExportReport()),
     vscode.commands.registerCommand('copilotEnabler.featureCatalog', () => handleFeatureCatalog()),
     vscode.commands.registerCommand('copilotEnabler.implement', (rec?: Recommendation) => handleImplement(rec)),
     vscode.commands.registerCommand('copilotEnabler.showMe', (rec?: Recommendation) => handleShowMe(rec)),
@@ -145,27 +143,6 @@ async function handleFeatureMatrix(context: vscode.ExtensionContext): Promise<vo
   // Dashboard already shows the matrix — just ensure it's visible
   if (lastResult) {
     DashboardPanel.show(context.extensionUri, lastResult);
-  }
-}
-
-async function handleExportReport(): Promise<void> {
-  if (!lastResult) {
-    vscode.window.showWarningMessage('Run a full analysis first.');
-    return;
-  }
-
-  const markdown = generateMarkdownReport(lastResult);
-
-  const uri = await vscode.window.showSaveDialog({
-    defaultUri: vscode.Uri.file('copilot-adoption-report.md'),
-    filters: { Markdown: ['md'] },
-  });
-
-  if (uri) {
-    await vscode.workspace.fs.writeFile(uri, Buffer.from(markdown, 'utf-8'));
-    vscode.window.showInformationMessage(`Report saved to ${uri.fsPath}`);
-    const doc = await vscode.workspace.openTextDocument(uri);
-    await vscode.window.showTextDocument(doc);
   }
 }
 
