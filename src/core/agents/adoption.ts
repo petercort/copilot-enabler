@@ -31,7 +31,10 @@ export class AdoptionAgent implements Agent {
       ctx.extensions.detectedHints,
     );
 
-    for (const f of ctx.featureCatalog) {
+    // Only score features that can actually be detected
+    const detectableFeatures = ctx.featureCatalog.filter((f) => f.detectHints.length > 0);
+
+    for (const f of detectableFeatures) {
       if (featureDetected(f, allHints)) {
         report.featuresUsed.push(f);
       } else {
@@ -54,8 +57,8 @@ export class AdoptionAgent implements Agent {
       report.recommendations.push(buildRecommendation(report.featuresUnused[i], 'Discover'));
     }
 
-    // Per-category summary
-    const byCat = featuresByCategory(ctx.featureCatalog);
+    // Per-category summary (only detectable features)
+    const byCat = featuresByCategory(detectableFeatures);
     const catSummaries: string[] = [];
     for (const cat of allCategories) {
       const catFeatures = byCat.get(cat) ?? [];

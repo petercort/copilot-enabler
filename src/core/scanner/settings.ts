@@ -33,7 +33,6 @@ export function scanSettings(): SettingsResult {
   ];
 
   for (const section of sections) {
-    const sectionConfig = vscode.workspace.getConfiguration(section);
     const inspected = config.inspect(section);
     if (inspected) {
       r.found = true;

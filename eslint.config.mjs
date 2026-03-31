@@ -1,26 +1,31 @@
-import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import globals from "globals";
 
-export default tseslint.config(
-  eslint.configs.recommended,
+const baseRules = {
+  "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+  "@typescript-eslint/no-explicit-any": "warn",
+  "@typescript-eslint/no-require-imports": "off",
+};
+
+const config = [
+  {
+    ignores: ["out/**", "node_modules/**", "coverage/**", "*.js", "*.cjs", "*.mjs"],
+  },
   ...tseslint.configs.recommended,
   {
+    files: ["src/**/*.ts"],
     languageOptions: {
-      globals: {
-        ...globals.node,
-      },
+      globals: globals.node,
     },
-    rules: {
-      "@typescript-eslint/no-unused-vars": [
-        "warn",
-        { argsIgnorePattern: "^_" },
-      ],
-      "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/no-require-imports": "off",
-    },
+    rules: baseRules,
   },
   {
-    ignores: ["out/", "node_modules/", "**/*.js"],
-  }
-);
+    files: ["test/**/*.ts"],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.jest },
+    },
+    rules: baseRules,
+  },
+];
+
+export default config;

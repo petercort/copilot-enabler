@@ -2,14 +2,14 @@
 
 /** Category represents a grouping of Copilot features. */
 export type Category =
-  | 'Agents'
-  | 'Chat'
+  | 'Core'
+  | 'Tools'
   | 'Customization';
 
 /** AllCategories returns every category in display order. */
 export const allCategories: Category[] = [
-  'Agents',
-  'Chat',
+  'Core',
+  'Tools',
   'Customization',
 ];
 
@@ -20,8 +20,12 @@ export interface Feature {
   category: Category;
   description: string;
   docsURL: string;
-  detectHints: string[];
-  tags: string[];
+  /**
+   * detectHints may be either plain strings (keywords) or objects that
+   * specify a hint and an optional file path to search specifically.
+   * Example: { hint: 'hooks', path: '.github/hooks/prerun.json' }
+   */
+  detectHints: Array<string | { hint: string; path?: string }>;
   impact: 'low' | 'medium' | 'high';
   difficulty: 'low' | 'medium' | 'high';
   setupSteps: string[];
@@ -54,7 +58,6 @@ export function catalog(): Feature[] {
 export function getHiddenFeatureIDs(): Set<string> {
   try {
     // Dynamic import to avoid breaking non-vscode test environments
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const vscode = require('vscode');
     const config = vscode.workspace.getConfiguration('copilotEnabler');
     const hidden: string[] = config.get('hiddenFeatures', []);

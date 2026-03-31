@@ -27,8 +27,7 @@ describe('Feature Catalog', () => {
       expect(f.category).toBeTruthy();
       expect(f.description).toBeTruthy();
       expect(f.docsURL).toBeTruthy();
-      expect(f.detectHints.length).toBeGreaterThan(0);
-      expect(f.tags.length).toBeGreaterThan(0);
+      expect(f.detectHints).toBeDefined();
       expect(['low', 'medium', 'high']).toContain(f.impact);
       expect(['low', 'medium', 'high']).toContain(f.difficulty);
       expect(f.setupSteps.length).toBeGreaterThan(0);
@@ -79,14 +78,13 @@ describe('Feature Catalog', () => {
     // Override the vscode mock to return hidden features
     const vscode = require('vscode');
     vscode.workspace.getConfiguration.mockReturnValueOnce({
-      get: jest.fn(() => ['mode-edit', 'mode-agent']),
+      get: jest.fn(() => ['core-agent-mode']),
     });
 
     const visible = visibleCatalog();
-    expect(visible.length).toBe(features.length - 2);
-    expect(visible.find((f: Feature) => f.id === 'mode-edit')).toBeUndefined();
-    expect(visible.find((f: Feature) => f.id === 'mode-agent')).toBeUndefined();
-    expect(visible.find((f: Feature) => f.id === 'mode-ask')).toBeDefined();
+    expect(visible.length).toBe(features.length - 1);
+    expect(visible.find((f: Feature) => f.id === 'core-agent-mode')).toBeUndefined();
+    expect(visible.find((f: Feature) => f.id === 'core-ask-mode')).toBeDefined();
   });
 
   test('getHiddenFeatureIDs returns empty set when no features hidden', () => {
@@ -97,12 +95,12 @@ describe('Feature Catalog', () => {
   test('getHiddenFeatureIDs returns set of hidden IDs', () => {
     const vscode = require('vscode');
     vscode.workspace.getConfiguration.mockReturnValueOnce({
-      get: jest.fn(() => ['mode-edit', 'custom-instructions-file']),
+      get: jest.fn(() => ['core-agent-mode', 'custom-instructions']),
     });
 
     const hidden = getHiddenFeatureIDs();
     expect(hidden.size).toBe(2);
-    expect(hidden.has('mode-edit')).toBe(true);
-    expect(hidden.has('custom-instructions-file')).toBe(true);
+    expect(hidden.has('core-agent-mode')).toBe(true);
+    expect(hidden.has('custom-instructions')).toBe(true);
   });
 });

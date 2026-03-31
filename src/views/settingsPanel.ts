@@ -1,7 +1,7 @@
 // Settings Panel — webview for configuring tracked features
 
 import * as vscode from 'vscode';
-import { catalog, allCategories, featuresByCategory, getHiddenFeatureIDs, Feature } from '../core/featureCatalog';
+import { catalog, allCategories, featuresByCategory, getHiddenFeatureIDs } from '../core/featureCatalog';
 
 export class SettingsPanel {
   private static currentPanel: SettingsPanel | undefined;

@@ -1,7 +1,6 @@
 # Copilot Enabler
 
-[![VS Code](https://img.shields.io/badge/VS%20Code-%5E1.85.0-blue?logo=visual-studio-code)](https://code.visualstudio.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/PeterCort.copilot-enabler?link=vscode%3A%2F%2FPeterCort.copilot-enabler)
 
 **Analyze and improve your GitHub Copilot adoption.** Discover unused features, get actionable recommendations, and implement them interactively — all from within VS Code.
 
@@ -13,42 +12,27 @@
 
 Get an instant snapshot of your Copilot usage with an overall adoption score (0–100), feature detection counts, and log analysis — displayed in the **status bar**, a **webview dashboard**, and **sidebar tree views**.
 
-### 🔍 Feature Catalog
+Includes Copilot features organized across three categories:
 
-Browse all **31 tracked Copilot features** organized across six categories:
-
-| Category | Examples |
+| Category | Features |
 |---|---|
-| **Modes** | Ask, Edit, Agent |
-| **Chat** | Panel, Inline, Quick, @workspace, @terminal, @vscode |
-| **Completion** | Inline Suggestions, Next Edit Suggestions (NES), Multi-line |
-| **Customization** | Instructions file, .copilotignore, Prompt files, MCP Servers, Custom Agents |
-| **Context** | #file, #selection, #codebase, #terminalLastCommand, #problems |
-| **Settings** | Model Selection, Suggestion Delay, Inline Suggest config |
+| **Core** | Ask Mode, Agent Mode, Plan Mode, Chat Panel, Run Subagent, Background Agents, Cloud Agents, Inline Chat, Quick Chat, Smart Actions, Multi-line Completions, Next Edit Suggestions (NES), Model Selection |
+| **Tools** | @workspace Participant, @terminal, @vscode Participant, #terminalSelection Variable, #codebase Variable, #problems Variable, Web Search, #Changes |
+| **Customization** | Custom Instructions File, Reusable Prompt Files, Agent Skills, Custom Agents, MCP Servers, Hooks |
 
 ### 🏆 Prioritized Recommendations
 
 Recommendations are ranked using an **Impact × Difficulty matrix** so the highest-value, lowest-effort items ("quick wins") surface first — each with a star rating (★★★ → ☆☆☆).
 
-### 🤖 Interactive Implementation
+### 🤖 Personalized Interactive Implementation & Tutorials
 
-Click **Implement** on any supported recommendation and Copilot Enabler opens a **Copilot Chat session** with a tailored prompt that:
+Click **Set up** on any supported recommendation and Copilot Enabler opens a **Copilot Chat session** with a tailored prompt that:
 
 1. Reads your project structure and context
 2. Asks clarifying questions
 3. Generates and writes the configuration files for you
 
-Supported implementations include:
-- `.github/copilot-instructions.md` — project-specific coding guidelines
-- `.copilotignore` — exclude files from Copilot's context
-- `.github/prompts/*.prompt.md` — reusable prompt templates
-- Custom agents and agent skills
-- Per-mode instructions (Ask / Edit / Agent)
-- `.vscode/mcp.json` — MCP server configuration
-
-### 📝 Export Reports
-
-Generate a full **Markdown adoption report** with scorecard, recommendations, and a feature adoption matrix — perfect for sharing with your team or tracking progress over time.
+Click **Show Me** on any feature to open a guided **tutorial walkthrough** in Copilot Chat that reads your project structure and explains how the feature works and how to use it.
 
 ---
 
@@ -77,10 +61,14 @@ Generate a full **Markdown adoption report** with scorecard, recommendations, an
 |---|---|
 | `Copilot Enabler: Run Full Analysis` | Scan settings, workspace, extensions, and logs — display the dashboard |
 | `Copilot Enabler: Refresh Analysis` | Re-scan in the background and update views |
-| `Copilot Enabler: Feature Matrix` | Open the dashboard focused on the feature adoption matrix |
+| `Copilot Enabler: Scorecard` | Open the dashboard focused on the feature adoption matrix |
 | `Copilot Enabler: Browse Feature Catalog` | Focus the Feature Catalog tree view in the sidebar |
-| `Copilot Enabler: Export Report` | Save a Markdown adoption report to a file |
 | `Copilot Enabler: Implement Recommendation` | Interactively implement a recommendation via Copilot Chat |
+| `Copilot Enabler: Show Me Tutorial` | Open a guided tutorial for a feature via Copilot Chat |
+| `Copilot Enabler: Hide Feature` | Hide a feature from analysis and recommendations |
+| `Copilot Enabler: Unhide Feature` | Restore a previously hidden feature |
+| `Copilot Enabler: Reset Hidden Features` | Restore all hidden features at once |
+| `Copilot Enabler: Settings` | Open the Copilot Enabler settings panel |
 
 ---
 
@@ -91,59 +79,9 @@ The extension analyzes four data sources — all **local and read-only** (nothin
 | Source | What It Checks |
 |---|---|
 | **VS Code Settings** | `github.copilot.*`, `github.copilot-chat.*`, `editor.inlineSuggest.*` configuration keys |
-| **Workspace Files** | `.github/copilot-instructions.md`, `.copilotignore`, `.vscode/mcp.json`, `.github/prompts/*.prompt.md`, `.github/instructions/*` |
+| **Workspace Files** | `.github/copilot-instructions.md`, `.vscode/mcp.json`, `.github/prompts/*.prompt.md`, `.github/instructions/*`, `.github/skills/*`, `.github/hooks/*` |
 | **Extensions** | Installed extensions — Copilot Core, Copilot Chat, MCP-related, chat participants |
 | **Copilot Logs** | VS Code Copilot log files scanned for feature usage hints (completions, modes, participants, etc.) |
-
----
-
-## 🏗 Architecture
-
-The extension is structured as a port of a Go CLI tool into a native VS Code extension:
-
-```
-src/
-├── extension.ts              # Entry point — commands, watchers, activation
-├── core/
-│   ├── analyzer.ts           # Orchestrates agents and computes scores
-│   ├── featureCatalog.ts     # 31-feature registry with metadata
-│   ├── prompts.ts            # System prompts for interactive implementation
-│   ├── report.ts             # Markdown report generator
-│   ├── agents/               # Analysis agents (Modes, Customizations, Adoption)
-│   └── scanner/              # Data collectors (settings, workspace, extensions, logs)
-└── views/
-    ├── dashboardPanel.ts     # Webview scorecard dashboard
-    ├── featureTreeProvider.ts # Feature Catalog tree view
-    ├── recommendationTree.ts  # Recommendations tree view
-    └── statusBar.ts          # Status bar widget
-```
-
-### Analysis Agents
-
-Three specialized agents evaluate different dimensions of Copilot adoption:
-
-- **ModesAgent** — Are you using Ask, Edit, and Agent modes?
-- **CustomizationsAgent** — Have you set up instructions, prompts, MCP, and ignore files?
-- **AdoptionAgent** — Full gap analysis across all 31 features with prioritized recommendations
-
----
-
-## 🛠 Development
-
-```sh
-# 1. Install dependencies
-npm install
-
-# 2. Compile TypeScript
-npm run compile
-
-# 3. Package as a .vsix file (install vsce first if you don't have it)
-npm install -g @vscode/vsce
-vsce package
-
-# 4. Install the generated .vsix in VS Code
-code --install-extension copilot-enabler-0.1.0.vsix
-```
 
 ---
 

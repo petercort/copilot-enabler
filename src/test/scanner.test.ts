@@ -24,15 +24,16 @@ describe('Scanner - Logs', () => {
 
     test('detects file-related hints', () => {
       const hints = new Map<string, boolean>();
-      detectHintsInText('found copilot-instructions.md and .copilotignore files', hints);
+      detectHintsInText('found copilot-instructions.md and .prompt.md files', hints);
       expect(hints.get('copilot-instructions.md')).toBe(true);
-      expect(hints.get('.copilotignore')).toBe(true);
+      expect(hints.get('.prompt.md')).toBe(true);
     });
 
     test('detects MCP hints', () => {
       const hints = new Map<string, boolean>();
-      detectHintsInText('configured mcpservers in mcp.json', hints);
-      expect(hints.get('mcpservers')).toBe(true);
+      detectHintsInText('configured mcp server in mcp.json', hints);
+      expect(hints.get('mcp.json')).toBe(true);
+      expect(hints.get('mcp server')).toBe(true);
     });
   });
 });

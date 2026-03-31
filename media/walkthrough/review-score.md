@@ -3,5 +3,5 @@
 After running the analysis, you'll see:
 
 - **Status Bar** — Your adoption score (e.g., "Copilot: 42/100") in the bottom right
-- **Dashboard** — A webview with score breakdown, recommendations, and feature matrix
+- **Dashboard** — A webview with score breakdown, recommendations, and scorecard
 - **Tree Views** — Feature catalog and recommendations in the sidebar

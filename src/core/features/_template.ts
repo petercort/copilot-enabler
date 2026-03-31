@@ -6,7 +6,7 @@ import { defineFeature } from './definition';
 export const featureTemplate = defineFeature({
   id: 'your-feature-id',
   name: 'Your Feature Name',
-  category: 'Chat', // Agents | Chat | Customization
+  category: 'Tools', // Agents | Chat | Customization | Tools
   description: 'A brief description of what this feature does and its benefits.',
   docsURL: 'https://code.visualstudio.com/docs/copilot/...',
   detectHints: [
@@ -14,7 +14,6 @@ export const featureTemplate = defineFeature({
     'keyword2',
     'setting.name',
   ],
-  tags: ['core'], // core | advanced | new | enterprise
   impact: 'medium', // low | medium | high
   difficulty: 'low', // low | medium | high
   setupSteps: [

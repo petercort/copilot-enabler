@@ -70,10 +70,13 @@ export function runAnalysis(
 
   const limit = Math.min(5, allRecs.length);
 
+  // Exclude not-detectable features from the total count
+  const detectableCount = featureCatalog.filter((f) => f.detectHints.length > 0).length;
+
   return {
     agentReports: reports,
     overallScore,
-    totalFeatures: featureCatalog.length,
+    totalFeatures: detectableCount,
     usedFeatures: usedSet.size,
     topRecommendations: allRecs.slice(0, limit),
     logSummary,

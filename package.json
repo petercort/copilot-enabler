@@ -2,7 +2,7 @@
   "name": "copilot-enabler",
   "displayName": "Copilot Enabler",
   "description": "Analyze and improve your GitHub Copilot adoption — discover unused features, get actionable recommendations, and implement them interactively.",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "publisher": "petercort",
   "license": "MIT",
   "repository": {
@@ -35,11 +35,7 @@
       },
       {
         "command": "copilotEnabler.featureMatrix",
-        "title": "Copilot Enabler: Feature Matrix"
-      },
-      {
-        "command": "copilotEnabler.exportReport",
-        "title": "Copilot Enabler: Export Report"
+        "title": "Copilot Enabler: Scorecard"
       },
       {
         "command": "copilotEnabler.featureCatalog",
@@ -48,6 +44,10 @@
       {
         "command": "copilotEnabler.implement",
         "title": "Copilot Enabler: Implement Recommendation"
+      },
+      {
+        "command": "copilotEnabler.showMe",
+        "title": "Copilot Enabler: Show Me Tutorial"
       },
       {
         "command": "copilotEnabler.refresh",
@@ -174,19 +174,19 @@
     "watch": "tsc -watch -p ./",
     "lint": "eslint src/",
     "test": "jest --config jest.config.js",
-    "installextension": "vsce package && code --install-extension copilot-enabler-*.vsix",
+    "installextension": "node -e \"require('fs').rmSync('out', { recursive: true, force: true });\" && vsce package && code --install-extension copilot-enabler-*.vsix",
     "new-feature": "node scripts/new-feature.js"
   },
   "devDependencies": {
-    "@eslint/js": "^9.0.0",
-    "@types/jest": "^29.5.12",
-    "@types/node": "^20.11.0",
+    "@eslint/js": "^10.0.1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.3.2",
     "@types/vscode": "^1.85.0",
-    "eslint": "^9.0.0",
+    "eslint": "^10.0.2",
     "globals": "^17.3.0",
-    "jest": "^29.7.0",
+    "jest": "^30.2.0",
     "ts-jest": "^29.1.2",
     "typescript": "^5.3.0",
-    "typescript-eslint": "^8.55.0"
+    "typescript-eslint": "^8.56.1"
   }
 }

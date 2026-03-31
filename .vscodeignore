@@ -1,0 +1,15 @@
+.vscodeignore
+.git/
+.github/
+.vscode/
+*.vsix
+node_modules/
+out/**/*.map
+src/
+test/
+coverage/
+scripts/
+docs/
+CONTRIBUTING.md
+jest.config.js
+tsconfig.json

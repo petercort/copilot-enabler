@@ -1,6 +1,7 @@
-// Port of internal/scanner/workspace.go — uses VS Code workspace API.
+// Workspace scanner — detects Copilot config files using feature detectHints.
 
 import * as vscode from 'vscode';
+import { getFeatureDefinitions } from '../features/registry';
 
 /** WorkspaceResult holds results of scanning a workspace for Copilot config files. */
 export interface WorkspaceResult {
@@ -9,23 +10,15 @@ export interface WorkspaceResult {
   detectedHints: Map<string, boolean>;
 }
 
-interface ConfigFile {
-  path: string;
-  hints: string[];
+/** Returns true when a detectHint string looks like a file path or glob pattern. */
+function isFilePathHint(hint: string): boolean {
+  return hint.includes('/') || hint.includes('*');
 }
 
-const configFiles: ConfigFile[] = [
-  { path: '.github/copilot-instructions.md', hints: ['copilot-instructions.md'] },
-  { path: '.copilotignore', hints: ['.copilotignore'] },
-  { path: '.vscode/mcp.json', hints: ['mcp.json', 'mcpservers'] },
-  { path: 'mcp.json', hints: ['mcp.json', 'mcpservers'] },
-  { path: '.vscode/settings.json', hints: [] },
-  { path: '.devcontainer/devcontainer.json', hints: [] },
-];
-
 /**
- * ScanWorkspace checks the workspace for known Copilot configuration files
- * using vscode.workspace.findFiles — no manual path construction needed.
+ * ScanWorkspace checks the workspace for Copilot configuration files
+ * by pulling file-path patterns directly from the feature detectHints
+ * in the registry — no hardcoded paths.
  */
 export async function scanWorkspace(): Promise<WorkspaceResult> {
   const r: WorkspaceResult = {
@@ -41,35 +34,27 @@ export async function scanWorkspace(): Promise<WorkspaceResult> {
 
   r.root = folders[0].uri.fsPath;
 
-  // Check each known config file
-  for (const cf of configFiles) {
-    const pattern = new vscode.RelativePattern(folders[0], cf.path);
-    const files = await vscode.workspace.findFiles(pattern, null, 1);
-    if (files.length > 0) {
-      r.filesFound.set(cf.path, true);
-      for (const h of cf.hints) {
-        r.detectedHints.set(h, true);
+  // Collect every file-path hint from the feature registry
+  const fileHints: string[] = [];
+  for (const feature of getFeatureDefinitions()) {
+    for (const raw of feature.detectHints) {
+      const hint = typeof raw === 'string' ? raw : raw.hint;
+      if (isFilePathHint(hint)) {
+        fileHints.push(hint);
       }
     }
   }
 
-  // Check for .prompt.md files in .github/prompts/
-  const promptPattern = new vscode.RelativePattern(folders[0], '.github/prompts/**/*.prompt.md');
-  const promptFiles = await vscode.workspace.findFiles(promptPattern);
-  for (const pf of promptFiles) {
-    const relPath = vscode.workspace.asRelativePath(pf);
-    r.filesFound.set(relPath, true);
-    r.detectedHints.set('.prompt.md', true);
-  }
-
-  // Check for instruction files in .github/instructions/
-  const instrPattern = new vscode.RelativePattern(folders[0], '.github/instructions/**/*');
-  const instrFiles = await vscode.workspace.findFiles(instrPattern);
-  for (const inf of instrFiles) {
-    const relPath = vscode.workspace.asRelativePath(inf);
-    r.filesFound.set(relPath, true);
-    r.detectedHints.set('copilot-instructions.md', true);
-    r.detectedHints.set('modeinstructions', true);
+  // Scan the workspace for each file-path hint pattern
+  for (const hint of fileHints) {
+    const pattern = new vscode.RelativePattern(folders[0], hint);
+    const isGlob = hint.includes('*');
+    const files = await vscode.workspace.findFiles(pattern, '**/node_modules/**', isGlob ? 10 : 1);
+    for (const file of files) {
+      const relPath = vscode.workspace.asRelativePath(file);
+      r.filesFound.set(relPath, true);
+      r.detectedHints.set(hint.toLowerCase(), true);
+    }
   }
 
   return r;

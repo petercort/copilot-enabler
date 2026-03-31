@@ -1,6 +1,6 @@
 // Feature definition type that bundles metadata, prompts, and detection logic
 
-import { Feature, Category } from '../featureCatalog';
+import { Feature } from '../featureCatalog';
 
 /**
  * FeatureDefinition extends the base Feature interface to include
@@ -9,6 +9,8 @@ import { Feature, Category } from '../featureCatalog';
 export interface FeatureDefinition extends Feature {
   /** Optional system prompt for interactive Copilot implementation sessions */
   systemPrompt?: string;
+  /** Optional tutorial prompt for interactive feature walkthroughs */
+  tutorialPrompt?: string;
 }
 
 /**
