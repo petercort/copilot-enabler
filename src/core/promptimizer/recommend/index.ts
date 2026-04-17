@@ -3,11 +3,12 @@
 
 import { Finding, IngestedSession, PricingModel, QualityRisk } from '../types';
 import { runCachingRules } from './caching';
+import { runGeneralRules } from './general';
 
 /** Rule set signature: given sessions + model, return zero or more findings. */
 export type RuleSet = (sessions: IngestedSession[], model: PricingModel) => Finding[];
 
-const ruleSets: RuleSet[] = [runCachingRules];
+const ruleSets: RuleSet[] = [runCachingRules, runGeneralRules];
 
 /** Register an additional rule set (v2: authoring, hygiene, compression). */
 export function registerRuleSet(rs: RuleSet): void {

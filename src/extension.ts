@@ -17,6 +17,7 @@ import { Recommendation, buildRecommendation } from './core/agents';
 import { runPromptimizer, PromptimizerResult, Finding, PricingModel } from './core/promptimizer';
 import { PromptimizerPanel } from './views/promptimizerPanel';
 import { PromptimizerTreeProvider } from './views/promptimizerTree';
+import { autoStartIfEnabled, isWatcherActive, startWatcher, stopWatcher } from './views/promptimizerWatcher';
 
 let statusBar: StatusBarManager;
 let featureTree: FeatureTreeProvider;
@@ -58,7 +59,14 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotEnabler.promptimizer.ingestCopilotLogs', () => handlePromptimizerIngestCopilotLogs(context)),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.refresh', () => handlePromptimizerIngestCopilotLogs(context)),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.openFinding', (finding?: Finding) => handlePromptimizerOpenFinding(context, finding)),
+    vscode.commands.registerCommand('copilotEnabler.promptimizer.startWatcher', () => startWatcher()),
+    vscode.commands.registerCommand('copilotEnabler.promptimizer.stopWatcher', () => stopWatcher()),
+    vscode.commands.registerCommand('copilotEnabler.promptimizer.toggleWatcher', () => {
+      if (isWatcherActive()) { stopWatcher(); } else { startWatcher(); }
+    }),
   );
+
+  autoStartIfEnabled();
 
   // --- File Watchers ---
   const watcher = vscode.workspace.createFileSystemWatcher(
@@ -145,6 +153,7 @@ async function doAnalysis(context: vscode.ExtensionContext, silent = false): Pro
         sources: [
           { type: 'log-entries', entries: logEntries },
           { type: 'copilot-sessions' },
+          { type: 'copilot-history' },
         ],
         model,
       });
@@ -538,6 +547,7 @@ async function handlePromptimizerIngestCopilotLogs(context: vscode.ExtensionCont
         sources: [
           { type: 'copilot-chat' },
           { type: 'copilot-sessions' },
+          { type: 'copilot-history' },
         ],
         model,
       }),

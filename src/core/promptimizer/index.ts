@@ -4,6 +4,7 @@ import { classifyBlocks } from './classify';
 import { computeStability } from './diff';
 import {
   ingestCopilotChatLogs,
+  ingestCopilotHistorySessions,
   ingestCopilotSessions,
   ingestFromLogEntries,
   ingestHar,
@@ -27,6 +28,7 @@ import {
 export type PromptimizerSource =
   | { type: 'copilot-chat' }
   | { type: 'copilot-sessions' }
+  | { type: 'copilot-history' }
   | { type: 'jsonl'; path: string }
   | { type: 'har'; path: string }
   | { type: 'log-entries'; entries: readonly LogEntryLike[] };
@@ -74,6 +76,9 @@ export function runPromptimizer(opts: RunPromptimizerOptions): PromptimizerResul
       case 'copilot-sessions':
         sessions.push(...ingestCopilotSessions());
         break;
+      case 'copilot-history':
+        sessions.push(...ingestCopilotHistorySessions());
+        break;
       case 'jsonl':
         sessions.push(...ingestJsonl(src.path));
         break;
@@ -103,7 +108,7 @@ export function runPromptimizer(opts: RunPromptimizerOptions): PromptimizerResul
 export * from './types';
 export { HeuristicTokenizer, tokenizeBlocks, createTokenizer, registerTokenizer } from './tokenize';
 export { classifyBlock, classifyBlocks } from './classify';
-export { ingestCopilotChatLogs, ingestCopilotSessions, ingestFromLogEntries, ingestHar, ingestJsonl } from './ingest';
+export { ingestCopilotChatLogs, ingestCopilotHistorySessions, ingestCopilotSessions, ingestFromLogEntries, ingestHar, ingestJsonl } from './ingest';
 export type { LogEntryLike } from './ingest';
 export { computeStability, hashBlock, stableTurns } from './diff';
 export {

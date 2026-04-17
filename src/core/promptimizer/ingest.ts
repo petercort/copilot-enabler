@@ -572,6 +572,169 @@ export function ingestCopilotSessions(): IngestedSession[] {
   return out;
 }
 
+// --- Copilot CLI chat history (history-session-state) --------------------
+
+function copilotHistoryRoot(): string {
+  return path.join(os.homedir(), '.copilot', 'history-session-state');
+}
+
+interface HistoryChatMessage {
+  role?: string;
+  content?: unknown;
+  tool_calls?: unknown;
+  tool_call_id?: string;
+  name?: string;
+}
+
+interface HistoryFile {
+  sessionId?: string;
+  startTime?: string;
+  model?: string;
+  cwd?: string;
+  repository?: string;
+  branch?: string;
+  chatMessages?: HistoryChatMessage[];
+  timeline?: unknown;
+}
+
+function messageContentToText(content: unknown): string {
+  if (typeof content === 'string') { return content; }
+  if (Array.isArray(content)) {
+    const parts: string[] = [];
+    for (const p of content) {
+      if (typeof p === 'string') { parts.push(p); }
+      else if (p && typeof p === 'object') {
+        const o = p as Record<string, unknown>;
+        if (typeof o['text'] === 'string') { parts.push(o['text'] as string); }
+        else if (typeof o['content'] === 'string') { parts.push(o['content'] as string); }
+        else { parts.push(JSON.stringify(o)); }
+      }
+    }
+    return parts.join('\n');
+  }
+  if (content && typeof content === 'object') {
+    try { return JSON.stringify(content); } catch { return ''; }
+  }
+  return '';
+}
+
+function toolCallsToText(toolCalls: unknown): string {
+  if (!Array.isArray(toolCalls)) { return ''; }
+  const parts: string[] = [];
+  for (const tc of toolCalls) {
+    if (!tc || typeof tc !== 'object') { continue; }
+    const o = tc as Record<string, unknown>;
+    const fn = o['function'] as Record<string, unknown> | undefined;
+    const name = asString(fn?.['name']) ?? asString(o['name']) ?? 'tool';
+    const args = fn?.['arguments'] ?? o['arguments'];
+    parts.push(`${name}(${typeof args === 'string' ? args : JSON.stringify(args ?? {})})`);
+  }
+  return parts.join('\n');
+}
+
+function buildSessionFromHistory(file: HistoryFile, sessionId: string): IngestedSession | undefined {
+  const messages = Array.isArray(file.chatMessages) ? file.chatMessages : [];
+  if (messages.length === 0) { return undefined; }
+
+  const context: Record<string, string> = {};
+  if (file.cwd) { context['cwd'] = file.cwd; }
+  if (file.repository) { context['repository'] = file.repository; }
+  if (file.branch) { context['branch'] = file.branch; }
+
+  const turns: RawTurn[] = [];
+  let current: { blocks: Block[]; idx: number } | undefined;
+  let subIdx = 0;
+  let firstPrompt: string | undefined;
+
+  const pushCurrent = (): void => {
+    if (current && current.blocks.length > 0) {
+      turns.push({ session_id: sessionId, turn: current.idx, model: file.model, blocks: current.blocks });
+    }
+  };
+
+  for (const msg of messages) {
+    const role = msg.role ?? 'user';
+    if (role === 'user') {
+      pushCurrent();
+      current = { blocks: [], idx: turns.length };
+      subIdx = 0;
+      const text = messageContentToText(msg.content);
+      if (!firstPrompt && text) { firstPrompt = text; }
+      current.blocks.push({ id: `msg-u-${current.idx}`, category: 'user_message', text });
+      continue;
+    }
+    if (!current) { current = { blocks: [], idx: turns.length }; subIdx = 0; }
+    if (role === 'assistant') {
+      const text = messageContentToText(msg.content);
+      if (text) {
+        current.blocks.push({
+          id: `msg-a-${current.idx}-${subIdx++}`,
+          category: 'assistant_message',
+          text,
+        });
+      }
+      const toolText = toolCallsToText(msg.tool_calls);
+      if (toolText) {
+        current.blocks.push({
+          id: `msg-a-tool-${current.idx}-${subIdx++}`,
+          category: 'assistant_message',
+          text: toolText,
+        });
+      }
+    } else if (role === 'tool') {
+      const text = messageContentToText(msg.content);
+      current.blocks.push({
+        id: `tool-result-${current.idx}-${subIdx++}`,
+        category: 'tool_result',
+        text,
+        name: msg.name ?? 'tool',
+      });
+    }
+  }
+  pushCurrent();
+
+  if (turns.length === 0) { return undefined; }
+  const shortId = sessionId.split(':').pop()?.slice(0, 8) ?? sessionId;
+  return {
+    session_id: sessionId,
+    model: file.model,
+    turns,
+    label: labelFor(context, firstPrompt, shortId),
+    context: Object.keys(context).length ? context : undefined,
+    firstPrompt: firstPrompt ? firstPromptSummary(firstPrompt, 200) : undefined,
+    startedAt: file.startTime,
+  };
+}
+
+/**
+ * Ingest Copilot CLI history files from `~/.copilot/history-session-state/*.json`.
+ *
+ * Each file is a full chat transcript with `chatMessages` containing user,
+ * assistant, and tool messages (including `tool_calls` with arguments). This
+ * source has larger, richer text than the event-stream ingest and therefore
+ * surfaces many more optimization findings.
+ */
+export function ingestCopilotHistorySessions(): IngestedSession[] {
+  const root = copilotHistoryRoot();
+  if (!fs.existsSync(root)) { return []; }
+  const out: IngestedSession[] = [];
+  let entries: fs.Dirent[];
+  try { entries = fs.readdirSync(root, { withFileTypes: true }); }
+  catch { return out; }
+  for (const e of entries) {
+    if (!e.isFile() || !e.name.endsWith('.json')) { continue; }
+    const full = path.join(root, e.name);
+    let raw: string;
+    try { raw = fs.readFileSync(full, 'utf-8'); } catch { continue; }
+    let parsed: HistoryFile;
+    try { parsed = JSON.parse(raw) as HistoryFile; } catch { continue; }
+    const sid = parsed.sessionId ?? e.name.replace(/\.json$/, '');
+    const session = buildSessionFromHistory(parsed, `copilot-history:${sid}`);
+    if (session) { out.push(session); }
+  }
+  return out;
+}
+
 // --- Copilot Chat --------------------------------------------------------
 
 /**

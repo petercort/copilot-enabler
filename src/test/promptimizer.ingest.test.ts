@@ -155,4 +155,45 @@ describe('Promptimizer - ingest (Copilot CLI sessions)', () => {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
   });
+
+  test('ingestCopilotHistorySessions reads history-session-state/*.json with chatMessages', () => {
+    const { ingestCopilotHistorySessions } = require('../core/promptimizer/ingest');
+    const tmp = path.join(os.tmpdir(), `promptimizer-history-${Date.now()}`);
+    const root = path.join(tmp, '.copilot', 'history-session-state');
+    fs.mkdirSync(root, { recursive: true });
+    const body = {
+      sessionId: 'hhh',
+      startTime: '2025-10-08T21:10:16.398Z',
+      chatMessages: [
+        { role: 'user', content: 'please add mcp servers' },
+        { role: 'assistant', content: 'sure' },
+        {
+          role: 'assistant',
+          tool_calls: [
+            { function: { name: 'str_replace_editor', arguments: '{"command":"view","path":"/x"}' } },
+          ],
+        },
+        { role: 'tool', name: 'str_replace_editor', content: 'file contents here' },
+        { role: 'user', content: 'thanks' },
+      ],
+    };
+    fs.writeFileSync(path.join(root, 'session_hhh_1.json'), JSON.stringify(body));
+
+    try {
+      const osMod = require('os');
+      jest.spyOn(osMod, 'homedir').mockReturnValue(tmp);
+      const sessions = ingestCopilotHistorySessions();
+      expect(sessions.length).toBe(1);
+      const s = sessions[0];
+      expect(s.session_id).toBe('copilot-history:hhh');
+      expect(s.turns.length).toBe(2);
+      const cats0 = s.turns[0].blocks.map((b: { category: string }) => b.category);
+      expect(cats0).toEqual(expect.arrayContaining(['user_message', 'assistant_message', 'tool_result']));
+      expect(s.firstPrompt).toContain('mcp');
+    } finally {
+      jest.restoreAllMocks();
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
 });
+

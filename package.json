@@ -2,7 +2,7 @@
   "name": "copilot-enabler",
   "displayName": "Copilot Enabler",
   "description": "Analyze and improve your GitHub Copilot adoption — discover unused features, get actionable recommendations, and implement them interactively.",
-  "version": "0.1.5",
+  "version": "0.1.15",  
   "publisher": "petercort",
   "license": "MIT",
   "repository": {
@@ -94,6 +94,18 @@
       {
         "command": "copilotEnabler.promptimizer.openFinding",
         "title": "Copilot Enabler: Show Finding Detail"
+      },
+      {
+        "command": "copilotEnabler.promptimizer.startWatcher",
+        "title": "Copilot Enabler: Promptimizer — Watch for Large Tool Results"
+      },
+      {
+        "command": "copilotEnabler.promptimizer.stopWatcher",
+        "title": "Copilot Enabler: Promptimizer — Stop Tool Result Watcher"
+      },
+      {
+        "command": "copilotEnabler.promptimizer.toggleWatcher",
+        "title": "Copilot Enabler: Promptimizer — Toggle Tool Result Watcher"
       }
     ],
     "viewsContainers": {
@@ -192,6 +204,17 @@
           ],
           "default": "claude-sonnet-4.6",
           "description": "Anthropic pricing model used by the Promptimizer to estimate USD/100-turn savings."
+        },
+        "copilotEnabler.promptimizer.largeToolResultTokens": {
+          "type": "number",
+          "default": 3000,
+          "minimum": 200,
+          "description": "Tool results larger than this many tokens trigger a real-time warning when the Promptimizer Watcher is running."
+        },
+        "copilotEnabler.promptimizer.watchOnStartup": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically start the Promptimizer Watcher (live alerts on large Copilot CLI tool results) when VS Code launches."
         }
       }
     },
