@@ -15,11 +15,16 @@ import { StatusBarManager } from './views/statusBar';
 import { DashboardPanel } from './views/dashboardPanel';
 import { SettingsPanel } from './views/settingsPanel';
 import { Recommendation, buildRecommendation } from './core/agents';
+import { runPromptimizer, PromptimizerResult, Finding, PricingModel } from './core/promptimizer';
+import { PromptimizerPanel } from './views/promptimizerPanel';
+import { PromptimizerTreeProvider } from './views/promptimizerTree';
 
 let statusBar: StatusBarManager;
 let featureTree: FeatureTreeProvider;
 let recommendationTree: RecommendationTreeProvider;
 let lastResult: AnalysisResult | undefined;
+let promptimizerTree: PromptimizerTreeProvider;
+let lastPromptimizerResult: PromptimizerResult | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
   // --- Status Bar ---
@@ -29,10 +34,12 @@ export function activate(context: vscode.ExtensionContext): void {
   // --- Tree Views ---
   featureTree = new FeatureTreeProvider();
   recommendationTree = new RecommendationTreeProvider();
+  promptimizerTree = new PromptimizerTreeProvider();
 
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider('copilotEnabler.features', featureTree),
     vscode.window.registerTreeDataProvider('copilotEnabler.recommendations', recommendationTree),
+    vscode.window.registerTreeDataProvider('copilotEnabler.promptimizer', promptimizerTree),
   );
 
   // --- Commands ---
@@ -48,6 +55,11 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotEnabler.unhideFeature', () => handleUnhideFeature(context)),
     vscode.commands.registerCommand('copilotEnabler.resetHiddenFeatures', () => handleResetHiddenFeatures(context)),
     vscode.commands.registerCommand('copilotEnabler.settings', () => SettingsPanel.show()),
+    vscode.commands.registerCommand('copilotEnabler.promptimizer.open', () => handlePromptimizerOpen(context)),
+    vscode.commands.registerCommand('copilotEnabler.promptimizer.ingestFile', () => handlePromptimizerIngestFile(context)),
+    vscode.commands.registerCommand('copilotEnabler.promptimizer.ingestCopilotLogs', () => handlePromptimizerIngestCopilotLogs(context)),
+    vscode.commands.registerCommand('copilotEnabler.promptimizer.refresh', () => handlePromptimizerIngestCopilotLogs(context)),
+    vscode.commands.registerCommand('copilotEnabler.promptimizer.openFinding', (finding?: Finding) => handlePromptimizerOpenFinding(context, finding)),
   );
 
   // --- File Watchers ---
@@ -124,6 +136,25 @@ async function doAnalysis(context: vscode.ExtensionContext, silent = false): Pro
     }
     featureTree.refresh(usedIDs);
     recommendationTree.refresh(result.topRecommendations);
+
+    // Run Promptimizer on the same log entries AND Copilot CLI session
+    // events (`~/.copilot/session-state/*/events.jsonl`, the richest source
+    // of real prompt data on this workstation) so the tree stays in sync
+    // without requiring a separate ingest command.
+    try {
+      const model = getPromptimizerModel();
+      const promptResult = runPromptimizer({
+        sources: [
+          { type: 'log-entries', entries: logEntries },
+          { type: 'copilot-sessions' },
+        ],
+        model,
+      });
+      lastPromptimizerResult = promptResult;
+      promptimizerTree.refresh(promptResult);
+    } catch (err) {
+      console.error('Copilot Enabler: promptimizer auto-run failed', err);
+    }
 
     // Only show dashboard webview when explicitly requested
     if (!silent) {
@@ -438,4 +469,127 @@ async function handleResetHiddenFeatures(context: vscode.ExtensionContext): Prom
 
   await config.update('hiddenFeatures', [], vscode.ConfigurationTarget.Global);
   await handleAnalyze(context, true);
+}
+
+// ─── Promptimizer Handlers ───
+
+function getPromptimizerModel(): PricingModel {
+  const config = vscode.workspace.getConfiguration('copilotEnabler');
+  return config.get<PricingModel>('promptimizer.model', 'claude-sonnet-4.6');
+}
+
+function mergePromptimizerResult(next: PromptimizerResult): void {
+  if (!lastPromptimizerResult) {
+    lastPromptimizerResult = next;
+  } else {
+    const sessions = [...lastPromptimizerResult.sessions, ...next.sessions];
+    const findings = [...lastPromptimizerResult.findings, ...next.findings].sort(
+      (a, b) => (b.estimated_savings?.usd_per_100_turns ?? 0) - (a.estimated_savings?.usd_per_100_turns ?? 0),
+    );
+    lastPromptimizerResult = { sessions, findings, model: next.model };
+  }
+  promptimizerTree.refresh(lastPromptimizerResult);
+}
+
+function sessionTurnCounts(result: PromptimizerResult): { sessions: number; turns: number } {
+  let turns = 0;
+  for (const s of result.sessions) {
+    turns += s.turns.length;
+  }
+  return { sessions: result.sessions.length, turns };
+}
+
+async function handlePromptimizerOpen(context: vscode.ExtensionContext): Promise<void> {
+  if (!lastPromptimizerResult) {
+    await handlePromptimizerIngestCopilotLogs(context);
+  }
+  if (lastPromptimizerResult) {
+    PromptimizerPanel.show(context.extensionUri, lastPromptimizerResult);
+  }
+}
+
+async function handlePromptimizerIngestFile(context: vscode.ExtensionContext): Promise<void> {
+  const picked = await vscode.window.showOpenDialog({
+    canSelectMany: false,
+    openLabel: 'Ingest Prompt Log',
+    filters: {
+      'JSONL': ['jsonl'],
+      'HAR': ['har'],
+      'All Files': ['*'],
+    },
+  });
+  if (!picked || picked.length === 0) { return; }
+  const fsPath = picked[0].fsPath;
+  const lower = fsPath.toLowerCase();
+  let type: 'jsonl' | 'har';
+  if (lower.endsWith('.har')) {
+    type = 'har';
+  } else if (lower.endsWith('.jsonl')) {
+    type = 'jsonl';
+  } else {
+    vscode.window.showErrorMessage(`Copilot Enabler: unsupported prompt log extension for ${fsPath} (expected .jsonl or .har)`);
+    return;
+  }
+
+  try {
+    const model = getPromptimizerModel();
+    const result = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: `Copilot Enabler: Ingesting ${type.toUpperCase()}...` },
+      async () => runPromptimizer({ sources: [{ type, path: fsPath }], model }),
+    );
+    mergePromptimizerResult(result);
+    const counts = sessionTurnCounts(result);
+    vscode.window.showInformationMessage(
+      `Promptimizer: ingested ${counts.sessions} session(s), ${counts.turns} turn(s) from ${type.toUpperCase()}.`,
+    );
+    if (lastPromptimizerResult) {
+      PromptimizerPanel.show(context.extensionUri, lastPromptimizerResult);
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('Copilot Enabler: promptimizer ingest failed', err);
+    vscode.window.showErrorMessage(`Copilot Enabler: promptimizer ingest failed — ${msg}`);
+  }
+}
+
+async function handlePromptimizerIngestCopilotLogs(context: vscode.ExtensionContext): Promise<void> {
+  try {
+    const model = getPromptimizerModel();
+    const result = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: 'Copilot Enabler: Ingesting Copilot chat logs...' },
+      async () => runPromptimizer({
+        sources: [
+          { type: 'copilot-chat' },
+          { type: 'copilot-sessions' },
+        ],
+        model,
+      }),
+    );
+    mergePromptimizerResult(result);
+    const counts = sessionTurnCounts(result);
+    vscode.window.showInformationMessage(
+      `Promptimizer: ingested ${counts.sessions} session(s), ${counts.turns} turn(s).`,
+    );
+    if (lastPromptimizerResult) {
+      PromptimizerPanel.show(context.extensionUri, lastPromptimizerResult);
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('Copilot Enabler: promptimizer ingest failed', err);
+    vscode.window.showErrorMessage(`Copilot Enabler: promptimizer ingest failed — ${msg}`);
+  }
+}
+
+async function handlePromptimizerOpenFinding(
+  context: vscode.ExtensionContext,
+  finding?: Finding,
+): Promise<void> {
+  if (!lastPromptimizerResult) {
+    vscode.window.showWarningMessage('Run the Promptimizer first.');
+    return;
+  }
+  PromptimizerPanel.show(context.extensionUri, lastPromptimizerResult);
+  if (finding) {
+    vscode.window.showInformationMessage(`${finding.rule}: ${finding.message ?? ''}`);
+  }
 }

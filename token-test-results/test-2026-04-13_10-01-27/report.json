@@ -1,0 +1,129 @@
+{
+  "testSession": {
+    "timestamp": "2026-04-13_10-01-27",
+    "sessionDir": "/Users/petercort/Documents/petercort/copilot-enabler-vscode/token-test-results/test-2026-04-13_10-01-27",
+    "repo": "/Users/petercort/Documents/petercort/copilot-enabler-vscode",
+    "models": [
+      "Claude Sonnet 4.6",
+      "GPT-5.4"
+    ],
+    "effortLevels": [
+      "low",
+      "high"
+    ],
+    "promptTypes": [
+      "simple",
+      "complex"
+    ],
+    "note": "Token counts are ESTIMATED from character length (~4 chars per token). Copilot CLI does not expose actual token usage."
+  },
+  "summary": {
+    "totalTests": 8,
+    "successfulTests": 0,
+    "failedTests": 8
+  },
+  "details": [
+    {
+      "testNumber": 1,
+      "model": "claude-sonnet-4.6",
+      "modelDisplay": "Claude Sonnet 4.6",
+      "effort": "low",
+      "promptType": "simple",
+      "promptLength": 79,
+      "responseTime": 0,
+      "success": false,
+      "error": "No response or timeout"
+    },
+    {
+      "testNumber": 2,
+      "model": "claude-sonnet-4.6",
+      "modelDisplay": "Claude Sonnet 4.6",
+      "effort": "low",
+      "promptType": "complex",
+      "promptLength": 805,
+      "responseTime": 0,
+      "success": false,
+      "error": "No response or timeout"
+    },
+    {
+      "testNumber": 3,
+      "model": "claude-sonnet-4.6",
+      "modelDisplay": "Claude Sonnet 4.6",
+      "effort": "high",
+      "promptType": "simple",
+      "promptLength": 79,
+      "responseTime": 0,
+      "success": false,
+      "error": "No response or timeout"
+    },
+    {
+      "testNumber": 4,
+      "model": "claude-sonnet-4.6",
+      "modelDisplay": "Claude Sonnet 4.6",
+      "effort": "high",
+      "promptType": "complex",
+      "promptLength": 805,
+      "responseTime": 0,
+      "success": false,
+      "error": "No response or timeout"
+    },
+    {
+      "testNumber": 5,
+      "model": "gpt-5.4",
+      "modelDisplay": "GPT-5.4",
+      "effort": "low",
+      "promptType": "simple",
+      "promptLength": 79,
+      "responseTime": 0,
+      "success": false,
+      "error": "No response or timeout"
+    },
+    {
+      "testNumber": 6,
+      "model": "gpt-5.4",
+      "modelDisplay": "GPT-5.4",
+      "effort": "low",
+      "promptType": "complex",
+      "promptLength": 805,
+      "responseTime": 0,
+      "success": false,
+      "error": "No response or timeout"
+    },
+    {
+      "testNumber": 7,
+      "model": "gpt-5.4",
+      "modelDisplay": "GPT-5.4",
+      "effort": "high",
+      "promptType": "simple",
+      "promptLength": 79,
+      "responseTime": 1000,
+      "success": false,
+      "error": "No response or timeout"
+    },
+    {
+      "testNumber": 8,
+      "model": "gpt-5.4",
+      "modelDisplay": "GPT-5.4",
+      "effort": "high",
+      "promptType": "complex",
+      "promptLength": 805,
+      "responseTime": 0,
+      "success": false,
+      "error": "No response or timeout"
+    }
+  ],
+  "responseStatsByModel": {
+    "Claude Sonnet 4.6": {
+      "averageResponseChars": 0,
+      "averageResponseTime": 0,
+      "totalTests": 0,
+      "estimatedAvgTokens": 0
+    },
+    "GPT-5.4": {
+      "averageResponseChars": 0,
+      "averageResponseTime": 0,
+      "totalTests": 0,
+      "estimatedAvgTokens": 0
+    }
+  }
+}

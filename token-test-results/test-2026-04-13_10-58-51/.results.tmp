@@ -1,0 +1,15 @@
+[
+  {
+    "testNumber": 1,
+    "model": "claude-sonnet-4.6",
+    "modelDisplay": "Claude Sonnet 4.6",
+    "effort": "low",
+    "promptType": "simple",
+    "promptLength": 79,
+    "inputTokens": 50700,
+    "outputTokens": 462,
+    "responseCharacters": 972,
+    "responseTime": 22000,
+    "success": true
+  }
+]

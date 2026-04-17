@@ -1,0 +1,215 @@
+{
+  "testSession": {
+    "timestamp": "2026-04-13_11-09-41",
+    "sessionDir": "/Users/petercort/Documents/petercort/copilot-enabler-vscode/token-test-results/test-2026-04-13_11-09-41",
+    "repo": "/Users/petercort/Documents/petercort/copilot-enabler-vscode",
+    "models": [
+      "Claude Sonnet 4.6",
+      "GPT-5.4"
+    ],
+    "effortLevels": [
+      "low",
+      "high"
+    ],
+    "promptTypes": [
+      "simple",
+      "complex"
+    ],
+    "note": "Token counts are captured from Copilot CLI output (↑ = input tokens, ↓ = output tokens)"
+  },
+  "summary": {
+    "totalTests": 8,
+    "successfulTests": 8,
+    "failedTests": 0
+  },
+  "details": [
+    {
+      "testNumber": 1,
+      "model": "claude-sonnet-4.6",
+      "modelDisplay": "Claude Sonnet 4.6",
+      "effort": "low",
+      "promptType": "simple",
+      "promptLength": 79,
+      "inputTokens": 50700,
+      "outputTokens": 425,
+      "responseCharacters": 887,
+      "responseTime": 26000,
+      "success": true
+    },
+    {
+      "testNumber": 2,
+      "model": "claude-sonnet-4.6",
+      "modelDisplay": "Claude Sonnet 4.6",
+      "effort": "low",
+      "promptType": "complex",
+      "promptLength": 805,
+      "inputTokens": 125800,
+      "outputTokens": 2200,
+      "responseCharacters": 6111,
+      "responseTime": 51000,
+      "success": true
+    },
+    {
+      "testNumber": 3,
+      "model": "claude-sonnet-4.6",
+      "modelDisplay": "Claude Sonnet 4.6",
+      "effort": "high",
+      "promptType": "simple",
+      "promptLength": 79,
+      "inputTokens": 50800,
+      "outputTokens": 487,
+      "responseCharacters": 1051,
+      "responseTime": 24000,
+      "success": true
+    },
+    {
+      "testNumber": 4,
+      "model": "claude-sonnet-4.6",
+      "modelDisplay": "Claude Sonnet 4.6",
+      "effort": "high",
+      "promptType": "complex",
+      "promptLength": 805,
+      "inputTokens": 233000,
+      "outputTokens": 3100,
+      "responseCharacters": 6962,
+      "responseTime": 77000,
+      "success": true
+    },
+    {
+      "testNumber": 5,
+      "model": "gpt-5.4",
+      "modelDisplay": "GPT-5.4",
+      "effort": "low",
+      "promptType": "simple",
+      "promptLength": 79,
+      "inputTokens": 46500,
+      "outputTokens": 421,
+      "responseCharacters": 1019,
+      "responseTime": 34000,
+      "success": true
+    },
+    {
+      "testNumber": 6,
+      "model": "gpt-5.4",
+      "modelDisplay": "GPT-5.4",
+      "effort": "low",
+      "promptType": "complex",
+      "promptLength": 805,
+      "inputTokens": 189000,
+      "outputTokens": 3500,
+      "responseCharacters": 11607,
+      "responseTime": 117000,
+      "success": true
+    },
+    {
+      "testNumber": 7,
+      "model": "gpt-5.4",
+      "modelDisplay": "GPT-5.4",
+      "effort": "high",
+      "promptType": "simple",
+      "promptLength": 79,
+      "inputTokens": 46800,
+      "outputTokens": 874,
+      "responseCharacters": 1013,
+      "responseTime": 33000,
+      "success": true
+    },
+    {
+      "testNumber": 8,
+      "model": "gpt-5.4",
+      "modelDisplay": "GPT-5.4",
+      "effort": "high",
+      "promptType": "complex",
+      "promptLength": 805,
+      "inputTokens": 236400,
+      "outputTokens": 4900,
+      "responseCharacters": 11461,
+      "responseTime": 118000,
+      "success": true
+    }
+  ],
+  "detailedBreakdown": [
+    {
+      "model": "Claude Sonnet 4.6",
+      "tests": [
+        {
+          "effort": "low",
+          "promptType": "simple",
+          "inputTokens": 50700,
+          "outputTokens": 425,
+          "responseTime": 26000,
+          "responseChars": 887,
+          "promptLength": 79
+        },
+        {
+          "effort": "low",
+          "promptType": "complex",
+          "inputTokens": 125800,
+          "outputTokens": 2200,
+          "responseTime": 51000,
+          "responseChars": 6111,
+          "promptLength": 805
+        },
+        {
+          "effort": "high",
+          "promptType": "simple",
+          "inputTokens": 50800,
+          "outputTokens": 487,
+          "responseTime": 24000,
+          "responseChars": 1051,
+          "promptLength": 79
+        },
+        {
+          "effort": "high",
+          "promptType": "complex",
+          "inputTokens": 233000,
+          "outputTokens": 3100,
+          "responseTime": 77000,
+          "responseChars": 6962,
+          "promptLength": 805
+        }
+      ]
+    },
+    {
+      "model": "GPT-5.4",
+      "tests": [
+        {
+          "effort": "low",
+          "promptType": "simple",
+          "inputTokens": 46500,
+          "outputTokens": 421,
+          "responseTime": 34000,
+          "responseChars": 1019,
+          "promptLength": 79
+        },
+        {
+          "effort": "low",
+          "promptType": "complex",
+          "inputTokens": 189000,
+          "outputTokens": 3500,
+          "responseTime": 117000,
+          "responseChars": 11607,
+          "promptLength": 805
+        },
+        {
+          "effort": "high",
+          "promptType": "simple",
+          "inputTokens": 46800,
+          "outputTokens": 874,
+          "responseTime": 33000,
+          "responseChars": 1013,
+          "promptLength": 79
+        },
+        {
+          "effort": "high",
+          "promptType": "complex",
+          "inputTokens": 236400,
+          "outputTokens": 4900,
+          "responseTime": 118000,
+          "responseChars": 11461,
+          "promptLength": 805
+        }
+      ]
+    }
+  ]
+}

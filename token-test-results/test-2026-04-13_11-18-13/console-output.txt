@@ -1,0 +1,95 @@
+[0;34m🚀 Starting Copilot Response Measurement Test Suite[0m
+[0;36m📦 Repository: /Users/petercort/Documents/petercort/copilot-enabler-vscode[0m
+[0;36m📁 Output: /Users/petercort/Documents/petercort/copilot-enabler-vscode/token-test-results/test-2026-04-13_11-18-13[0m
+[0;36m🔧 Models: claude-sonnet-4.6:Claude Sonnet 4.6 gpt-5.4:GPT-5.4[0m
+[0;36m💪 Effort Levels: low high[0m
+[0;36m📝 Prompt Types: simple, complex[0m
+
+[0;32m✅ Copilot CLI found[0m
+
+[1;33m[1/8][0m Testing [0;36mClaude Sonnet 4.6[0m ([0;36mlow[0m) - [0;36msimple[0m prompt
+   [0;32m✅[0m Input: 50800 tokens, Output: 409 tokens, Time: 26000ms
+[1;33m[2/8][0m Testing [0;36mClaude Sonnet 4.6[0m ([0;36mlow[0m) - [0;36mcomplex[0m prompt
+   [0;32m✅[0m Input: 166800 tokens, Output: 2500 tokens, Time: 62000ms
+[1;33m[3/8][0m Testing [0;36mClaude Sonnet 4.6[0m ([0;36mhigh[0m) - [0;36msimple[0m prompt
+   [0;32m✅[0m Input: 50800 tokens, Output: 477 tokens, Time: 24000ms
+[1;33m[4/8][0m Testing [0;36mClaude Sonnet 4.6[0m ([0;36mhigh[0m) - [0;36mcomplex[0m prompt
+   [0;32m✅[0m Input: 284600 tokens, Output: 4100 tokens, Time: 103000ms
+[1;33m[5/8][0m Testing [0;36mGPT-5.4[0m ([0;36mlow[0m) - [0;36msimple[0m prompt
+   [0;32m✅[0m Input: 46800 tokens, Output: 418 tokens, Time: 35000ms
+[1;33m[6/8][0m Testing [0;36mGPT-5.4[0m ([0;36mlow[0m) - [0;36mcomplex[0m prompt
+   [0;32m✅[0m Input: 240800 tokens, Output: 3900 tokens, Time: 1032000ms
+[1;33m[7/8][0m Testing [0;36mGPT-5.4[0m ([0;36mhigh[0m) - [0;36msimple[0m prompt
+   [0;32m✅[0m Input: 75800 tokens, Output: 929 tokens, Time: 29000ms
+[1;33m[8/8][0m Testing [0;36mGPT-5.4[0m ([0;36mhigh[0m) - [0;36mcomplex[0m prompt
+   [0;32m✅[0m Input: 412600 tokens, Output: 7300 tokens, Time: 4318000ms
+
+[0;34m📊 Generating Reports[0m
+
+[0;32m✅[0m Results saved: /Users/petercort/Documents/petercort/copilot-enabler-vscode/token-test-results/test-2026-04-13_11-18-13/all-results.json
+[0;32m✅[0m Report saved: /Users/petercort/Documents/petercort/copilot-enabler-vscode/token-test-results/test-2026-04-13_11-18-13/report.json
+[0;32m✅[0m Config saved: /Users/petercort/Documents/petercort/copilot-enabler-vscode/token-test-results/test-2026-04-13_11-18-13/test-config.json
+
+[0;34m════════════════════════════════════════════════════════════════════════════════[0m
+[0;34m📈 RESPONSE MEASUREMENT TEST RESULTS[0m
+[0;34m════════════════════════════════════════════════════════════════════════════════[0m
+
+[0;36m📅 Session:[0m 2026-04-13_11-18-13
+[0;36m📁 Results:[0m /Users/petercort/Documents/petercort/copilot-enabler-vscode/token-test-results/test-2026-04-13_11-18-13
+[0;32m✅ Successful:[0m 8/8
+
+[1;33m📊 DETAILED TEST RESULTS BY MODEL:[0m
+[0;34m────────────────────────────────────────────────────────────────────────────────[0m
+
+  Claude Sonnet 4.6:
+    LOW effort, simple prompt:
+      • Input: 50800 tokens
+      • Output: 409 tokens
+      • Time: 26000 ms
+      • Chars: 819
+    LOW effort, complex prompt:
+      • Input: 166800 tokens
+      • Output: 2500 tokens
+      • Time: 62000 ms
+      • Chars: 6019
+    HIGH effort, simple prompt:
+      • Input: 50800 tokens
+      • Output: 477 tokens
+      • Time: 24000 ms
+      • Chars: 1024
+    HIGH effort, complex prompt:
+      • Input: 284600 tokens
+      • Output: 4100 tokens
+      • Time: 103000 ms
+      • Chars: 8130
+
+  GPT-5.4:
+    LOW effort, simple prompt:
+      • Input: 46800 tokens
+      • Output: 418 tokens
+      • Time: 35000 ms
+      • Chars: 1024
+    LOW effort, complex prompt:
+      • Input: 240800 tokens
+      • Output: 3900 tokens
+      • Time: 1032000 ms
+      • Chars: 13147
+    HIGH effort, simple prompt:
+      • Input: 75800 tokens
+      • Output: 929 tokens
+      • Time: 29000 ms
+      • Chars: 1216
+    HIGH effort, complex prompt:
+      • Input: 412600 tokens
+      • Output: 7300 tokens
+      • Time: 4318000 ms
+      • Chars: 12198
+
+[0;34m════════════════════════════════════════════════════════════════════════════════[0m
+
+[0;36m✅ Token usage captured from Copilot CLI output[0m
+
+[0;32m✨ Test session complete![0m
+[0;36m💾 Results saved to: /Users/petercort/Documents/petercort/copilot-enabler-vscode/token-test-results/test-2026-04-13_11-18-13[0m
+[0;36m📝 Console output: /Users/petercort/Documents/petercort/copilot-enabler-vscode/token-test-results/test-2026-04-13_11-18-13/console-output.txt[0m
+

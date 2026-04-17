@@ -13,3 +13,4 @@ docs/
 CONTRIBUTING.md
 jest.config.js
 tsconfig.json
+token-test-results/
