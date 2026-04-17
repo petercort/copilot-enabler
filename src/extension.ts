@@ -468,11 +468,28 @@ function mergePromptimizerResult(next: PromptimizerResult): void {
   if (!lastPromptimizerResult) {
     lastPromptimizerResult = next;
   } else {
-    const sessions = [...lastPromptimizerResult.sessions, ...next.sessions];
-    const findings = [...lastPromptimizerResult.findings, ...next.findings].sort(
+    // Deduplicate sessions by session_id — re-ingesting the same log files must not produce duplicates.
+    const existingSessionIds = new Set(lastPromptimizerResult.sessions.map((s) => s.session_id));
+    const newSessions = next.sessions.filter((s) => !existingSessionIds.has(s.session_id));
+    const sessions = [...lastPromptimizerResult.sessions, ...newSessions];
+
+    // Deduplicate findings by rule + first evidence block (proxy for the same session finding).
+    const findingKey = (f: { rule: string; evidence: { blocks: string[] } }) =>
+      `${f.rule}:${f.evidence.blocks[0] ?? ''}`;
+    const existingFindingKeys = new Set(lastPromptimizerResult.findings.map(findingKey));
+    const newFindings = next.findings.filter((f) => !existingFindingKeys.has(findingKey(f)));
+    const findings = [...lastPromptimizerResult.findings, ...newFindings].sort(
       (a, b) => (b.estimated_savings?.usd_per_100_turns ?? 0) - (a.estimated_savings?.usd_per_100_turns ?? 0),
     );
-    lastPromptimizerResult = { sessions, findings, model: next.model };
+
+    const staticFindings = [
+      ...lastPromptimizerResult.staticFindings,
+      ...next.staticFindings.filter((sf) =>
+        !lastPromptimizerResult!.staticFindings.some((e) => e.rule === sf.rule && e.file === sf.file),
+      ),
+    ];
+
+    lastPromptimizerResult = { sessions, findings, model: next.model, staticFindings };
   }
   promptimizerTree.refresh(lastPromptimizerResult);
 }
@@ -548,6 +565,7 @@ async function handlePromptimizerIngestCopilotLogs(context: vscode.ExtensionCont
           { type: 'copilot-chat' },
           { type: 'copilot-sessions' },
           { type: 'copilot-history' },
+          { type: 'vscode-debug-logs' },
         ],
         model,
       }),

@@ -684,24 +684,148 @@ export function parseVscodeDebugLog(filePath: string): import('./types').Session
 }
 
 /**
- * Ingest VS Code debug-log main.jsonl files for per-session usage data.
- * Returns sessions with authoritative token counts from VS Code's own tracing.
+ * Build turns and usage from a parsed VS Code debug-log `main.jsonl` file.
+ * VS Code debug logs use event types: `user_message`, `agent_response`,
+ * `tool_call`, `turn_start`, `turn_end`, `llm_request`, `session_start`.
+ */
+function parseVscodeDebugLogFull(filePath: string): IngestedSession | undefined {
+  let content: string;
+  try { content = fs.readFileSync(filePath, 'utf-8'); } catch { return undefined; }
+
+  const sessionDir = path.basename(path.dirname(filePath));
+  const sessionId = `vscode-debug:${sessionDir}`;
+  const turns: RawTurn[] = [];
+  let currentBlocks: Block[] = [];
+  let turnIdx = 0;
+  let subIdx = 0;
+  let model: string | undefined;
+  let firstPrompt: string | undefined;
+  let startedAt: string | undefined;
+  let totalInput = 0;
+  let totalOutput = 0;
+  let apiCalls = 0;
+
+  const pushTurn = (): void => {
+    if (currentBlocks.length > 0) {
+      turns.push({ session_id: sessionId, turn: turnIdx, model, blocks: currentBlocks });
+      currentBlocks = [];
+      subIdx = 0;
+    }
+  };
+
+  for (const rawLine of content.split('\n')) {
+    const line = rawLine.trim();
+    if (!line || line[0] !== '{') { continue; }
+    let parsed: VscodeDebugLogEntry;
+    try { parsed = JSON.parse(line) as VscodeDebugLogEntry; } catch { continue; }
+    const attrs = parsed.attrs ?? {};
+    const type = parsed.type ?? '';
+
+    if (!startedAt && typeof parsed.ts === 'number') {
+      startedAt = new Date(parsed.ts).toISOString();
+    }
+
+    switch (type) {
+      case 'turn_start': {
+        pushTurn();
+        const tid = attrs['turnId'];
+        turnIdx = typeof tid === 'number' ? tid : turns.length;
+        break;
+      }
+      case 'turn_end': {
+        pushTurn();
+        turnIdx++;
+        break;
+      }
+      case 'user_message': {
+        const text = asString(attrs['content']) ?? '';
+        if (text) {
+          if (!firstPrompt) { firstPrompt = text; }
+          currentBlocks.push({ id: `msg-u-${turnIdx}-${subIdx++}`, category: 'user_message', text });
+        }
+        break;
+      }
+      case 'agent_response': {
+        const resp = asString(attrs['response']) ?? '';
+        if (resp) {
+          currentBlocks.push({ id: `msg-a-${turnIdx}-${subIdx++}`, category: 'assistant_message', text: resp });
+        }
+        break;
+      }
+      case 'tool_call': {
+        const toolName = parsed.name ?? 'tool';
+        const args = attrs['args'];
+        const result = attrs['result'];
+        const argsText = typeof args === 'string' ? args : JSON.stringify(args ?? {});
+        currentBlocks.push({
+          id: `tool-call-${turnIdx}-${subIdx++}`,
+          category: 'assistant_message',
+          text: `${toolName}(${argsText})`,
+        });
+        if (result !== undefined) {
+          const resultText = typeof result === 'string' ? result : JSON.stringify(result);
+          currentBlocks.push({
+            id: `tool-result-${turnIdx}-${subIdx++}`,
+            category: 'tool_result',
+            text: resultText,
+            name: toolName,
+          });
+        }
+        break;
+      }
+      case 'llm_request': {
+        const m = asString(attrs['model']);
+        if (m) { model = m; }
+        const input = typeof attrs['inputTokens'] === 'number' ? (attrs['inputTokens'] as number) : 0;
+        const output = typeof attrs['outputTokens'] === 'number' ? (attrs['outputTokens'] as number) : 0;
+        totalInput += input;
+        totalOutput += output;
+        apiCalls++;
+        break;
+      }
+      default:
+        break;
+    }
+  }
+  pushTurn();
+
+  if (turns.length === 0 && apiCalls === 0) { return undefined; }
+
+  const shortId = sessionDir.slice(0, 8);
+  const session: IngestedSession = {
+    session_id: sessionId,
+    model,
+    turns,
+    label: firstPrompt
+      ? `${firstPromptSummary(firstPrompt)} [${shortId}]`
+      : `VS Code session [${shortId}]`,
+    firstPrompt: firstPrompt ? firstPromptSummary(firstPrompt, 200) : undefined,
+    startedAt,
+  };
+  if (apiCalls > 0) {
+    session.usage = {
+      inputUncached: totalInput,
+      cacheWrite: 0,
+      cacheRead: 0,
+      output: totalOutput,
+      apiCalls,
+      source: 'vscode-debug-log',
+    };
+  }
+  return session;
+}
+
+/**
+ * Ingest VS Code debug-log main.jsonl files for per-session usage and turns.
+ * Extracts conversation turns (user messages, assistant responses, tool calls)
+ * plus authoritative token counts from VS Code's own tracing.
  */
 export function ingestVscodeDebugLogs(): IngestedSession[] {
   const files = discoverVscodeDebugLogFiles();
   const out: IngestedSession[] = [];
   for (const file of files) {
-    const usage = parseVscodeDebugLog(file);
-    if (!usage) { continue; }
-    const sessionDir = path.basename(path.dirname(file));
-    const session_id = `vscode-debug:${sessionDir}`;
-    out.push({
-      session_id,
-      turns: [],
-      usage,
-      label: `VS Code debug session [${sessionDir.slice(0, 8)}]`,
-      startedAt: undefined,
-    });
+    const session = parseVscodeDebugLogFull(file);
+    if (session) { out.push(session); }
   }
   return out;
 }
