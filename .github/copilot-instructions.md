@@ -40,3 +40,12 @@ You are working on a VS Code extension written in TypeScript. Follow these conve
 - Run `npm run lint` and `npm test` for changed areas
 - Maintain existing naming conventions (`Feature`, `AnalysisResult`, etc.) and keep files ASCII
 - Write concise comments only for non-obvious logic
+
+When any tool result exceeds ~200 lines (≈3000 tokens), do the following BEFORE responding:
+1. Summarize the relevant findings in ≤10 short bullets.
+2. Discard the raw output from your context — do not quote it back.
+3. Prefer reading files with bounded ranges:
+   - Use `view` with `view_range` instead of full-file reads
+   - Use `grep` with `head_limit` instead of dumping all matches
+   - Use `head -n` / `tail -n` / `rg --max-count` to cap raw output
+If a single read or grep produces more than 200 lines, narrow the query and try again instead of accepting the dump.
