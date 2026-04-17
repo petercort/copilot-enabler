@@ -32,7 +32,24 @@ Click **Set up** on any supported recommendation and Copilot Enabler opens a **C
 2. Asks clarifying questions
 3. Generates and writes the configuration files for you
 
-Click **Show Me** on any feature to open a guided **tutorial walkthrough** in Copilot Chat that reads your project structure and explains how the feature works and how to use it.
+Supported implementations include:
+- `.github/copilot-instructions.md` — project-specific coding guidelines
+- `.github/prompts/*.prompt.md` — reusable prompt templates
+- Custom agents and agent skills
+- `.vscode/mcp.json` — MCP server configuration
+- `.github/hooks/prerun.json` — Pre-run and post-run hooks
+
+### 🧪 Promptimizer — Prompt Context Analysis
+
+Ingest agent prompt logs (Copilot Chat traces, Anthropic SDK JSONL dumps, or mitmproxy/Charles HAR captures) and see exactly where your context window is spent. Promptimizer classifies every block — system, custom instructions, skills, MCP tool schemas, messages, attachments — tokenizes each one, and flags stable prefixes that belong behind a prompt-caching breakpoint.
+
+A rule engine emits concrete caching recommendations (R-C1 through R-C5) with `$ / 100 turns` estimates based on published Anthropic pricing. All analysis runs locally — nothing is uploaded.
+
+See [docs/promptimizer.md](docs/promptimizer.md) for the full guide.
+
+### 📝 Export Reports
+
+Generate a full **Markdown adoption report** with scorecard, recommendations, and a feature adoption matrix — perfect for sharing with your team or tracking progress over time.
 
 ---
 

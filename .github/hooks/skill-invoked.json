@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "./.github/hooks/scripts/skill-invoked.sh",
+        "timeout": 10
+      }
+    ]
+  }
+}
