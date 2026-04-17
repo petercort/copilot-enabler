@@ -2,7 +2,7 @@
   "name": "copilot-enabler",
   "displayName": "Copilot Enabler",
   "description": "Analyze and improve your GitHub Copilot adoption — discover unused features, get actionable recommendations, and implement them interactively.",
-  "version": "0.1.8",
+  "version": "0.1.5",
   "publisher": "petercort",
   "license": "MIT",
   "repository": {
@@ -36,10 +36,6 @@
       {
         "command": "copilotEnabler.featureMatrix",
         "title": "Copilot Enabler: Scorecard"
-      },
-      {
-        "command": "copilotEnabler.exportReport",
-        "title": "Copilot Enabler: Export Report"
       },
       {
         "command": "copilotEnabler.featureCatalog",
@@ -239,7 +235,7 @@
     "watch": "tsc -watch -p ./",
     "lint": "eslint src/",
     "test": "jest --config jest.config.js",
-    "installextension": "vsce package && code --install-extension copilot-enabler-*.vsix",
+    "installextension": "node -e \"require('fs').rmSync('out', { recursive: true, force: true });\" && vsce package && code --install-extension copilot-enabler-*.vsix",
     "new-feature": "node scripts/new-feature.js"
   },
   "devDependencies": {
