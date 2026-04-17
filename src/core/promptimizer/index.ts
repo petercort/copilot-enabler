@@ -9,6 +9,7 @@ import {
   ingestFromLogEntries,
   ingestHar,
   ingestJsonl,
+  ingestVscodeDebugLogs,
   LogEntryLike,
 } from './ingest';
 import { runRules } from './recommend';
@@ -29,6 +30,7 @@ export type PromptimizerSource =
   | { type: 'copilot-chat' }
   | { type: 'copilot-sessions' }
   | { type: 'copilot-history' }
+  | { type: 'vscode-debug-logs' }
   | { type: 'jsonl'; path: string }
   | { type: 'har'; path: string }
   | { type: 'log-entries'; entries: readonly LogEntryLike[] };
@@ -79,6 +81,9 @@ export function runPromptimizer(opts: RunPromptimizerOptions): PromptimizerResul
       case 'copilot-history':
         sessions.push(...ingestCopilotHistorySessions());
         break;
+      case 'vscode-debug-logs':
+        sessions.push(...ingestVscodeDebugLogs());
+        break;
       case 'jsonl':
         sessions.push(...ingestJsonl(src.path));
         break;
@@ -108,7 +113,7 @@ export function runPromptimizer(opts: RunPromptimizerOptions): PromptimizerResul
 export * from './types';
 export { HeuristicTokenizer, tokenizeBlocks, createTokenizer, registerTokenizer } from './tokenize';
 export { classifyBlock, classifyBlocks } from './classify';
-export { ingestCopilotChatLogs, ingestCopilotHistorySessions, ingestCopilotSessions, ingestFromLogEntries, ingestHar, ingestJsonl } from './ingest';
+export { ingestCopilotChatLogs, ingestCopilotHistorySessions, ingestCopilotSessions, ingestFromLogEntries, ingestHar, ingestJsonl, ingestVscodeDebugLogs, parseShutdownMetrics, parseContextWindowSnapshots, parseVscodeDebugLog } from './ingest';
 export type { LogEntryLike } from './ingest';
 export { computeStability, hashBlock, stableTurns } from './diff';
 export {

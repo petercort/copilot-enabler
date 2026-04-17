@@ -6,7 +6,7 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { Block, IngestedSession, RawTurn } from './types';
+import { Block, ContextWindowSnapshot, IngestedSession, ModelMetrics, RawTurn } from './types';
 
 /** Cross-platform VS Code log root used by the existing scanner. */
 function getLogRoots(): string[] {
@@ -372,6 +372,340 @@ function copilotSessionRoot(): string {
   return path.join(os.homedir(), '.copilot', 'session-state');
 }
 
+function copilotDebugLogRoot(): string {
+  return path.join(os.homedir(), '.copilot', 'logs');
+}
+
+/**
+ * Scan `~/.copilot/logs/process-*.log` for `assistant_usage` telemetry blobs
+ * and sum authoritative API token usage per `session_id`. These are the
+ * numbers the Anthropic backend actually bills.
+ */
+export function readDebugLogUsage(): Map<string, import('./types').SessionUsage> {
+  const out = new Map<string, import('./types').SessionUsage>();
+  const root = copilotDebugLogRoot();
+  if (!fs.existsSync(root)) { return out; }
+  let files: string[];
+  try {
+    files = fs.readdirSync(root).filter((f) => f.startsWith('process-') && f.endsWith('.log'));
+  } catch { return out; }
+  for (const f of files) {
+    try {
+      const text = fs.readFileSync(path.join(root, f), 'utf8');
+      aggregateUsageFromDebugLogText(text, out);
+    } catch { /* skip unreadable files */ }
+  }
+  return out;
+}
+
+/** Exported for tests. Accumulates usage by session_id from one log file's text. */
+export function aggregateUsageFromDebugLogText(
+  text: string,
+  out: Map<string, import('./types').SessionUsage>,
+): void {
+  const marker = '"kind": "assistant_usage"';
+  let pos = 0;
+  while (true) {
+    const idx = text.indexOf(marker, pos);
+    if (idx < 0) { break; }
+    const brace = text.lastIndexOf('\n{', idx);
+    if (brace < 0) { pos = idx + marker.length; continue; }
+    // find matching close brace via depth counting
+    let j = brace + 1;
+    let depth = 0;
+    let inStr = false;
+    let esc = false;
+    let end = -1;
+    for (; j < text.length; j++) {
+      const c = text[j];
+      if (esc) { esc = false; continue; }
+      if (c === '\\') { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) { continue; }
+      if (c === '{') { depth++; }
+      else if (c === '}') { depth--; if (depth === 0) { end = j; break; } }
+    }
+    if (end < 0) { break; }
+    const blob = text.slice(brace + 1, end + 1);
+    pos = end + 1;
+    let obj: unknown;
+    try { obj = JSON.parse(blob); } catch { continue; }
+    if (!obj || typeof obj !== 'object') { continue; }
+    const rec = obj as Record<string, unknown>;
+    const sid = typeof rec['session_id'] === 'string' ? (rec['session_id'] as string) : undefined;
+    if (!sid) { continue; }
+    const metrics = (rec['metrics'] ?? {}) as Record<string, unknown>;
+    const num = (k: string): number => (typeof metrics[k] === 'number' ? (metrics[k] as number) : 0);
+    const inputUncached = num('input_tokens_uncached');
+    const cacheRead = num('cache_read_tokens');
+    const cacheWrite = num('cache_write_tokens');
+    const output = num('output_tokens');
+    const acc = out.get(sid) ?? { inputUncached: 0, cacheRead: 0, cacheWrite: 0, output: 0, apiCalls: 0, source: 'copilot-debug-log' as const };
+    acc.inputUncached += inputUncached;
+    acc.cacheRead += cacheRead;
+    acc.cacheWrite += cacheWrite;
+    acc.output += output;
+    acc.apiCalls += 1;
+    out.set(sid, acc);
+  }
+}
+
+// --- session.shutdown modelMetrics from events.jsonl ----------------------
+
+interface ShutdownResult {
+  totalPremiumRequests: number;
+  totalApiDurationMs: number;
+  modelMetrics: ModelMetrics[];
+  usage: import('./types').SessionUsage;
+}
+
+/** Parse a session.shutdown event's data into structured metrics. */
+export function parseShutdownMetrics(data: Record<string, unknown>): ShutdownResult | undefined {
+  const rawMetrics = data['modelMetrics'];
+  if (!rawMetrics || typeof rawMetrics !== 'object' || Array.isArray(rawMetrics)) { return undefined; }
+  const totalPremium = typeof data['totalPremiumRequests'] === 'number' ? (data['totalPremiumRequests'] as number) : 0;
+  const totalDuration = typeof data['totalApiDurationMs'] === 'number' ? (data['totalApiDurationMs'] as number) : 0;
+
+  const metrics: ModelMetrics[] = [];
+  let totalInput = 0;
+  let totalOutput = 0;
+  let totalCacheRead = 0;
+  let totalCacheWrite = 0;
+  let totalCalls = 0;
+
+  for (const [model, value] of Object.entries(rawMetrics as Record<string, unknown>)) {
+    if (!value || typeof value !== 'object') { continue; }
+    const v = value as Record<string, unknown>;
+    const requests = (v['requests'] && typeof v['requests'] === 'object') ? (v['requests'] as Record<string, unknown>) : {};
+    const usage = (v['usage'] && typeof v['usage'] === 'object') ? (v['usage'] as Record<string, unknown>) : {};
+    const num = (obj: Record<string, unknown>, k: string): number =>
+      typeof obj[k] === 'number' ? (obj[k] as number) : 0;
+
+    const m: ModelMetrics = {
+      model,
+      requests: num(requests, 'count'),
+      cost: num(requests, 'cost'),
+      inputTokens: num(usage, 'inputTokens'),
+      outputTokens: num(usage, 'outputTokens'),
+      cacheReadTokens: num(usage, 'cacheReadTokens'),
+      cacheWriteTokens: num(usage, 'cacheWriteTokens'),
+    };
+    metrics.push(m);
+    totalInput += m.inputTokens;
+    totalOutput += m.outputTokens;
+    totalCacheRead += m.cacheReadTokens;
+    totalCacheWrite += m.cacheWriteTokens;
+    totalCalls += m.requests;
+  }
+
+  if (metrics.length === 0) { return undefined; }
+  return {
+    totalPremiumRequests: totalPremium,
+    totalApiDurationMs: totalDuration,
+    modelMetrics: metrics,
+    usage: {
+      inputUncached: Math.max(0, totalInput - totalCacheRead),
+      cacheWrite: totalCacheWrite,
+      cacheRead: totalCacheRead,
+      output: totalOutput,
+      apiCalls: totalCalls,
+      source: 'shutdown-event',
+    },
+  };
+}
+
+// --- session_usage_info from debug logs -----------------------------------
+
+/** Parse session_usage_info telemetry blobs from debug log text. */
+export function parseContextWindowSnapshots(text: string): Map<string, ContextWindowSnapshot[]> {
+  const out = new Map<string, ContextWindowSnapshot[]>();
+  const markers = ['"kind": "session_usage_info"', '"kind":"session_usage_info"'];
+  let pos = 0;
+  while (true) {
+    let idx = -1;
+    for (const m of markers) {
+      const found = text.indexOf(m, pos);
+      if (found >= 0 && (idx < 0 || found < idx)) { idx = found; }
+    }
+    if (idx < 0) { break; }
+    const brace = text.lastIndexOf('\n{', idx);
+    if (brace < 0) { pos = idx + 1; continue; }
+    let j = brace + 1;
+    let depth = 0;
+    let inStr = false;
+    let esc = false;
+    let end = -1;
+    for (; j < text.length; j++) {
+      const c = text[j];
+      if (esc) { esc = false; continue; }
+      if (c === '\\') { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) { continue; }
+      if (c === '{') { depth++; }
+      else if (c === '}') { depth--; if (depth === 0) { end = j; break; } }
+    }
+    if (end < 0) { break; }
+    const blob = text.slice(brace + 1, end + 1);
+    pos = end + 1;
+    let obj: unknown;
+    try { obj = JSON.parse(blob); } catch { continue; }
+    if (!obj || typeof obj !== 'object') { continue; }
+    const rec = obj as Record<string, unknown>;
+    const sid = typeof rec['session_id'] === 'string' ? (rec['session_id'] as string) : undefined;
+    if (!sid) { continue; }
+    const metrics = (rec['metrics'] ?? {}) as Record<string, unknown>;
+    const num = (k: string): number => (typeof metrics[k] === 'number' ? (metrics[k] as number) : 0);
+    const snapshot: ContextWindowSnapshot = {
+      tokenLimit: num('token_limit'),
+      currentTokens: num('current_tokens'),
+      systemTokens: num('system_tokens'),
+      conversationTokens: num('conversation_tokens'),
+      toolDefinitionsTokens: num('tool_definitions_tokens'),
+      messagesLength: num('messages_length'),
+    };
+    if (snapshot.tokenLimit > 0) {
+      const arr = out.get(sid) ?? [];
+      arr.push(snapshot);
+      out.set(sid, arr);
+    }
+  }
+  return out;
+}
+
+/** Read context-window snapshots from all debug logs. */
+export function readContextWindowSnapshots(): Map<string, ContextWindowSnapshot[]> {
+  const out = new Map<string, ContextWindowSnapshot[]>();
+  const root = copilotDebugLogRoot();
+  if (!fs.existsSync(root)) { return out; }
+  let files: string[];
+  try {
+    files = fs.readdirSync(root).filter((f) => f.startsWith('process-') && f.endsWith('.log'));
+  } catch { return out; }
+  for (const f of files) {
+    try {
+      const text = fs.readFileSync(path.join(root, f), 'utf8');
+      const partial = parseContextWindowSnapshots(text);
+      for (const [sid, snaps] of partial) {
+        const existing = out.get(sid) ?? [];
+        existing.push(...snaps);
+        out.set(sid, existing);
+      }
+    } catch { /* skip */ }
+  }
+  return out;
+}
+
+// --- VS Code debug-logs/main.jsonl ----------------------------------------
+
+function vscodeWorkspaceStorageRoot(): string {
+  const homeDir = os.homedir();
+  switch (process.platform) {
+    case 'win32':
+      return path.join(process.env['APPDATA'] ?? '', 'Code', 'User', 'workspaceStorage');
+    case 'darwin':
+      return path.join(homeDir, 'Library', 'Application Support', 'Code', 'User', 'workspaceStorage');
+    case 'linux':
+      return path.join(homeDir, '.config', 'Code', 'User', 'workspaceStorage');
+    default:
+      return '';
+  }
+}
+
+interface VscodeDebugLogEntry {
+  ts?: number;
+  dur?: number;
+  type?: string;
+  name?: string;
+  attrs?: Record<string, unknown>;
+}
+
+/**
+ * Discover `main.jsonl` files under VS Code workspaceStorage debug-logs.
+ * Path: `<workspaceStorage>/<hash>/GitHub.copilot-chat/debug-logs/<session>/main.jsonl`.
+ */
+export function discoverVscodeDebugLogFiles(): string[] {
+  const root = vscodeWorkspaceStorageRoot();
+  if (!root || !fs.existsSync(root)) { return []; }
+  const out: string[] = [];
+  let workspaces: fs.Dirent[];
+  try { workspaces = fs.readdirSync(root, { withFileTypes: true }); } catch { return out; }
+  for (const ws of workspaces) {
+    if (!ws.isDirectory()) { continue; }
+    const debugDir = path.join(root, ws.name, 'GitHub.copilot-chat', 'debug-logs');
+    if (!fs.existsSync(debugDir)) { continue; }
+    let sessions: fs.Dirent[];
+    try { sessions = fs.readdirSync(debugDir, { withFileTypes: true }); } catch { continue; }
+    for (const sess of sessions) {
+      if (!sess.isDirectory()) { continue; }
+      const mainJsonl = path.join(debugDir, sess.name, 'main.jsonl');
+      if (fs.existsSync(mainJsonl)) {
+        out.push(mainJsonl);
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Parse a VS Code `main.jsonl` debug log file and extract `llm_request` spans
+ * with per-call inputTokens, outputTokens, model, ttft, and duration.
+ */
+export function parseVscodeDebugLog(filePath: string): import('./types').SessionUsage | undefined {
+  let content: string;
+  try { content = fs.readFileSync(filePath, 'utf-8'); } catch { return undefined; }
+  let totalInput = 0;
+  let totalOutput = 0;
+  let apiCalls = 0;
+
+  for (const rawLine of content.split('\n')) {
+    const line = rawLine.trim();
+    if (!line || line[0] !== '{') { continue; }
+    let parsed: VscodeDebugLogEntry;
+    try { parsed = JSON.parse(line) as VscodeDebugLogEntry; } catch { continue; }
+    if (parsed.type !== 'llm_request') { continue; }
+    const attrs = parsed.attrs;
+    if (!attrs) { continue; }
+    const input = typeof attrs['inputTokens'] === 'number' ? (attrs['inputTokens'] as number) : 0;
+    const output = typeof attrs['outputTokens'] === 'number' ? (attrs['outputTokens'] as number) : 0;
+    totalInput += input;
+    totalOutput += output;
+    apiCalls++;
+  }
+
+  if (apiCalls === 0) { return undefined; }
+  return {
+    inputUncached: totalInput,
+    cacheWrite: 0,
+    cacheRead: 0,
+    output: totalOutput,
+    apiCalls,
+    source: 'vscode-debug-log',
+  };
+}
+
+/**
+ * Ingest VS Code debug-log main.jsonl files for per-session usage data.
+ * Returns sessions with authoritative token counts from VS Code's own tracing.
+ */
+export function ingestVscodeDebugLogs(): IngestedSession[] {
+  const files = discoverVscodeDebugLogFiles();
+  const out: IngestedSession[] = [];
+  for (const file of files) {
+    const usage = parseVscodeDebugLog(file);
+    if (!usage) { continue; }
+    const sessionDir = path.basename(path.dirname(file));
+    const session_id = `vscode-debug:${sessionDir}`;
+    out.push({
+      session_id,
+      turns: [],
+      usage,
+      label: `VS Code debug session [${sessionDir.slice(0, 8)}]`,
+      startedAt: undefined,
+    });
+  }
+  return out;
+}
+
 interface CopilotEvent {
   type: string;
   data?: Record<string, unknown>;
@@ -436,6 +770,7 @@ function buildSessionFromEvents(sessionId: string, events: CopilotEvent[]): Inge
   let context: Record<string, string> | undefined;
   let firstPrompt: string | undefined;
   let startedAt: string | undefined;
+  let shutdownData: ReturnType<typeof parseShutdownMetrics> | undefined;
   const turns: RawTurn[] = [];
   let current: { blocks: Block[]; idx: number } | undefined;
   let subIdx = 0;
@@ -491,11 +826,13 @@ function buildSessionFromEvents(sessionId: string, events: CopilotEvent[]): Inge
       case 'assistant.message': {
         if (!current) { current = newTurn(turns.length); subIdx = 0; }
         const content = asString(data['content']) ?? '';
+        const outTokens = typeof data['outputTokens'] === 'number' ? (data['outputTokens'] as number) : undefined;
         if (content) {
           current.blocks.push({
             id: `msg-a-${current.idx}-${subIdx++}`,
             category: 'assistant_message',
             text: content,
+            ...(outTokens !== undefined ? { tokens: outTokens } : {}),
           });
         }
         const toolText = toolRequestsText(data['toolRequests']);
@@ -523,6 +860,25 @@ function buildSessionFromEvents(sessionId: string, events: CopilotEvent[]): Inge
         });
         break;
       }
+      case 'subagent.completed': {
+        if (!current) { current = newTurn(turns.length); subIdx = 0; }
+        const totalTokens = typeof data['totalTokens'] === 'number' ? (data['totalTokens'] as number) : 0;
+        if (totalTokens > 0) {
+          const agentName = asString(data['agentName']) ?? 'subagent';
+          current.blocks.push({
+            id: `subagent-${current.idx}-${subIdx++}`,
+            category: 'tool_result',
+            text: `[subagent total: ${totalTokens} tokens]`,
+            name: `subagent:${agentName}`,
+            tokens: totalTokens,
+          });
+        }
+        break;
+      }
+      case 'session.shutdown': {
+        shutdownData = parseShutdownMetrics(data);
+        break;
+      }
       default:
         break;
     }
@@ -531,7 +887,7 @@ function buildSessionFromEvents(sessionId: string, events: CopilotEvent[]): Inge
 
   if (turns.length === 0) { return undefined; }
   const shortId = sessionId.split(':').pop()?.slice(0, 8) ?? sessionId;
-  return {
+  const session: IngestedSession = {
     session_id: sessionId,
     model,
     turns,
@@ -540,6 +896,13 @@ function buildSessionFromEvents(sessionId: string, events: CopilotEvent[]): Inge
     firstPrompt: firstPrompt ? firstPromptSummary(firstPrompt, 200) : undefined,
     startedAt,
   };
+  if (shutdownData) {
+    session.usage = shutdownData.usage;
+    session.modelMetrics = shutdownData.modelMetrics;
+    session.premiumRequests = shutdownData.totalPremiumRequests;
+    session.totalApiDurationMs = shutdownData.totalApiDurationMs;
+  }
+  return session;
 }
 
 /**
@@ -569,6 +932,25 @@ export function ingestCopilotSessions(): IngestedSession[] {
     const session = buildSessionFromEvents(`copilot-session:${d.name}`, events);
     if (session) { out.push(session); }
   }
+  // Attach authoritative usage from debug logs (best-effort).
+  // Shutdown-event usage takes priority; fall back to per-call debug-log usage.
+  try {
+    const usage = readDebugLogUsage();
+    for (const s of out) {
+      const rawId = s.session_id.startsWith('copilot-session:') ? s.session_id.slice('copilot-session:'.length) : s.session_id;
+      const u = usage.get(rawId);
+      if (u && !s.usage) { s.usage = u; }
+    }
+  } catch { /* non-fatal */ }
+  // Attach context-window snapshots from debug logs (best-effort).
+  try {
+    const snapshots = readContextWindowSnapshots();
+    for (const s of out) {
+      const rawId = s.session_id.startsWith('copilot-session:') ? s.session_id.slice('copilot-session:'.length) : s.session_id;
+      const snaps = snapshots.get(rawId);
+      if (snaps && snaps.length > 0) { s.contextSnapshots = snaps; }
+    }
+  } catch { /* non-fatal */ }
   return out;
 }
 

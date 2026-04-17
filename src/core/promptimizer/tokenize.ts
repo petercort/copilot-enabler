@@ -60,9 +60,12 @@ export function createTokenizer(id: string): Tokenizer {
   return f();
 }
 
-/** Tokenize every block in place (per-block). Returns the same array. */
+/** Tokenize every block in place (per-block). Returns the same array.
+ *  Blocks with a pre-set positive `tokens` value (authoritative from ingest,
+ *  e.g. outputTokens / totalTokens from events.jsonl) are preserved as-is. */
 export function tokenizeBlocks(blocks: Block[], tokenizer: Tokenizer): Block[] {
   for (const b of blocks) {
+    if (typeof b.tokens === 'number' && b.tokens > 0) { continue; }
     b.tokens = tokenizer.countBlock(b);
   }
   return blocks;

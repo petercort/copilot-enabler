@@ -287,6 +287,7 @@ export class PromptimizerPanel {
 
     const sessionSelector = this.renderSessionSelector(result.sessions);
     const summary = this.renderSummary(session, result);
+    const tierBar = this.renderTierBreakdown(session, result);
     const stackedBar = this.renderStackedBar(session);
     const treemap = this.renderTreemap(session);
     const toolList = this.renderMcpToolList(session);
@@ -312,6 +313,9 @@ export class PromptimizerPanel {
 
   <h2>Summary</h2>
   ${summary}
+
+  <h2>Cost by Pricing Tier</h2>
+  ${tierBar}
 
   <h2>Tokens by Turn (stacked by category)</h2>
   ${stackedBar}
@@ -398,13 +402,24 @@ export class PromptimizerPanel {
     const stats = computeSessionStats(session);
     const model = session.model ?? result.model;
     const turns = session.turns.length || 1;
+    const authoritative = session.usage;
 
+    let totalTokensDisplay = stats.totalTokens;
     let currentSessionCost = 0;
     let afterCost = 0;
     const turnCount = session.turns.length || 1;
     try {
       const freshRate = rateFor(result.model, 'fresh');
-      currentSessionCost = (stats.totalTokens * freshRate) / 1_000_000;
+      if (authoritative) {
+        totalTokensDisplay = authoritative.inputUncached + authoritative.cacheWrite + authoritative.cacheRead + authoritative.output;
+        currentSessionCost =
+          (authoritative.inputUncached * freshRate
+            + authoritative.cacheWrite * rateFor(result.model, 'write5m')
+            + authoritative.cacheRead * rateFor(result.model, 'read'))
+          / 1_000_000;
+      } else {
+        currentSessionCost = (stats.totalTokens * freshRate) / 1_000_000;
+      }
       const cachingFindings = result.findings.filter((f) => f.category === 'caching');
       const savingsPerSession = cachingFindings.reduce(
         (s, f) => s + ((f.estimated_savings?.usd_per_100_turns ?? 0) / 100 * turnCount),
@@ -420,15 +435,18 @@ export class PromptimizerPanel {
       ? Math.round((stats.stableTokens / stats.totalTokens) * 100)
       : 0;
     const variablePct = 100 - stablePct;
+    const totalLabel = authoritative
+      ? `Total tokens · ${turns} turn(s) · ${escapeHtml(model)} · real API usage`
+      : `Total tokens · ${turns} turn(s) · ${escapeHtml(model)} · heuristic`;
 
     return `<div class="scorecard">
       <div class="score-card">
-        <div class="value">${formatNumber(stats.totalTokens)}</div>
-        <div class="label">Total tokens · ${turns} turn(s) · ${escapeHtml(model)}</div>
+        <div class="value">${formatNumber(totalTokensDisplay)}</div>
+        <div class="label">${totalLabel}</div>
       </div>
       <div class="score-card">
         <div class="value">${stablePct}% / ${variablePct}%</div>
-        <div class="label">Stable vs variable tokens</div>
+        <div class="label">Stable vs variable tokens (blocks)</div>
       </div>
       <div class="score-card">
         <div class="value">$${currentSessionCost.toFixed(4)}</div>
@@ -442,6 +460,55 @@ export class PromptimizerPanel {
         <div class="value">${result.findings.length}</div>
         <div class="label">Findings</div>
       </div>
+    </div>`;
+  }
+
+  private renderTierBreakdown(session: IngestedSession, result: PromptimizerResult): string {
+    const model = result.model;
+    const authoritative = session.usage;
+    const tiers = authoritative
+      ? { fresh: authoritative.inputUncached, cacheWrite: authoritative.cacheWrite, cacheRead: authoritative.cacheRead, output: authoritative.output }
+      : computeTierBreakdown(session);
+    const entries: Array<{ key: 'fresh' | 'write' | 'read' | 'output'; label: string; color: string; tokens: number; usd: number; desc: string }> = [
+      { key: 'fresh',  label: 'Fresh input',  color: '#569cd6', tokens: tiers.fresh,      usd: (tiers.fresh      * rateFor(model, 'fresh'))   / 1_000_000, desc: 'Input tokens sent uncached (standard rate).' },
+      { key: 'write',  label: 'Cache write',  color: '#d7ba7d', tokens: tiers.cacheWrite, usd: (tiers.cacheWrite * rateFor(model, 'write5m')) / 1_000_000, desc: 'First-time cached blocks (1.25× fresh rate). One-time cost per cache entry.' },
+      { key: 'read',   label: 'Cache read',   color: '#4ec9b0', tokens: tiers.cacheRead,  usd: (tiers.cacheRead  * rateFor(model, 'read'))    / 1_000_000, desc: 'Reused cached blocks (0.1× fresh rate). Big savings here.' },
+      { key: 'output', label: 'Output',       color: '#c586c0', tokens: tiers.output,     usd: 0, desc: 'Assistant-generated tokens. Output pricing is not modeled in this estimate.' },
+    ];
+    const total = entries.reduce((s, e) => s + e.tokens, 0);
+    if (total <= 0) {
+      return '<p class="empty-inline">No tokens to break down.</p>';
+    }
+    const width = 520;
+    const height = 36;
+    let x = 0;
+    const segs = entries.map((e) => {
+      if (e.tokens <= 0) { return ''; }
+      const w = (e.tokens / total) * width;
+      const tip = `${e.label} — ${formatNumber(e.tokens)} tokens (${((e.tokens / total) * 100).toFixed(1)}%) · ~$${e.usd.toFixed(4)}\n${e.desc}`;
+      const rect = `<rect x="${x.toFixed(2)}" y="0" width="${w.toFixed(2)}" height="${height}" fill="${e.color}" class="sb-rect" data-tooltip="${escapeHtml(tip)}"><title>${escapeHtml(tip)}</title></rect>`;
+      x += w;
+      return rect;
+    }).join('');
+    const legend = entries.map((e) => {
+      const pct = total > 0 ? ((e.tokens / total) * 100).toFixed(1) : '0.0';
+      return `<span class="legend-item" title="${escapeHtml(e.desc)}"><span class="legend-swatch" style="background:${e.color}"></span>${escapeHtml(e.label)} · ${formatNumber(e.tokens)} (${pct}%)</span>`;
+    }).join('');
+    const sourceLabel = authoritative
+      ? authoritative.source === 'shutdown-event'
+        ? `Authoritative: from <code>session.shutdown</code> modelMetrics in <code>events.jsonl</code>.`
+        : authoritative.source === 'vscode-debug-log'
+          ? `Authoritative: from VS Code <code>debug-logs/main.jsonl</code> llm_request spans.`
+          : `Authoritative: summed from ${authoritative.apiCalls} <code>assistant_usage</code> telemetry events in <code>~/.copilot/logs/process-*.log</code>.`
+      : 'Heuristic fallback: no debug-log telemetry found for this session. Derived from block categories and <code>cache_control</code> markers.';
+    const premiumNote = session.premiumRequests !== undefined
+      ? ` Premium requests: ${session.premiumRequests}.`
+      : '';
+    const note = `<p class="muted">${sourceLabel}${premiumNote}</p>`;
+    return `<div class="chart-wrap tier-wrap">
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Token breakdown by pricing tier" preserveAspectRatio="none">${segs}</svg>
+      <div class="legend">${legend}</div>
+      ${note}
     </div>`;
   }
 
@@ -916,6 +983,39 @@ function computeSessionStats(session: IngestedSession): SessionStats {
     }
   }
   return { totalTokens: total, stableTokens: stable };
+}
+
+interface TierBreakdown {
+  fresh: number;
+  cacheWrite: number;
+  cacheRead: number;
+  output: number;
+}
+
+function computeTierBreakdown(session: IngestedSession): TierBreakdown {
+  const out: TierBreakdown = { fresh: 0, cacheWrite: 0, cacheRead: 0, output: 0 };
+  const seenCached = new Set<string>();
+  for (const turn of session.turns) {
+    for (const b of turn.blocks) {
+      const tokens = b.tokens ?? 0;
+      if (tokens <= 0) { continue; }
+      if (b.category === 'assistant_message') {
+        out.output += tokens;
+        continue;
+      }
+      if (b.cache_control) {
+        if (seenCached.has(b.id)) {
+          out.cacheRead += tokens;
+        } else {
+          out.cacheWrite += tokens;
+          seenCached.add(b.id);
+        }
+      } else {
+        out.fresh += tokens;
+      }
+    }
+  }
+  return out;
 }
 
 function categoryShort(cat: BlockCategory): string {

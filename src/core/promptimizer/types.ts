@@ -57,6 +57,64 @@ export interface IngestedTurn {
   blocks: Block[];
 }
 
+/** Authoritative API usage aggregated from Copilot CLI debug logs. */
+export interface SessionUsage {
+  /** Uncached fresh input tokens billed at the fresh rate. */
+  inputUncached: number;
+  /** Cache write tokens (billed at 1.25×). */
+  cacheWrite: number;
+  /** Cache read tokens (billed at 0.1×). */
+  cacheRead: number;
+  /** Output tokens. */
+  output: number;
+  /** Number of API calls this usage was summed from. */
+  apiCalls: number;
+  /** Where the usage came from, for diagnostics. */
+  source: 'copilot-debug-log' | 'shutdown-event' | 'vscode-debug-log';
+}
+
+/** Per-model usage breakdown from session.shutdown events. */
+export interface ModelMetrics {
+  model: string;
+  requests: number;
+  cost: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+}
+
+/** Context-window utilisation snapshot from session_usage_info telemetry. */
+export interface ContextWindowSnapshot {
+  tokenLimit: number;
+  currentTokens: number;
+  systemTokens: number;
+  conversationTokens: number;
+  toolDefinitionsTokens: number;
+  messagesLength: number;
+  timestamp?: string;
+}
+
+/** Premium request multipliers per model (from GitHub docs). */
+export const PREMIUM_MULTIPLIERS: Record<string, number> = {
+  'claude-haiku-4.5': 0.33,
+  'claude-opus-4.5': 3,
+  'claude-opus-4.6': 3,
+  'claude-opus-4.7': 7.5,
+  'claude-sonnet-4': 1,
+  'claude-sonnet-4.5': 1,
+  'claude-sonnet-4.6': 1,
+  'gemini-2.5-pro': 1,
+  'gemini-3-flash': 0.33,
+  'gpt-4.1': 0,
+  'gpt-4o': 0,
+  'gpt-5-mini': 0,
+  'gpt-5.2': 1,
+  'gpt-5.3-codex': 1,
+  'gpt-5.4': 1,
+  'gpt-5.4-mini': 0.33,
+};
+
 /** A full session = ordered turns sharing a session_id. */
 export interface IngestedSession {
   session_id: string;
@@ -70,6 +128,16 @@ export interface IngestedSession {
   firstPrompt?: string;
   /** Earliest ISO timestamp observed in the session, if known. */
   startedAt?: string;
+  /** Authoritative token usage if recovered from debug logs. */
+  usage?: SessionUsage;
+  /** Per-model usage breakdown from session.shutdown events. */
+  modelMetrics?: ModelMetrics[];
+  /** Total premium requests consumed (from shutdown event). */
+  premiumRequests?: number;
+  /** Total API duration in milliseconds (from shutdown event). */
+  totalApiDurationMs?: number;
+  /** Context-window utilisation snapshots captured per turn. */
+  contextSnapshots?: ContextWindowSnapshot[];
 }
 
 /** Supported Anthropic model identifiers for the pricing table. */
