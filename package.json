@@ -2,7 +2,7 @@
   "name": "copilot-enabler",
   "displayName": "Copilot Enabler",
   "description": "Analyze and improve your GitHub Copilot adoption — discover unused features, get actionable recommendations, and implement them interactively.",
-  "version": "0.1.4",
+  "version": "0.1.4",  
   "publisher": "petercort",
   "license": "MIT",
   "repository": {
@@ -72,6 +72,40 @@
         "command": "copilotEnabler.settings",
         "title": "Copilot Enabler: Settings",
         "icon": "$(gear)"
+      },
+      {
+        "command": "copilotEnabler.promptimizer.open",
+        "title": "Copilot Enabler: Open Promptimizer",
+        "icon": "$(graph-line)"
+      },
+      {
+        "command": "copilotEnabler.promptimizer.ingestFile",
+        "title": "Copilot Enabler: Ingest Prompt Log"
+      },
+      {
+        "command": "copilotEnabler.promptimizer.ingestCopilotLogs",
+        "title": "Copilot Enabler: Ingest Copilot Chat Logs"
+      },
+      {
+        "command": "copilotEnabler.promptimizer.refresh",
+        "title": "Copilot Enabler: Refresh Promptimizer",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "copilotEnabler.promptimizer.openFinding",
+        "title": "Copilot Enabler: Show Finding Detail"
+      },
+      {
+        "command": "copilotEnabler.promptimizer.startWatcher",
+        "title": "Copilot Enabler: Promptimizer — Watch for Large Tool Results"
+      },
+      {
+        "command": "copilotEnabler.promptimizer.stopWatcher",
+        "title": "Copilot Enabler: Promptimizer — Stop Tool Result Watcher"
+      },
+      {
+        "command": "copilotEnabler.promptimizer.toggleWatcher",
+        "title": "Copilot Enabler: Promptimizer — Toggle Tool Result Watcher"
       }
     ],
     "viewsContainers": {
@@ -92,10 +126,20 @@
         {
           "id": "copilotEnabler.recommendations",
           "name": "Recommendations"
+        },
+        {
+          "id": "copilotEnabler.promptimizer",
+          "name": "Promptimizer"
         }
       ]
     },
     "menus": {
+      "commandPalette": [
+        {
+          "command": "copilotEnabler.promptimizer.openFinding",
+          "when": "false"
+        }
+      ],
       "view/title": [
         {
           "command": "copilotEnabler.refresh",
@@ -105,6 +149,16 @@
         {
           "command": "copilotEnabler.settings",
           "when": "view == copilotEnabler.features || view == copilotEnabler.recommendations",
+          "group": "navigation"
+        },
+        {
+          "command": "copilotEnabler.promptimizer.open",
+          "when": "view == copilotEnabler.promptimizer",
+          "group": "navigation"
+        },
+        {
+          "command": "copilotEnabler.promptimizer.refresh",
+          "when": "view == copilotEnabler.promptimizer",
           "group": "navigation"
         }
       ],
@@ -131,6 +185,36 @@
           },
           "default": [],
           "description": "Feature IDs to hide from analysis, recommendations, and tree views. Use the context menu on features to hide/unhide them, or the command palette to reset."
+        },
+        "copilotEnabler.promptimizer.tokenizer": {
+          "type": "string",
+          "enum": [
+            "heuristic"
+          ],
+          "default": "heuristic",
+          "description": "Tokenizer used by the Promptimizer for token accounting. Currently only a heuristic tokenizer is shipped; additional backends (e.g., model-accurate tokenizers) may be added in the future."
+        },
+        "copilotEnabler.promptimizer.model": {
+          "type": "string",
+          "enum": [
+            "claude-sonnet-4.6",
+            "claude-sonnet-4.5",
+            "claude-opus-4.7",
+            "claude-opus-4.6"
+          ],
+          "default": "claude-sonnet-4.6",
+          "description": "Anthropic pricing model used by the Promptimizer to estimate USD/100-turn savings."
+        },
+        "copilotEnabler.promptimizer.largeToolResultTokens": {
+          "type": "number",
+          "default": 3000,
+          "minimum": 200,
+          "description": "Tool results larger than this many tokens trigger a real-time warning when the Promptimizer Watcher is running."
+        },
+        "copilotEnabler.promptimizer.watchOnStartup": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically start the Promptimizer Watcher (live alerts on large Copilot CLI tool results) when VS Code launches."
         }
       }
     },
