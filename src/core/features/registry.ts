@@ -29,6 +29,7 @@ import { coreSmartActions } from './core/core-smart-actions';
 import { coreBackgroundAgents } from './core/core-background-agents';
 import { coreCloudAgents } from './core/core-cloud-agents';
 import { toolsChanges } from './tools/tools-changes';
+import { customPromptOptimization } from './customization/custom-prompt-optimization';
 // ── END IMPORTS ──
 
 /**
@@ -66,6 +67,7 @@ export const allFeatureDefinitions: FeatureDefinition[] = [
   customAgents,
   customMcpServers,
   customHooks,
+  customPromptOptimization,
   // ── END DEFINITIONS ──
 ];
 

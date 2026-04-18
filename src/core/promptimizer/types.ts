@@ -206,6 +206,12 @@ export interface StaticFindingEvidence {
   excerpts?: string[];
   fenceCount?: number;
   tokens?: number;
+  /** Total line count of the scanned file (S-AOC1). */
+  lines_count?: number;
+  /** Whether the instruction file has an `applyTo` scope pattern (S-ASC1). */
+  hasApplyTo?: boolean;
+  /** Number of volatile prefix patterns found near the top of the file (S-PCS1). */
+  volatileCount?: number;
   fileB?: string;
   similarity?: number;
   sharedParagraphs?: number;

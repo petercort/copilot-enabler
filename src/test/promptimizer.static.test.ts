@@ -4,6 +4,10 @@ import {
   ruleFluffPhrases,
   ruleFewShotOverload,
   ruleRuleBloat,
+  ruleAlwaysOnBudget,
+  ruleApplyToScope,
+  ruleRetrievalPrecision,
+  rulePromptCacheStability,
 } from '../core/promptimizer/staticScan';
 import { StaticFinding } from '../core/promptimizer/types';
 
@@ -213,5 +217,161 @@ describe('S-DED1 — Cross-File Deduplication', () => {
     expect(pairs.length).toBe(1);
     expect(typeof pairs[0].similarity).toBe('number');
     expect(typeof pairs[0].sharedParagraphs).toBe('number');
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// S-AOC1 — Always-On Context Budget
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('S-AOC1 — Always-On Context Budget', () => {
+  test('fires when file exceeds 1500 token estimate', () => {
+    // ~6000 chars → ~1500 tokens threshold; use 7000 chars to exceed it
+    const content = 'a'.repeat(7000);
+    const result = ruleAlwaysOnBudget(FIXTURE_PATH, content);
+    expect(result).toBeDefined();
+    assertStaticFindingShape(result!);
+    expect(result!.rule).toBe('S-AOC1');
+    expect(result!.category).toBe('compression');
+    expect(result!.quality_risk).toBe('medium');
+    expect(result!.evidence.tokens).toBeGreaterThan(1500);
+  });
+
+  test('does not fire for small files', () => {
+    const content = 'Short instruction file.\n'.repeat(10);
+    const result = ruleAlwaysOnBudget(FIXTURE_PATH, content);
+    expect(result).toBeUndefined();
+  });
+
+  test('does not fire at exactly the threshold', () => {
+    // exactly 6000 chars → exactly 1500 tokens → should not fire (<=)
+    const content = 'a'.repeat(6000);
+    const result = ruleAlwaysOnBudget(FIXTURE_PATH, content);
+    expect(result).toBeUndefined();
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// S-ASC1 — applyTo Scope Coverage
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('S-ASC1 — applyTo Scope Coverage', () => {
+  const INSTRUCTIONS_PATH = '/ws/.github/instructions/edit.instructions.md';
+
+  test('fires for instructions file missing applyTo front matter', () => {
+    const content = `# Edit Instructions\n\n- Always use const over let.\n- Prefer early returns.`;
+    const result = ruleApplyToScope(INSTRUCTIONS_PATH, content);
+    expect(result).toBeDefined();
+    assertStaticFindingShape(result!);
+    expect(result!.rule).toBe('S-ASC1');
+    expect(result!.category).toBe('authoring');
+    expect(result!.quality_risk).toBe('medium');
+  });
+
+  test('does not fire when applyTo front matter is present', () => {
+    const content = `---\napplyTo: "**/*.ts"\n---\n\n# Edit Instructions\n\n- Always use const.`;
+    const result = ruleApplyToScope(INSTRUCTIONS_PATH, content);
+    expect(result).toBeUndefined();
+  });
+
+  test('does not fire for the root copilot-instructions.md file', () => {
+    const content = `# Copilot Instructions\n\n- Always use const over let.`;
+    const result = ruleApplyToScope('/ws/.github/copilot-instructions.md', content);
+    expect(result).toBeUndefined();
+  });
+
+  test('does not fire for files outside .github/instructions/', () => {
+    const content = `# Skill file\n\n- Do something.`;
+    const result = ruleApplyToScope('/ws/.github/skills/my-skill.md', content);
+    expect(result).toBeUndefined();
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// S-RP1 — Retrieval Precision
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('S-RP1 — Retrieval Precision', () => {
+  test('fires on "read the entire codebase" pattern', () => {
+    const content = `Before making changes, read the entire codebase to understand the project structure.`;
+    const result = ruleRetrievalPrecision(FIXTURE_PATH, content);
+    expect(result).toBeDefined();
+    assertStaticFindingShape(result!);
+    expect(result!.rule).toBe('S-RP1');
+    expect(result!.quality_risk).toBe('high');
+    expect(result!.evidence.count).toBe(1);
+  });
+
+  test('fires on "scan all tests" pattern', () => {
+    const content = `Always scan all tests before writing new ones to avoid duplication.`;
+    const result = ruleRetrievalPrecision(FIXTURE_PATH, content);
+    expect(result).toBeDefined();
+    expect(result!.rule).toBe('S-RP1');
+  });
+
+  test('fires on "always include all files" pattern', () => {
+    const content = `Always include all source files for context before responding.`;
+    const result = ruleRetrievalPrecision(FIXTURE_PATH, content);
+    expect(result).toBeDefined();
+  });
+
+  test('counts multiple broad-retrieval lines', () => {
+    const content = [
+      'Read the entire codebase first.',
+      'Scan all files in the src directory.',
+      'Include all of the context before answering.',
+    ].join('\n');
+    const result = ruleRetrievalPrecision(FIXTURE_PATH, content);
+    expect(result).toBeDefined();
+    expect(result!.evidence.count).toBe(3);
+  });
+
+  test('does not fire on precision-targeted retrieval instructions', () => {
+    const content = `Find the exact failing function, then read only that definition.\nUse targeted symbol lookups.`;
+    const result = ruleRetrievalPrecision(FIXTURE_PATH, content);
+    expect(result).toBeUndefined();
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// S-PCS1 — Prompt Cache Stability
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('S-PCS1 — Prompt Cache Stability', () => {
+  test('fires when date stamp appears in first 20 lines', () => {
+    const content = `# Instructions\nUpdated on: 2026-04-18\n\nAlways use const.`;
+    const result = rulePromptCacheStability(FIXTURE_PATH, content);
+    expect(result).toBeDefined();
+    assertStaticFindingShape(result!);
+    expect(result!.rule).toBe('S-PCS1');
+    expect(result!.category).toBe('hygiene');
+    expect(result!.quality_risk).toBe('low');
+    expect(result!.line).toBe(2);
+  });
+
+  test('fires on template date placeholder', () => {
+    const content = `# Instructions\nAs of {{date}}, follow these rules:\n\n- Use strict TypeScript.`;
+    const result = rulePromptCacheStability(FIXTURE_PATH, content);
+    expect(result).toBeDefined();
+    expect(result!.rule).toBe('S-PCS1');
+  });
+
+  test('fires on "current date:" line in prefix', () => {
+    const content = `Current Date: 2026-04-18\n\n# Rules\n\n- Do not use any.`;
+    const result = rulePromptCacheStability(FIXTURE_PATH, content);
+    expect(result).toBeDefined();
+  });
+
+  test('does not fire on stable static prefix', () => {
+    const content = `# TypeScript Instructions\n\n- Use strict mode.\n- Prefer const.\n- Avoid any.`;
+    const result = rulePromptCacheStability(FIXTURE_PATH, content);
+    expect(result).toBeUndefined();
+  });
+
+  test('does not fire when volatile value is beyond line 20', () => {
+    const padding = Array.from({ length: 22 }, (_, i) => `- Rule ${i + 1}: do the right thing here.`).join('\n');
+    const content = `${padding}\n\nUpdated on: 2026-04-18`;
+    const result = rulePromptCacheStability(FIXTURE_PATH, content);
+    expect(result).toBeUndefined();
   });
 });

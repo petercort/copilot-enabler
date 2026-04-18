@@ -112,3 +112,129 @@ When building out the rules for the `promptimizer/recommend` features in your ex
 5.  **"Many-Tier Instruction Hierarchy in LLM Agents" (2026)**: Highlights that unstructured context waste across many sources (System, Memory, User, Tools) without strict privilege grouping results in a ~40% accuracy drop. Prompt optimization must enforce strict hierarchical scoping to prevent rule clashing in large context windows.
 6.  **"LLMLingua: Compressing Prompts for Accelerated Inference of Large Language Models" (Jiang et al., Microsoft, 2023)**: Proves that natural language and programmatic traces contain massive amounts of token entropy (waste) that can be computationally removed prior to LLM submission with minimal loss of information.
 7.  **Anthropic / OpenAI API Pattern Documentation**: Standardized guides indicating that structure order (Static > Dynamic) is paramount for token reduction via KV Cache hit rates.
+
+---
+
+## Part 3: Well-Architected Static Analysis Rules and Suggestion Framework
+
+This section converts the governance guidance from `well-architected-tokens.md` into checks and recommendation outputs that can be implemented directly in `src/core/promptimizer/staticScan.ts` and `src/core/promptimizer/recommend/*`.
+
+### A. Static Analysis Rule Pack
+
+Use these rules as deterministic analyzers. Each rule should return:
+
+- `ruleId`
+- `severity` (`low`, `medium`, `high`)
+- `finding`
+- `evidence` (line references or matched spans)
+- `suggestion`
+- `estimatedTokenImpact`
+
+#### 1) Always-On Context Budget Rule
+- **What to detect:** Oversized baseline instructions, tool schemas, and globally loaded skills.
+- **Heuristic:** `alwaysOnTokens / totalPromptTokens > 0.35` (team-tunable threshold).
+- **Why it matters:** Well-Architected guidance recommends a compact baseline and conditional loading.
+- **Suggestion shape:** Recommend moving large instruction blocks to conditional artifacts with explicit triggers.
+
+#### 2) applyTo Scope Coverage Rule
+- **What to detect:** Global custom instructions without scoping patterns.
+- **Heuristic:** Instruction entry exists but lacks a file/task scope field (or equivalent).
+- **Why it matters:** Unscoped guidance increases cross-task noise and token waste.
+- **Suggestion shape:** Add scoped patterns (for example `**/*.md`, `src/**`, task tags) and split unrelated guidance.
+
+#### 3) Tool Catalog Utility Rule
+- **What to detect:** Tool descriptions loaded in context but rarely invoked.
+- **Heuristic:** High schema token footprint with low invocation count in telemetry.
+- **Why it matters:** Tool schemas are recurring token tax across turns.
+- **Suggestion shape:** Lazy-load tools based on intent routing, file type, or workflow mode.
+
+#### 4) Session Hygiene Rule
+- **What to detect:** Long threads with repeated retries and low novelty in context.
+- **Heuristic:** High turn count + rising token usage + repeated constraints/history blocks.
+- **Why it matters:** Degraded quality often comes from stale middle context.
+- **Suggestion shape:** Generate a restart summary with active constraints and drop stale artifacts.
+
+#### 5) Retrieval Precision Rule
+- **What to detect:** Large, repeated full-file context ingestion.
+- **Heuristic:** Multiple files attached in full where only symbol-level edits are requested.
+- **Why it matters:** Precision retrieval outperforms greedy whole-file retrieval in coding workflows.
+- **Suggestion shape:** Switch to definition-level extraction first, then progressively expand only on demand.
+
+#### 6) Context Duplication Rule
+- **What to detect:** Near-duplicate chunks across skills, memory, workspace excerpts, and tool docs.
+- **Heuristic:** Similarity above threshold (for example 0.85+) or high normalized overlap.
+- **Why it matters:** Duplicate tokens displace useful active context.
+- **Suggestion shape:** Keep the highest-precedence source and remove redundant copies.
+
+#### 7) Prompt Cache Stability Rule
+- **What to detect:** Dynamic fields inserted before static instruction blocks.
+- **Heuristic:** Volatile values (timestamps, changing IDs, ephemeral metadata) near prompt prefix.
+- **Why it matters:** Prefix instability reduces prompt caching effectiveness.
+- **Suggestion shape:** Reorder payload to `Static -> Semi-static -> Dynamic`.
+
+### B. Suggestion Templates (Output-Ready)
+
+Recommendations should be concrete, prioritized, and measurable. Use this response shape:
+
+```json
+{
+    "title": "Reduce always-on context share",
+    "priority": "high",
+    "problem": "Always-on instruction payload is 43% of total context window.",
+    "action": "Move formatting examples and niche playbooks into conditional skill files loaded by task trigger.",
+    "expectedImpact": {
+        "tokenReductionEstimate": "8-15%",
+        "qualityImpact": "Lower retry rate on mixed-task sessions"
+    },
+    "validation": "Track alwaysOnTokens ratio and retry rate for 2 weeks after rollout."
+}
+```
+
+### C. Priority Model for Recommendations
+
+To avoid noisy advice, rank findings with an impact score:
+
+$$
+priorityScore = (tokenWastePercent * 0.45) + (qualityRisk * 0.35) + (frequency * 0.20)
+$$
+
+Where:
+
+- `tokenWastePercent`: Estimated removable context share.
+- `qualityRisk`: Probability that waste causes degraded output quality.
+- `frequency`: How often the pattern appears in observed sessions.
+
+Suggested bands:
+
+- `high`: $priorityScore \ge 0.70$
+- `medium`: $0.40 \le priorityScore < 0.70$
+- `low`: $priorityScore < 0.40$
+
+### D. Operational Metrics to Attach to Each Suggestion
+
+Align with Well-Architected operating cadence by attaching measurable outcomes:
+
+- `alwaysOnContextShare`
+- `toolSchemaTokensPerTurn`
+- `duplicateContextPercent`
+- `retryRate`
+- `abandonmentRate`
+- `acceptedOutputRate`
+
+Each suggestion should specify a baseline, target, and review window (for example monthly).
+
+### E. Suggested Integration Points in Promptimizer
+
+- Extend `staticScan.ts` with rule evaluators and severity assignment.
+- Extend `types.ts` with `StaticFinding`, `Suggestion`, and `ImpactEstimate` fields for telemetry-oriented outputs.
+- Add recommendation generators under `recommend/` that convert findings into prioritized suggestion payloads.
+- Reuse `cost.ts` for token impact estimates and `classify.ts` for confidence/priority normalization.
+
+### F. Example Rule-to-Suggestion Mapping
+
+1. **Finding:** Unscoped global markdown and code-style instruction files loaded on every task.
+2. **Static result:** `applyTo_scope_missing` with medium-to-high severity.
+3. **Generated suggestion:** Split by task type and file patterns; load docs guidance only for docs edits.
+4. **Expected impact:** Reduced baseline tokens and lower cross-task instruction collisions.
+
+This mapping helps keep recommendations prescriptive instead of generic.

@@ -163,12 +163,15 @@ export {
 } from './cost';
 export { runRules, registerRuleSet, scoreFinding } from './recommend';
 export { runCachingRules } from './recommend/caching';
+export { runHygieneRules, ruleFluff, ruleRuleBloat, ruleFewShot } from './recommend/hygiene';
+export { runDeduplicationRules, ruleDeduplication } from './recommend/deduplication';
+export { ruleMcpToolOverhead, ruleLostInMiddle } from './recommend/general';
 export {
   scanCustomizationFiles,
   discoverCustomizationFiles,
   findDuplicatePairs,
-  ruleFluffPhrases,
-  ruleRuleBloat,
-  ruleFewShotOverload,
+  ruleFluffPhrases as staticRuleFluffPhrases,
+  ruleRuleBloat as staticRuleRuleBloat,
+  ruleFewShotOverload as staticRuleFewShotOverload,
 } from './staticScan';
 export type { DedupPair } from './staticScan';

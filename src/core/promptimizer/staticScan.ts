@@ -267,6 +267,198 @@ function ruleCrossFileDuplication(files: Array<{ path: string; content: string }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
+// Rule S-AOC1 — Always-On Context Budget
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Token threshold above which a single instruction file is considered an
+ * oversized always-on context contributor (§3.A.1 of token-waste-research).
+ * Team-tunable: > ~35% of a typical 8k-token baseline budget per file.
+ */
+const ALWAYS_ON_BUDGET_THRESHOLD_TOKENS = 1500;
+
+/**
+ * S-AOC1 — Always-On Context Budget
+ * Instruction files larger than ALWAYS_ON_BUDGET_THRESHOLD_TOKENS are loaded
+ * on every turn, burning baseline tokens regardless of task relevance.
+ * Recommendation: Move large blocks into scoped conditional skill files
+ * triggered only when relevant.
+ */
+export function ruleAlwaysOnBudget(filePath: string, content: string): StaticFinding | undefined {
+  const tokens = estimateTokens(content);
+  if (tokens <= ALWAYS_ON_BUDGET_THRESHOLD_TOKENS) { return undefined; }
+
+  const lines = content.split('\n').length;
+  return {
+    rule: 'S-AOC1',
+    category: 'compression',
+    file: filePath,
+    evidence: { tokens, lines_count: lines },
+    quality_risk: 'medium' as QualityRisk,
+    message:
+      `File is ~${tokens} tokens (threshold: ${ALWAYS_ON_BUDGET_THRESHOLD_TOKENS}). ` +
+      `This is injected on every turn as always-on context. Split into scoped skill files ` +
+      `with \`applyTo\` patterns so content only loads when relevant to the active task.`,
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Rule S-ASC1 — applyTo Scope Coverage
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Matches VS Code "applyTo" front matter in instruction files.
+ * Example front matter:
+ *   ---
+ *   applyTo: "**\/*.ts"
+ *   ---
+ */
+const APPLY_TO_PATTERN = /^---[\s\S]*?applyTo\s*:[\s\S]*?---/m;
+
+/**
+ * S-ASC1 — applyTo Scope Coverage
+ * Instructions files under .github/instructions/ that lack an `applyTo`
+ * front-matter field are injected globally for every file type and task,
+ * increasing cross-task noise and per-turn token cost (§3.A.2).
+ * Only meaningful for instruction files — copilot-instructions.md is
+ * always-on by design so it is excluded from this check.
+ */
+export function ruleApplyToScope(filePath: string, content: string): StaticFinding | undefined {
+  const normalized = filePath.replace(/\\/g, '/');
+  // Only check files inside .github/instructions/; skip the root instructions file.
+  if (!normalized.includes('.github/instructions/')) { return undefined; }
+
+  if (APPLY_TO_PATTERN.test(content)) { return undefined; }
+
+  const tokens = estimateTokens(content);
+  return {
+    rule: 'S-ASC1',
+    category: 'authoring',
+    file: filePath,
+    evidence: { tokens },
+    quality_risk: 'medium' as QualityRisk,
+    message:
+      `Instruction file lacks an \`applyTo\` scope (currently ~${tokens} tokens loaded globally). ` +
+      `Add front matter such as \`applyTo: "**\/*.ts"\` to limit injection to relevant file types ` +
+      `and reduce cross-task token noise.`,
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Rule S-RP1 — Retrieval Precision
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Patterns that instruct the model to greedily pull large amounts of context
+ * instead of precision-targeted symbol-level retrieval (§3.A.5 / Part 2 §1).
+ */
+const BROAD_RETRIEVAL_PATTERNS: RegExp[] = [
+  /read (the |all |the entire |whole )?(codebase|repository|repo|source|src[/ ])/i,
+  /scan (all|every|the entire) (files?|tests?|source|directory|folder)/i,
+  /always (read|load|include|fetch|attach) (all|every|the entire|full)/i,
+  /include (all|the entire|every|all of the) (files?|context|code)/i,
+  /read (all|every) (file|test|source|module) (in|under|within)/i,
+  /\bgrep (through|across) (all|the entire|every) (files?|source)/i,
+];
+
+/**
+ * S-RP1 — Retrieval Precision
+ * Instructions that command the LLM to greedily fetch whole-directory or
+ * entire-codebase context sacrifice retrieval precision for recall, causing
+ * "Evidence Drop" as described in ContextBench research.
+ * Replace with tight, sequential symbol-level probing instructions.
+ */
+export function ruleRetrievalPrecision(filePath: string, content: string): StaticFinding | undefined {
+  const lines = content.split('\n');
+  const hitLines: number[] = [];
+  const excerpts: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    for (const re of BROAD_RETRIEVAL_PATTERNS) {
+      if (re.test(line)) {
+        hitLines.push(i + 1);
+        if (excerpts.length < 3) { excerpts.push(line.trim().slice(0, 120)); }
+        break;
+      }
+    }
+  }
+  if (hitLines.length === 0) { return undefined; }
+
+  return {
+    rule: 'S-RP1',
+    category: 'authoring',
+    file: filePath,
+    line: hitLines[0],
+    evidence: { count: hitLines.length, lines: hitLines, excerpts },
+    quality_risk: 'high' as QualityRisk,
+    message:
+      `${hitLines.length} broad-retrieval instruction(s) detected. These cause "Evidence Drop" — ` +
+      `the model fetches too much context and loses the relevant snippet in the noise. ` +
+      `Replace with tight, sequential probing: "Find the exact failing line, then retrieve only that function."`,
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Rule S-PCS1 — Prompt Cache Stability
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Detect volatile values that, when placed near the top of an instruction file,
+ * will bust the KV cache on every turn (§3.A.7 / Part 1 §7).
+ */
+const VOLATILE_PREFIX_PATTERNS: RegExp[] = [
+  /\{\{?\s*(date|time|datetime|timestamp|now|today|current_date)\s*\}?\}/i,
+  /\bdate:\s*\d{4}[-/]\d{2}[-/]\d{2}/i,
+  /\bcurrent (date|time|datetime)\s*[:=]/i,
+  /\bas of (today|now|\d{4}[-/]\d{2})/i,
+  /\bupdated (on|at):\s*\d{4}/i,
+  /# .*(v\d+\.\d+\.\d+|\bversion\b)/i,
+];
+
+/** Number of lines at the top of a file to consider the "prefix" zone. */
+const VOLATILE_PREFIX_LINES = 20;
+
+/**
+ * S-PCS1 — Prompt Cache Stability
+ * Dynamic values (dates, version strings, timestamps) placed in the first
+ * ~20 lines of an instruction file invalidate the KV prompt cache on every
+ * turn, negating the cache discount. Static content must come first;
+ * dynamic context should be pushed to the end of the payload (§3.A.7).
+ */
+export function rulePromptCacheStability(filePath: string, content: string): StaticFinding | undefined {
+  const lines = content.split('\n');
+  const prefixLines = lines.slice(0, VOLATILE_PREFIX_LINES);
+  const hitLines: number[] = [];
+  const excerpts: string[] = [];
+
+  for (let i = 0; i < prefixLines.length; i++) {
+    const line = prefixLines[i];
+    for (const re of VOLATILE_PREFIX_PATTERNS) {
+      if (re.test(line)) {
+        hitLines.push(i + 1);
+        if (excerpts.length < 3) { excerpts.push(line.trim().slice(0, 120)); }
+        break;
+      }
+    }
+  }
+  if (hitLines.length === 0) { return undefined; }
+
+  return {
+    rule: 'S-PCS1',
+    category: 'hygiene',
+    file: filePath,
+    line: hitLines[0],
+    evidence: { count: hitLines.length, lines: hitLines, excerpts },
+    quality_risk: 'low' as QualityRisk,
+    message:
+      `${hitLines.length} volatile value(s) detected in the first ${VOLATILE_PREFIX_LINES} lines (${excerpts[0] ?? ''}…). ` +
+      `These bust the KV prompt cache on every turn. Move timestamps, version strings, and dynamic metadata ` +
+      `to the end of the file; keep the prefix static to maximise cache hits.`,
+  };
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 // Main entry point
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -297,6 +489,18 @@ export function scanCustomizationFiles(rootPaths: string[]): StaticFinding[] {
 
     const fs1 = ruleFewShotOverload(filePath, content);
     if (fs1) { findings.push(fs1); }
+
+    const aoc1 = ruleAlwaysOnBudget(filePath, content);
+    if (aoc1) { findings.push(aoc1); }
+
+    const asc1 = ruleApplyToScope(filePath, content);
+    if (asc1) { findings.push(asc1); }
+
+    const rp1 = ruleRetrievalPrecision(filePath, content);
+    if (rp1) { findings.push(rp1); }
+
+    const pcs1 = rulePromptCacheStability(filePath, content);
+    if (pcs1) { findings.push(pcs1); }
   }
 
   // Cross-file check — requires all loaded files at once.
