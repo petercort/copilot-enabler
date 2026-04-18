@@ -39,11 +39,17 @@ Supported implementations include:
 - `.vscode/mcp.json` — MCP server configuration
 - `.github/hooks/prerun.json` — Pre-run and post-run hooks
 
+![Enable recommendations screen](https://github.com/user-attachments/assets/21b858b7-d0de-4937-ab24-83a3767a152a)
+
 ### 🧪 Promptimizer — Prompt Context Analysis
 
 Ingest agent prompt logs (Copilot Chat traces, Anthropic SDK JSONL dumps, or mitmproxy/Charles HAR captures) and see exactly where your context window is spent. Promptimizer classifies every block — system, custom instructions, skills, MCP tool schemas, messages, attachments — tokenizes each one, and flags stable prefixes that belong behind a prompt-caching breakpoint.
 
 A rule engine emits concrete caching recommendations (R-C1 through R-C5) with `$ / 100 turns` estimates based on published Anthropic pricing. All analysis runs locally — nothing is uploaded.
+
+The Context Window Optimizer view includes token/cost summary cards, turn-by-turn context usage bars, and a findings table with prioritized caching opportunities and risk labels.
+
+![Promptimizer context window optimizer](https://github.com/user-attachments/assets/ad639787-9328-4354-80bc-75fd159fa7a3)
 
 See [docs/promptimizer.md](docs/promptimizer.md) for the full guide.
 
