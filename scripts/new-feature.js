@@ -19,7 +19,7 @@ function question(prompt) {
   });
 }
 
-const categories = ['Agents', 'Chat', 'Customization'];
+const categories = ['Core', 'Tools', 'Customization'];
 const impacts = ['low', 'medium', 'high'];
 const difficulties = ['low', 'medium', 'high'];
 
@@ -33,7 +33,7 @@ async function main() {
   console.log('\nSelect category:');
   categories.forEach((cat, i) => console.log(`  ${i + 1}. ${cat}`));
   const categoryIndex = parseInt(await question('Category (1-3): ')) - 1;
-  const category = categories[categoryIndex] || 'Chat';
+  const category = categories[categoryIndex] || 'Core';
 
   const description = await question('Brief description: ');
   const docsURL = await question('Documentation URL: ');
@@ -54,10 +54,14 @@ async function main() {
 
   rl.close();
 
-  // Generate filename with category prefix (e.g., chat-inline, completion-nes)
+  // Generate filename with category prefix (e.g., core-inline, tools-terminal)
   const categoryPrefix = category.toLowerCase();
   const filename = `${categoryPrefix}-${id}.ts`;
-  const filepath = path.join(__dirname, '..', 'src', 'core', 'features', filename);
+  const featureDir = path.join(__dirname, '..', 'src', 'core', 'features', categoryPrefix);
+  const filepath = path.join(featureDir, filename);
+
+  // Ensure the category subfolder exists
+  fs.mkdirSync(featureDir, { recursive: true });
 
   // Generate feature definition
   const systemPromptSection = includePrompt.toLowerCase() === 'y' 
@@ -71,7 +75,7 @@ Your workflow:
 Start by understanding the project.\`,`
     : '';
 
-  const content = `import { defineFeature } from './definition';
+  const content = `import { defineFeature } from '../definition';
 
 export const ${toCamelCase(id)} = defineFeature({
   id: '${id}',
@@ -98,7 +102,7 @@ export const ${toCamelCase(id)} = defineFeature({
 
   // Add import before the END IMPORTS sentinel
   const importMarker = '// ── END IMPORTS ──';
-  const importStatement = `import { ${toCamelCase(id)} } from './${categoryPrefix}-${id}';\n`;
+  const importStatement = `import { ${toCamelCase(id)} } from './${categoryPrefix}/${categoryPrefix}-${id}';\n`;
   if (!registryContent.includes(importMarker)) {
     console.error('❌ Could not find "// ── END IMPORTS ──" marker in registry.ts');
     process.exit(1);
