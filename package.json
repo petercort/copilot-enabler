@@ -31,11 +31,12 @@
       {
         "command": "copilotEnabler.analyze",
         "title": "Copilot Enabler: Run Full Analysis",
-        "icon": "$(graph)"
+        "icon": "$(refresh)"
       },
       {
         "command": "copilotEnabler.featureMatrix",
-        "title": "Copilot Enabler: Scorecard"
+        "title": "Copilot Enabler: Scorecard",
+        "icon": "$(graph-line)"
       },
       {
         "command": "copilotEnabler.featureCatalog",
@@ -148,6 +149,11 @@
         },
         {
           "command": "copilotEnabler.settings",
+          "when": "view == copilotEnabler.features || view == copilotEnabler.recommendations",
+          "group": "navigation"
+        },
+        {
+          "command": "copilotEnabler.featureMatrix",
           "when": "view == copilotEnabler.features || view == copilotEnabler.recommendations",
           "group": "navigation"
         },

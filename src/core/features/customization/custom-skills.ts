@@ -1,17 +1,17 @@
 import { defineFeature } from '../definition';
 
-export const customAgentSkills = defineFeature({
-  id: 'custom-agent-skills',
-  name: 'Agent Skills',
+export const customSkills = defineFeature({
+  id: 'custom-skills',
+  name: 'Skills',
   category: 'Customization',
   description:
-    'Create Agent Skills (SKILL.md) directories to define reusable, portable capabilities that include instructions, scripts, and resources for specialized workflows.',
+    'Create Skills (SKILL.md) directories to define reusable, portable capabilities that include instructions, scripts, and resources for specialized workflows.',
   docsURL: 'https://code.visualstudio.com/docs/copilot/customization/agent-skills',
   detectHints: [
     '.github/skills/**/*.md',
     '.claude/skills/**/*.md',
     'copilot.tools',
-    'agent-skill',
+    'skill',
   ],
   impact: 'high',
   difficulty: 'high',

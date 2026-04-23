@@ -14,9 +14,9 @@ import { toolsVscode } from './tools/tools-vscode';
 import { coreInlineCompletion } from './core/core-inline-completion';
 import { coreNes } from './core/core-nes';
 import { coreMultilineCompletes } from './core/core-multiline-completes';
-import { customInstructions } from './customization/custom-instructions';
+import { copilotInstructions } from './customization/copilot-instructions';
 import { customPromptFiles } from './customization/custom-prompt-files';
-import { customAgentSkills } from './customization/custom-agent-skills';
+import { customSkills } from './customization/custom-skills';
 import { customAgents } from './customization/custom-agents';
 import { customHooks } from './customization/custom-hooks';
 import { toolsSelection } from './tools/tools-selection';
@@ -29,7 +29,7 @@ import { coreSmartActions } from './core/core-smart-actions';
 import { coreBackgroundAgents } from './core/core-background-agents';
 import { coreCloudAgents } from './core/core-cloud-agents';
 import { toolsChanges } from './tools/tools-changes';
-import { customPromptOptimization } from './customization/custom-prompt-optimization';
+import { customInstructions } from './customization/custom-instructions';
 // ── END IMPORTS ──
 
 /**
@@ -61,13 +61,13 @@ export const allFeatureDefinitions: FeatureDefinition[] = [
   toolsWebSearch,
   toolsChanges,
   // ── Customization ──
-  customInstructions,
+  copilotInstructions,
   customPromptFiles,
-  customAgentSkills,
+  customSkills,
   customAgents,
   customMcpServers,
   customHooks,
-  customPromptOptimization,
+  customInstructions,
   // ── END DEFINITIONS ──
 ];
 

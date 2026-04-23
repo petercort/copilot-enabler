@@ -25,6 +25,10 @@ export interface LogSummary {
   llmRequests: number;
   totalInputTokens: number;
   totalOutputTokens: number;
+  /** True when any entries came from VS Code's standard log files (not the
+   *  debug-output JSONL format). Those files do not carry token data, so
+   *  cache-token counts cannot be determined from them. */
+  hasVSCodeLogs: boolean;
 }
 
 /**
@@ -225,6 +229,7 @@ export function analyzeLogs(entries: LogEntry[]): LogSummary {
     llmRequests: 0,
     totalInputTokens: 0,
     totalOutputTokens: 0,
+    hasVSCodeLogs: false,
   };
 
   for (const e of entries) {
@@ -243,6 +248,11 @@ export function analyzeLogs(entries: LogEntry[]): LogSummary {
     }
 
     detectHintsInText(lower, s.detectedHints);
+
+    // Mark if this entry came from VS Code's standard log files (no token data)
+    if (e.source && !e.source.includes('workspaceStorage')) {
+      s.hasVSCodeLogs = true;
+    }
 
     // Aggregate token usage from debug-log llm_request entries
     if (e.data?.type === 'llm_request') {

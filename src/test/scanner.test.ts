@@ -59,6 +59,7 @@ describe('Scanner - analyzeLogs (debug log format)', () => {
     expect(summary.llmRequests).toBe(2);
     expect(summary.totalInputTokens).toBe(34356);
     expect(summary.totalOutputTokens).toBe(515);
+    expect(summary.hasVSCodeLogs).toBe(false);
   });
 
   test('does not count non-llm_request entries as llm requests', () => {
@@ -74,5 +75,20 @@ describe('Scanner - analyzeLogs (debug log format)', () => {
     expect(summary.llmRequests).toBe(0);
     expect(summary.totalInputTokens).toBe(0);
     expect(summary.totalOutputTokens).toBe(0);
+    expect(summary.hasVSCodeLogs).toBe(false);
+  });
+
+  test('sets hasVSCodeLogs when entry source is outside workspaceStorage', () => {
+    const entries: LogEntry[] = [
+      {
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: 'copilot log line',
+        source: '/Users/test/Library/Application Support/Code/logs/copilot.log',
+      },
+    ];
+    const summary = analyzeLogs(entries);
+    expect(summary.hasVSCodeLogs).toBe(true);
+    expect(summary.llmRequests).toBe(0);
   });
 });
