@@ -385,7 +385,7 @@ describe('Promptimizer - ingest (session title from session.json)', () => {
       { type: 'assistant.message', data: { content: 'Got it!' } },
     ];
     fs.writeFileSync(path.join(sessionRoot, 'events.jsonl'), events.map((e) => JSON.stringify(e)).join('\n') + '\n');
-    fs.writeFileSync(path.join(sessionRoot, 'session.json'), JSON.stringify({ title: 'Add MCP server config' }));
+    fs.writeFileSync(path.join(sessionRoot, 'workspace.yaml'), 'id: title-test-session\nname: Add MCP server config\nsummary: Add MCP server config\n');
 
     try {
       const osMod = require('os');
@@ -417,8 +417,8 @@ describe('Promptimizer - ingest (session title from session.json)', () => {
       { type: 'assistant.message', data: { content: 'Hi!' } },
     ];
     fs.writeFileSync(path.join(sessionRoot, 'events.jsonl'), events.map((e) => JSON.stringify(e)).join('\n') + '\n');
-    // Write a session.json that has no title field
-    fs.writeFileSync(path.join(sessionRoot, 'session.json'), JSON.stringify({ model: 'claude-sonnet-4.6' }));
+    // Write a workspace.yaml with no name/summary fields
+    fs.writeFileSync(path.join(sessionRoot, 'workspace.yaml'), 'id: no-title-session\ncwd: /my/repo\n');
 
     try {
       const osMod = require('os');
