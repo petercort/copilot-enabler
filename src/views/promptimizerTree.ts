@@ -209,7 +209,12 @@ export class PromptimizerTreeProvider
       if (!this.result || this.result.sessions.length === 0) {
         return [new EmptyStateNode()];
       }
-      const sessionNodes: PromptimizerTreeNode[] = this.result.sessions.map(
+      const sortedSessions = [...this.result.sessions].sort((a, b) => {
+        const ta = a.startedAt ?? '';
+        const tb = b.startedAt ?? '';
+        return tb.localeCompare(ta);
+      });
+      const sessionNodes: PromptimizerTreeNode[] = sortedSessions.map(
         (s) => new SessionNode(s, this.result!.findings),
       );
       const top = [...this.result.findings]

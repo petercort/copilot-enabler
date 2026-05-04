@@ -152,8 +152,10 @@ async function doAnalysis(context: vscode.ExtensionContext, silent = false): Pro
       const promptResult = runPromptimizer({
         sources: [
           { type: 'log-entries', entries: logEntries },
+          { type: 'copilot-chat' },
           { type: 'copilot-sessions' },
           { type: 'copilot-history' },
+          { type: 'vscode-debug-logs' },
         ],
         model,
       });
