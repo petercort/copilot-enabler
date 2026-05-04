@@ -47,4 +47,5 @@ Please help me understand this feature by:
 5. Walk me through a concrete example of how one of these skills would work in practice
 
 Please tailor this to my actual project - understand what I'm building and what would genuinely help me.`,
+  addedIn: '1.110.0',
 });

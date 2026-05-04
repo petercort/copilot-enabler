@@ -48,4 +48,5 @@ Please help me understand this feature by:
    - When to spend more tokens for better answers
 
 Help me experiment with different models for my actual coding tasks.`,
+  addedIn: '1.110.0',
 });

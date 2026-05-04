@@ -6,13 +6,13 @@ name: Copilot Setup Steps
   workflow_dispatch: null
 jobs:
   copilot-setup-steps:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-cool
     permissions:
       contents: read
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
     - name: Install gh-aw extension
-      uses: github/gh-aw/actions/setup-cli@v0.45.4
+      uses: github/gh-aw-actions/setup-cli@ba90f2186d7ad780ec640f364005fa24e797b360 # v0.68.3
       with:
-        version: v0.45.4
+        version: v0.68.3

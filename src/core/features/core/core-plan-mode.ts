@@ -15,4 +15,5 @@ export const corePlanMode = defineFeature({
     'Describe the feature or task and Copilot will create a structured plan before any code is written.',
     'Once satisfied, hand off the plan to an implementation agent.',
   ],
+  addedIn: '1.110.0',
 });

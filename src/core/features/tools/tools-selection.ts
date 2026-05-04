@@ -36,4 +36,5 @@ Please help me understand this feature by:
 5. How #terminalSelection compares to other context variables
 
 Walk me through real scenarios using actual code from my project.`,
+  addedIn: '1.110.0',
 });

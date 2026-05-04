@@ -13,4 +13,5 @@ export const toolsChanges = defineFeature({
     'Type #changes in the chat panel to get a summary of changes in your local branch',
   ],
   tutorialPrompt: `Summarize changes in my local branch compared to the remote origin.`,
+  addedIn: '1.110.0',
 });

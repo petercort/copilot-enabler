@@ -20,6 +20,9 @@ export const featureTemplate = defineFeature({
     'Step 1: Explain how to enable or configure this feature.',
     'Step 2: Additional setup instructions if needed.',
   ],
+  // The minimum VS Code version in which this feature became available.
+  // Should match the value of copilotEnabler.latestVersionChecked for new features.
+  addedIn: '1.110.0',
   // Optional: Include a system prompt for interactive implementation
   // systemPrompt: `You are helping set up [feature name]...`,
 });

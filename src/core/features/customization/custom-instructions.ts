@@ -20,4 +20,5 @@ Your workflow:
 3. Create or update necessary configuration files.
 
 Start by understanding the project.`,
+  addedIn: '1.110.0',
 });

@@ -16,4 +16,5 @@ export const coreCloudAgents = defineFeature({
     'The agent creates a branch, implements changes, and opens a pull request for team review.',
     'Install the GitHub Pull Requests extension for full integration.',
   ],
+  addedIn: '1.110.0',
 });

@@ -14,4 +14,5 @@ export const coreChatPanel = defineFeature({
   setupSteps: [
     'Press Ctrl+Shift+I (Cmd+Shift+I on Mac) or click the Copilot icon in the sidebar.',
   ],
+  addedIn: '1.110.0',
 });

@@ -12,4 +12,5 @@ export const coreSubagent = defineFeature({
   setupSteps: [
     'In your prompt or chat message use the phrase "use a subagent" and an agent will spawn or use the command #runSubagent',
   ],
+  addedIn: '1.110.0',
 });

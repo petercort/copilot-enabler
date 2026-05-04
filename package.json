@@ -192,6 +192,11 @@
           "default": [],
           "description": "Feature IDs to hide from analysis, recommendations, and tree views. Use the context menu on features to hide/unhide them, or the command palette to reset."
         },
+        "copilotEnabler.latestVersionChecked": {
+          "type": "string",
+          "default": "1.110.0",
+          "description": "The most recent VS Code release the feature catalog has been reconciled against. Used by the auto-update workflow as a watermark; features with addedIn matching this version will display a 'New' badge."
+        },
         "copilotEnabler.promptimizer.tokenizer": {
           "type": "string",
           "enum": [

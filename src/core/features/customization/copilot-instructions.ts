@@ -54,4 +54,5 @@ Please help me understand this feature by:
 5. If I'm interested, show me a preview of what a good copilot-instructions.md would look like for my project
 
 Please make this specific to my actual workspace - inspect my code to understand what would be most valuable.`,
+  addedIn: '1.110.0',
 });

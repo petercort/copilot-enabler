@@ -36,6 +36,7 @@ describe('Agent Helpers', () => {
       impact: 'high',
       difficulty: 'low',
       setupSteps: ['step 1'],
+      addedIn: '1.110.0',
     };
 
     test('returns true when hint matches', () => {
@@ -57,8 +58,8 @@ describe('Agent Helpers', () => {
   describe('featureNames', () => {
     test('returns names', () => {
       const features: Feature[] = [
-        { id: 'a', name: 'Alpha', category: 'Core', description: '', docsURL: '', detectHints: [], impact: 'low', difficulty: 'low', setupSteps: [] },
-        { id: 'b', name: 'Beta', category: 'Core', description: '', docsURL: '', detectHints: [], impact: 'low', difficulty: 'low', setupSteps: [] },
+        { id: 'a', name: 'Alpha', category: 'Core', description: '', docsURL: '', detectHints: [], impact: 'low', difficulty: 'low', setupSteps: [], addedIn: '1.110.0' },
+        { id: 'b', name: 'Beta', category: 'Core', description: '', docsURL: '', detectHints: [], impact: 'low', difficulty: 'low', setupSteps: [], addedIn: '1.110.0' },
       ];
       expect(featureNames(features)).toEqual(['Alpha', 'Beta']);
     });
@@ -115,6 +116,7 @@ describe('Agent Helpers', () => {
         impact: 'high',
         difficulty: 'low',
         setupSteps: ['Step 1', 'Step 2'],
+        addedIn: '1.110.0',
       };
 
       const rec = buildRecommendation(feature, 'Try');

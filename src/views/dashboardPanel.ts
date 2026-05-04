@@ -2,7 +2,7 @@
 
 import * as vscode from 'vscode';
 import { AnalysisResult } from '../core/analyzer';
-import { allCategories, Feature, featuresByCategory, visibleCatalog } from '../core/featureCatalog';
+import { allCategories, Feature, featuresByCategory, visibleCatalog, getFeatureAvailability } from '../core/featureCatalog';
 import { implementableFeatures, tutorialPrompts } from '../core/prompts';
 import { StaticFinding } from '../core/promptimizer/types';
 
@@ -36,6 +36,13 @@ export class DashboardPanel {
           const uri = vscode.Uri.file(message.filePath);
           vscode.window.showTextDocument(uri, { preview: false }).then(undefined, () => {
             vscode.window.showWarningMessage(`Could not open file: ${message.filePath}`);
+          });
+        } else if (message.command === 'implementOptimization') {
+          vscode.commands.executeCommand('copilotEnabler.implement', { featureID: 'custom-prompt-optimization' });
+        } else if (message.command === 'shareLinkedIn') {
+          const text = DashboardPanel.buildShareText(DashboardPanel.lastResult);
+          vscode.env.clipboard.writeText(text).then(() => {
+            vscode.env.openExternal(vscode.Uri.parse('https://www.linkedin.com/feed/?shareActive=true'));
           });
         }
       },
@@ -244,7 +251,22 @@ export class DashboardPanel {
       font-size: 0.85em;
     }
     .info-popup .close-btn:hover { background: var(--vscode-button-hoverBackground, #1177bb); }
-
+    .share-bar { margin: 20px 0; display: flex; gap: 10px; align-items: center; }
+    .share-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85em;
+      font-weight: 600;
+      background: #0a66c2;
+      color: #fff;
+    }
+    .share-btn:hover { background: #004182; }
+    .share-copied { font-size: 0.85em; opacity: 0.8; display: none; }
     /* ── Optimization To-Dos ── */
     .opt-section { margin-top: 32px; }
     .opt-empty { opacity: 0.6; font-style: italic; margin: 12px 0; }
@@ -317,6 +339,10 @@ export class DashboardPanel {
       margin-bottom: 14px;
     }
     .opt-fix-all-btn:hover { background: var(--vscode-button-hoverBackground, #1177bb); }
+    /* ── Version badges ── */
+    .badge { display: inline-block; font-size: 0.72em; font-weight: 700; padding: 1px 7px; border-radius: 3px; letter-spacing: 0.03em; white-space: nowrap; vertical-align: middle; margin-left: 6px; }
+    .badge-new { background: #1a3a1a; color: #4ec9b0; }
+    .badge-locked { background: #3a2a00; color: #f0c040; }
   </style>
 </head>
 <body>
@@ -332,9 +358,23 @@ export class DashboardPanel {
       <div class="label">Features Detected</div>
     </div>
     <div class="score-card">
-      <div class="value">${(result.staticFindings ?? []).length}</div>
-      <div class="label">Optimizations To Do</div>
+      <div class="value">${result.logSummary.totalEntries}</div>
+      <div class="label">Log Entries Analyzed</div>
     </div>
+    <div class="score-card">
+      <div class="value">${result.logSummary.llmRequests > 0
+        ? `${result.logSummary.totalInputTokens.toLocaleString()} / ${result.logSummary.totalOutputTokens.toLocaleString()}`
+        : '—'}</div>
+      <div class="label">Input / Output Tokens</div>
+      ${result.logSummary.hasVSCodeLogs
+        ? `<div class="score-card-note" title="Enable debug output logging to capture per-call token data">⚠ Cache token data unavailable for VS Code log entries</div>`
+        : ''}
+    </div>
+  </div>
+
+  <div class="share-bar">
+    <button class="share-btn" id="shareLinkedIn">🔗 Share to LinkedIn</button>
+    <span class="share-copied" id="shareCopied">Summary copied to clipboard!</span>
   </div>
 
   <h2>🔥 Top Recommendations</h2>
@@ -361,6 +401,12 @@ export class DashboardPanel {
 
   <script>
     const vscode = acquireVsCodeApi();
+    document.getElementById('shareLinkedIn').addEventListener('click', () => {
+      vscode.postMessage({ command: 'shareLinkedIn' });
+      const badge = document.getElementById('shareCopied');
+      badge.style.display = 'inline';
+      setTimeout(() => { badge.style.display = 'none'; }, 3000);
+    });
     document.addEventListener('click', (e) => {
       const link = e.target.closest('[data-implement]');
       if (link) {
@@ -435,8 +481,11 @@ export class DashboardPanel {
     for (const cat of allCategories) {
       const catFeatures = byCat.get(cat) ?? [];
       if (catFeatures.length === 0) { continue; }
-      const detectable = catFeatures.filter((f) => f.detectHints.length > 0);
-      const notDetectable = catFeatures.filter((f) => f.detectHints.length === 0);
+      // Exclude unavailable from ratio/progress calculation
+      const available = catFeatures.filter((f) => getFeatureAvailability(f) !== 'unavailable');
+      const detectable = available.filter((f) => f.detectHints.length > 0);
+      const notDetectable = available.filter((f) => f.detectHints.length === 0);
+      const unavailableFeatures = catFeatures.filter((f) => getFeatureAvailability(f) === 'unavailable');
       const used = detectable.filter((f) => usedIDs.has(f.id)).length;
       const pct = detectable.length > 0 ? Math.floor((used / detectable.length) * 100) : 0;
 
@@ -445,13 +494,22 @@ export class DashboardPanel {
       html += '<table><thead><tr><th>Feature</th><th>Status</th><th>Links</th></tr></thead><tbody>';
       for (const f of detectable) {
         const isUsed = usedIDs.has(f.id);
-        const status = isUsed ? '✅ Using' : '⬜ Not detected';
+        const availability = getFeatureAvailability(f);
+        const badge = availability === 'new' ? '<span class="badge badge-new">New</span>' : '';
+        const status = isUsed ? `✅ Using${badge}` : `⬜ Not detected${badge}`;
         const infoIcon = buildInfoIcon(f);
         html += `<tr><td>${escapeHtml(f.name)}${infoIcon}</td><td>${status}</td><td>${buildLinksCell(f.id, f.docsURL, impl, tutorials)}</td></tr>`;
       }
       for (const f of notDetectable) {
+        const availability = getFeatureAvailability(f);
+        const badge = availability === 'new' ? '<span class="badge badge-new">New</span>' : '';
         const infoIcon = buildInfoIcon(f);
-        html += `<tr><td>${escapeHtml(f.name)}${infoIcon}</td><td></td><td>${buildLinksCell(f.id, f.docsURL, impl, tutorials)}</td></tr>`;
+        html += `<tr><td>${escapeHtml(f.name)}${infoIcon}${badge}</td><td></td><td>${buildLinksCell(f.id, f.docsURL, impl, tutorials)}</td></tr>`;
+      }
+      for (const f of unavailableFeatures) {
+        const infoIcon = buildInfoIcon(f);
+        const badge = `<span class="badge badge-locked">Requires v${escapeHtml(f.addedIn)}+</span>`;
+        html += `<tr><td>${escapeHtml(f.name)}${infoIcon}${badge}</td><td></td><td><a href="${escapeHtml(f.docsURL)}" target="_blank">Docs</a></td></tr>`;
       }
       html += '</tbody></table>';
     }
@@ -459,6 +517,27 @@ export class DashboardPanel {
     return html;
   }
 
+  static buildShareText(result: AnalysisResult | undefined): string {
+    if (!result) {
+      return 'I just analyzed my GitHub Copilot setup with Copilot Enabler for VS Code!';
+    }
+    const lines = [
+      `I just scored ${result.overallScore}/100 on my GitHub Copilot adoption scorecard! 🚀`,
+      '',
+      `📊 ${result.usedFeatures}/${result.totalFeatures} features detected`,
+    ];
+    if (result.topRecommendations.length > 0) {
+      lines.push('');
+      lines.push('Top recommendations:');
+      for (const rec of result.topRecommendations.slice(0, 3)) {
+        lines.push(`• ${rec.title}`);
+      }
+    }
+    lines.push('');
+    lines.push('Check your own score with the Copilot Enabler extension for VS Code.');
+    lines.push('#GitHubCopilot #DeveloperProductivity #AI');
+    return lines.join('\n');
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

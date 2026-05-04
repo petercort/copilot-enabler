@@ -40,4 +40,5 @@ Please help me understand this feature by:
    - Simple clarification questions
 
 Walk me through my actual workflow and where Quick Chat fits in.`,
+  addedIn: '1.110.0',
 });

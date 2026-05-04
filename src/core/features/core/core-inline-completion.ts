@@ -39,4 +39,5 @@ Please help me understand this feature by:
    - Code patterns I frequently refactor
 
 Walk me through actual use cases from my open files.`,
+  addedIn: '1.110.0',
 });

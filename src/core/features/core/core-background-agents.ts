@@ -15,4 +15,5 @@ export const coreBackgroundAgents = defineFeature({
     "Choose 'Background' as the agent type to start a background agent session.",
     'The agent works in an isolated Git worktree so it won\'t conflict with your active workspace.',
   ],
+  addedIn: '1.110.0',
 });

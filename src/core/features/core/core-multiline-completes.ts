@@ -35,4 +35,5 @@ Please help me understand this feature by:
 5. Common patterns in my codebase that Copilot can learn from
 
 Walk me through practical examples using my actual project code.`,
+  addedIn: '1.110.0',
 });
