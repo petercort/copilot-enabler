@@ -17,4 +17,4 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Get version
-        
+        run: echo "hi"

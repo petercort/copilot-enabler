@@ -11,7 +11,7 @@ describe('Promptimizer - cost model', () => {
     const m = costModelFor('claude-sonnet-4.6');
     expect(m.fresh).toBeCloseTo(3.0, 6);
     expect(m.write5m).toBeCloseTo(3.75, 6);
-    expect(m.write1h).toBeCloseTo(6.0, 6);
+    expect(m.write1h).toBeCloseTo(3.75, 6);
     expect(m.read).toBeCloseTo(0.3, 6);
   });
 
@@ -39,7 +39,7 @@ describe('Promptimizer - cost model', () => {
 
   test('supports all four pricing models', () => {
     expect(costModelFor('claude-sonnet-4.5').fresh).toBe(3.0);
-    expect(costModelFor('claude-opus-4.7').fresh).toBe(15.0);
-    expect(costModelFor('claude-opus-4.6').fresh).toBe(15.0);
+    expect(costModelFor('claude-opus-4.7').fresh).toBe(5.0);
+    expect(costModelFor('claude-opus-4.6').fresh).toBe(5.0);
   });
 });
