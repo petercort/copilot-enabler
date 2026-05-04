@@ -1,7 +1,7 @@
 // Context deduplication rule. Fires when multiple blocks within a single
 // turn carry highly overlapping text, causing redundant token spend.
 
-import { estimateUsdPer100Turns } from '../cost';
+import { effectiveInputRateScale, estimateUsdPer100Turns } from '../cost';
 import { Block, Finding, IngestedSession, IngestedTurn, PricingModel, QualityRisk } from '../types';
 
 function tokensOf(b: Block): number { return b.tokens ?? 0; }
@@ -95,7 +95,8 @@ export function ruleDeduplication(session: IngestedSession, model: PricingModel)
   if (pairs.length === 0) { return undefined; }
 
   const totalWasted = pairs.reduce((s, p) => s + p.wastedTokens, 0);
-  const savings = estimateUsdPer100Turns(totalWasted, model, 'fresh', 100);
+  const savings = estimateUsdPer100Turns(totalWasted, model, 'fresh', 100) *
+    effectiveInputRateScale(session.usage, model);
 
   // Collect unique block IDs from all pairs.
   const blockIds = [...new Set(pairs.flatMap((p) => [p.blockA.id, p.blockB.id]))];

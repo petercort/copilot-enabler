@@ -15,6 +15,7 @@ import { DashboardPanel } from './views/dashboardPanel';
 import { SettingsPanel } from './views/settingsPanel';
 import { Recommendation, buildRecommendation } from './core/agents';
 import { runPromptimizer, PromptimizerResult, Finding, PricingModel } from './core/promptimizer';
+import { IngestedSession } from './core/promptimizer/types';
 import { PromptimizerPanel } from './views/promptimizerPanel';
 import { PromptimizerTreeProvider } from './views/promptimizerTree';
 import { autoStartIfEnabled, isWatcherActive, startWatcher, stopWatcher } from './views/promptimizerWatcher';
@@ -59,6 +60,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotEnabler.promptimizer.ingestCopilotLogs', () => handlePromptimizerIngestCopilotLogs(context)),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.refresh', () => handlePromptimizerIngestCopilotLogs(context)),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.openFinding', (finding?: Finding) => handlePromptimizerOpenFinding(context, finding)),
+    vscode.commands.registerCommand('copilotEnabler.promptimizer.openSession', (session?: IngestedSession) => handlePromptimizerOpenSession(context, session)),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.startWatcher', () => startWatcher()),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.stopWatcher', () => stopWatcher()),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.toggleWatcher', () => {
@@ -599,4 +601,15 @@ async function handlePromptimizerOpenFinding(
   if (finding) {
     vscode.window.showInformationMessage(`${finding.rule}: ${finding.message ?? ''}`);
   }
+}
+
+async function handlePromptimizerOpenSession(
+  context: vscode.ExtensionContext,
+  session?: IngestedSession,
+): Promise<void> {
+  if (!lastPromptimizerResult) {
+    vscode.window.showWarningMessage('Run the Promptimizer first.');
+    return;
+  }
+  PromptimizerPanel.showWithSession(context.extensionUri, lastPromptimizerResult, session?.session_id);
 }

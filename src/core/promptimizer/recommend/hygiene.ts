@@ -2,7 +2,7 @@
 // These rules analyse custom_instruction, skill, and system blocks to
 // surface prompt-engineering anti-patterns described in §2 of the research.
 
-import { estimateUsdPer100Turns } from '../cost';
+import { effectiveInputRateScale, estimateUsdPer100Turns } from '../cost';
 import { Block, Finding, IngestedSession, PricingModel, QualityRisk } from '../types';
 
 function tokensOf(b: Block): number { return b.tokens ?? 0; }
@@ -56,7 +56,8 @@ export function ruleFluff(session: IngestedSession, model: PricingModel): Findin
   const totalTokens = uniqueBlocks.reduce((s, b) => s + tokensOf(b), 0);
   // Fluff phrases are a small fraction of each block; estimate 5% is waste.
   const wastedTokens = Math.ceil(totalTokens * 0.05);
-  const savings = estimateUsdPer100Turns(wastedTokens, model, 'fresh', 100);
+  const savings = estimateUsdPer100Turns(wastedTokens, model, 'fresh', 100) *
+    effectiveInputRateScale(session.usage, model);
 
   return {
     rule: 'R-FP1',
@@ -113,7 +114,8 @@ export function ruleRuleBloat(session: IngestedSession, model: PricingModel): Fi
   const totalTokens = hits.reduce((s, h) => s + tokensOf(h.block), 0);
   // Conservatively estimate 30% of a bloated block is low-value rules.
   const wastedTokens = Math.ceil(totalTokens * 0.3);
-  const savings = estimateUsdPer100Turns(wastedTokens, model, 'fresh', 100);
+  const savings = estimateUsdPer100Turns(wastedTokens, model, 'fresh', 100) *
+    effectiveInputRateScale(session.usage, model);
 
   return {
     rule: 'R-RB1',
@@ -174,7 +176,8 @@ export function ruleFewShot(session: IngestedSession, model: PricingModel): Find
   const totalTokens = hits.reduce((s, h) => s + tokensOf(h.block), 0);
   // Distilling to 1-2 examples typically reduces block tokens by ~60%.
   const wastedTokens = Math.ceil(totalTokens * 0.6);
-  const savings = estimateUsdPer100Turns(wastedTokens, model, 'fresh', 100);
+  const savings = estimateUsdPer100Turns(wastedTokens, model, 'fresh', 100) *
+    effectiveInputRateScale(session.usage, model);
 
   return {
     rule: 'R-FS1',
@@ -249,7 +252,8 @@ export function ruleSessionHygiene(session: IngestedSession, model: PricingModel
   // Savings: compressing mid-session history by ~50% of instruction overhead.
   const avgInstructionPerTurn = instructionTurnTokens / session.turns.length;
   const wastedPerTurn = Math.ceil(avgInstructionPerTurn * 0.5);
-  const savings = estimateUsdPer100Turns(wastedPerTurn, model, 'fresh', 100);
+  const savings = estimateUsdPer100Turns(wastedPerTurn, model, 'fresh', 100) *
+    effectiveInputRateScale(session.usage, model);
 
   return {
     rule: 'R-SH1',
@@ -323,7 +327,8 @@ export function ruleToolCatalogUtility(session: IngestedSession, model: PricingM
 
   const totalUnusedTokens = unusedTools.reduce((s, t) => s + t.tokens, 0);
   // These tokens are paid every turn — full savings if lazy-loaded.
-  const savings = estimateUsdPer100Turns(totalUnusedTokens, model, 'fresh', 100);
+  const savings = estimateUsdPer100Turns(totalUnusedTokens, model, 'fresh', 100) *
+    effectiveInputRateScale(session.usage, model);
 
   return {
     rule: 'R-TCU1',

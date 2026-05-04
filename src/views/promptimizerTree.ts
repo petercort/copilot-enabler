@@ -50,11 +50,6 @@ function formatUsd(n: number): string {
   return `$${n.toFixed(2)}`;
 }
 
-function findingsForTurn(findings: Finding[], turn: IngestedTurn): Finding[] {
-  const ids = new Set(turn.blocks.map((b) => b.id));
-  return findings.filter((f) => (f.evidence?.blocks ?? []).some((b) => ids.has(b)));
-}
-
 export class SessionNode extends vscode.TreeItem {
   readonly kind = 'session' as const;
   constructor(
@@ -63,15 +58,14 @@ export class SessionNode extends vscode.TreeItem {
   ) {
     const totalTokens = totalSessionTokens(session);
     super(
-      session.label ?? `Session: ${session.session_id}`,
-      vscode.TreeItemCollapsibleState.Collapsed,
+      session.label ?? 'Session',
+      vscode.TreeItemCollapsibleState.None,
     );
     this.description = `${session.turns.length} turns · ${totalTokens} tokens`;
     this.iconPath = new vscode.ThemeIcon('comment-discussion');
     this.contextValue = 'promptimizerSession';
     const lines = [
-      `**${session.label ?? session.session_id}**`,
-      `Session id: \`${session.session_id}\``,
+      `**${session.label ?? 'Session'}**`,
       `Model: ${session.model ?? 'unknown'}`,
       `Turns: ${session.turns.length}`,
       `Tokens: ${totalTokens}`,
@@ -81,6 +75,11 @@ export class SessionNode extends vscode.TreeItem {
     if (session.context?.['cwd']) { lines.push(`Cwd: \`${session.context['cwd']}\``); }
     if (session.firstPrompt) { lines.push(`\n> ${session.firstPrompt}`); }
     this.tooltip = new vscode.MarkdownString(lines.join('\n\n'));
+    this.command = {
+      command: 'copilotEnabler.promptimizer.openSession',
+      title: 'Open Session',
+      arguments: [session],
+    };
   }
 }
 
@@ -101,7 +100,7 @@ export class TurnNode extends vscode.TreeItem {
     this.contextValue = 'promptimizerTurn';
     this.tooltip = new vscode.MarkdownString(
       `**Turn ${turn.turn}**\n\n` +
-        `${session.label ?? session.session_id}\n\n` +
+        `${session.label ?? 'Session'}\n\n` +
         `Blocks: ${turn.blocks.length}\n\n` +
         `Tokens: ${tokens}\n\n` +
         `Findings: ${findings.length}`,
@@ -222,17 +221,6 @@ export class PromptimizerTreeProvider
         .slice(0, 10);
       sessionNodes.push(new AggregatedFindingsNode(top));
       return sessionNodes;
-    }
-
-    if (element instanceof SessionNode) {
-      return element.session.turns.map(
-        (t) =>
-          new TurnNode(
-            element.session,
-            t,
-            findingsForTurn(element.findings, t),
-          ),
-      );
     }
 
     if (element instanceof TurnNode) {

@@ -178,6 +178,10 @@ export class PromptimizerPanel {
   }
 
   static show(extensionUri: vscode.Uri, result: PromptimizerResult): void {
+    PromptimizerPanel.showWithSession(extensionUri, result, undefined);
+  }
+
+  static showWithSession(extensionUri: vscode.Uri, result: PromptimizerResult, sessionId: string | undefined): void {
     void extensionUri;
     const column = vscode.window.activeTextEditor
       ? vscode.window.activeTextEditor.viewColumn
@@ -185,7 +189,7 @@ export class PromptimizerPanel {
 
     if (PromptimizerPanel.currentPanel) {
       PromptimizerPanel.currentPanel.panel.reveal(column);
-      PromptimizerPanel.currentPanel.update(result);
+      PromptimizerPanel.currentPanel.updateWithSession(result, sessionId);
       return;
     }
 
@@ -197,14 +201,21 @@ export class PromptimizerPanel {
     );
 
     PromptimizerPanel.currentPanel = new PromptimizerPanel(panel);
-    PromptimizerPanel.currentPanel.update(result);
+    PromptimizerPanel.currentPanel.updateWithSession(result, sessionId);
   }
 
   private update(result: PromptimizerResult): void {
+    this.updateWithSession(result, undefined);
+  }
+
+  private updateWithSession(result: PromptimizerResult, sessionId: string | undefined): void {
     this.result = result;
     const sorted = sortSessionsDesc(result.sessions);
     const sessionIds = sorted.map((s) => s.session_id);
-    if (!this.currentSessionId || !sessionIds.includes(this.currentSessionId)) {
+    if (sessionId && sessionIds.includes(sessionId)) {
+      this.currentSessionId = sessionId;
+      this.treemapTurn = -1;
+    } else if (!this.currentSessionId || !sessionIds.includes(this.currentSessionId)) {
       this.currentSessionId = sorted[0]?.session_id;
       this.treemapTurn = -1;
     }
@@ -317,7 +328,7 @@ export class PromptimizerPanel {
   <h2>Cost by Pricing Tier</h2>
   ${tierBar}
 
-  <h2>Tokens by Turn (stacked by category)</h2>
+  <h2>Tokens by Turn (input + output)</h2>
   ${stackedBar}
 
   <h2>Category Treemap</h2>
@@ -369,8 +380,19 @@ export class PromptimizerPanel {
       if (t) {
         tooltipEl.textContent = t.getAttribute('data-tooltip');
         tooltipEl.style.display = 'block';
-        tooltipEl.style.left = (e.clientX + 12) + 'px';
-        tooltipEl.style.top = (e.clientY + 12) + 'px';
+        const margin = 8;
+        const tw = tooltipEl.offsetWidth;
+        const th = tooltipEl.offsetHeight;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        let left = e.clientX + 12;
+        let top = e.clientY + 12;
+        if (left + tw + margin > vw) { left = e.clientX - tw - 12; }
+        if (left < margin) { left = margin; }
+        if (top + th + margin > vh) { top = e.clientY - th - 12; }
+        if (top < margin) { top = margin; }
+        tooltipEl.style.left = left + 'px';
+        tooltipEl.style.top = top + 'px';
       } else {
         tooltipEl.style.display = 'none';
       }
@@ -385,13 +407,13 @@ export class PromptimizerPanel {
     const sorted = sortSessionsDesc(sessions);
     if (sorted.length <= 1) {
       const s = sorted[0];
-      const label = s.label ?? s.session_id;
+      const label = s.label ?? 'Session';
       return `<span class="session-label">Session: <code>${escapeHtml(label)}</code> · ${s.turns.length} turns</span>`;
     }
     const options = sorted
       .map((s) => {
         const sel = s.session_id === this.currentSessionId ? ' selected' : '';
-        const label = s.label ?? s.session_id;
+        const label = s.label ?? 'Session';
         return `<option value="${escapeHtml(s.session_id)}"${sel}>${escapeHtml(label)} (${s.turns.length} turns)</option>`;
       })
       .join('');
@@ -406,8 +428,6 @@ export class PromptimizerPanel {
 
     let totalTokensDisplay = stats.totalTokens;
     let currentSessionCost = 0;
-    let afterCost = 0;
-    const turnCount = session.turns.length || 1;
     try {
       const freshRate = rateFor(result.model, 'fresh');
       if (authoritative) {
@@ -420,15 +440,8 @@ export class PromptimizerPanel {
       } else {
         currentSessionCost = (stats.totalTokens * freshRate) / 1_000_000;
       }
-      const cachingFindings = result.findings.filter((f) => f.category === 'caching');
-      const savingsPerSession = cachingFindings.reduce(
-        (s, f) => s + ((f.estimated_savings?.usd_per_100_turns ?? 0) / 100 * turnCount),
-        0,
-      );
-      afterCost = Math.max(0, currentSessionCost - savingsPerSession);
     } catch {
       currentSessionCost = 0;
-      afterCost = 0;
     }
 
     const stablePct = stats.totalTokens > 0
@@ -451,10 +464,6 @@ export class PromptimizerPanel {
       <div class="score-card">
         <div class="value">$${currentSessionCost.toFixed(4)}</div>
         <div class="label">This session cost (est.)</div>
-      </div>
-      <div class="score-card">
-        <div class="value">$${afterCost.toFixed(4)}</div>
-        <div class="label">After caching recs (est.)</div>
       </div>
       <div class="score-card">
         <div class="value">${result.findings.length}</div>
@@ -526,14 +535,116 @@ export class PromptimizerPanel {
     const innerW = width - padL - padR;
     const innerH = height - padT - padB;
 
-    const perTurn: Array<Partial<Record<BlockCategory, number>>> = turns.map((t) => {
-      const acc: Partial<Record<BlockCategory, number>> = {};
+    // Lane keys are richer than BlockCategory: tool_result is split per tool
+    // name (top-N + "other"), and assistant_message is split into prose vs
+    // tool_use (the JSON of the tool call itself).
+    const TOP_TOOLS = 6;
+    const TOOL_PALETTE = ['#d7ba7d', '#e8a878', '#cf8b6c', '#b06e58', '#a8896b', '#bf7f3f', '#8e5a2c'];
+    const TOOL_OTHER_COLOR = '#7a6b4f';
+    const ASSISTANT_TOOL_USE_COLOR = '#6796c6';
+
+    const laneKey = (b: Block): string => {
+      if (b.category === 'tool_result') {
+        const n = b.name?.trim();
+        return n ? `tool_result:${n}` : 'tool_result:(unnamed)';
+      }
+      if (b.category === 'assistant_message' && b.meta && (b.meta as Record<string, unknown>)['subkind'] === 'tool_use') {
+        return 'assistant_tool_use';
+      }
+      return `cat:${b.category}`;
+    };
+
+    // Aggregate tool-result tokens by tool name across the whole session to
+    // pick the top-N tools that get their own colour.
+    const toolTotals = new Map<string, number>();
+    for (const t of turns) {
       for (const b of t.blocks) {
-        acc[b.category] = (acc[b.category] ?? 0) + (b.tokens ?? 0);
+        if (b.category !== 'tool_result') { continue; }
+        const n = (b.name?.trim()) || '(unnamed)';
+        toolTotals.set(n, (toolTotals.get(n) ?? 0) + (b.tokens ?? 0));
+      }
+    }
+    const rankedTools = Array.from(toolTotals.entries())
+      .filter(([, v]) => v > 0)
+      .sort((a, b) => b[1] - a[1]);
+    const topToolNames = new Set(rankedTools.slice(0, TOP_TOOLS).map(([n]) => n));
+    const toolColor = new Map<string, string>();
+    rankedTools.slice(0, TOP_TOOLS).forEach(([n], i) => {
+      toolColor.set(n, TOOL_PALETTE[i % TOOL_PALETTE.length]);
+    });
+    const hasOtherTools = rankedTools.length > TOP_TOOLS;
+
+    interface Lane { key: string; label: string; color: string; description: string; }
+    const lanes: Lane[] = [];
+    const seenLane = new Set<string>();
+    const pushLane = (l: Lane) => {
+      if (seenLane.has(l.key)) { return; }
+      seenLane.add(l.key);
+      lanes.push(l);
+    };
+
+    // Lane order matches CATEGORY_ORDER but expands tool_result + assistant_message.
+    for (const cat of CATEGORY_ORDER) {
+      if (cat === 'tool_result') {
+        for (const [name] of rankedTools.slice(0, TOP_TOOLS)) {
+          pushLane({
+            key: `tool_result:${name}`,
+            label: `Tool · ${name}`,
+            color: toolColor.get(name) ?? TOOL_OTHER_COLOR,
+            description: `Output returned from \`${name}\` tool calls.`,
+          });
+        }
+        if (hasOtherTools) {
+          pushLane({
+            key: 'tool_result:__other__',
+            label: `Tool · other (${rankedTools.length - TOP_TOOLS})`,
+            color: TOOL_OTHER_COLOR,
+            description: 'Combined output from tools outside the top contributors.',
+          });
+        }
+      } else if (cat === 'assistant_message') {
+        pushLane({
+          key: 'assistant_tool_use',
+          label: 'Output · Tool Use',
+          color: ASSISTANT_TOOL_USE_COLOR,
+          description: 'Output tokens spent on tool-call JSON (function/tool invocations the model emitted).',
+        });
+        pushLane({
+          key: 'cat:assistant_message',
+          label: 'Output · Text',
+          color: CATEGORY_STYLES.assistant_message.color,
+          description: 'Output tokens for assistant reply prose. Sourced from authoritative usage when available, heuristic otherwise.',
+        });
+      } else {
+        const s = CATEGORY_STYLES[cat];
+        pushLane({ key: `cat:${cat}`, label: s.label, color: s.color, description: s.description });
+      }
+    }
+
+    const resolveLaneKey = (b: Block): string => {
+      const k = laneKey(b);
+      if (k.startsWith('tool_result:')) {
+        const n = k.slice('tool_result:'.length);
+        if (n === '(unnamed)' || !topToolNames.has(n)) {
+          return hasOtherTools || n === '(unnamed)' ? 'tool_result:__other__' : `tool_result:${n}`;
+        }
+      }
+      return k;
+    };
+
+    const perTurn: Array<Map<string, number>> = turns.map((t) => {
+      const acc = new Map<string, number>();
+      for (const b of t.blocks) {
+        const k = resolveLaneKey(b);
+        acc.set(k, (acc.get(k) ?? 0) + (b.tokens ?? 0));
       }
       return acc;
     });
-    const turnTotals = perTurn.map((m) => Object.values(m).reduce<number>((s, v) => s + (v ?? 0), 0));
+    const turnTotals = perTurn.map((m) => {
+      let s = 0;
+      for (const v of m.values()) { s += v; }
+      return s;
+    });
     const maxTotal = Math.max(1, ...turnTotals);
 
     const barGap = Math.max(2, Math.min(10, Math.floor(innerW / turns.length / 4)));
@@ -543,14 +654,13 @@ export class PromptimizerPanel {
     turns.forEach((turn, i) => {
       const x = padL + i * (barW + barGap);
       let yOffset = 0;
-      for (const cat of CATEGORY_ORDER) {
-        const tokens = perTurn[i][cat] ?? 0;
+      for (const lane of lanes) {
+        const tokens = perTurn[i].get(lane.key) ?? 0;
         if (tokens <= 0) { continue; }
         const h = (tokens / maxTotal) * innerH;
         const y = padT + innerH - yOffset - h;
-        const style = CATEGORY_STYLES[cat];
-        const tooltipText = `${style.label} — ${formatNumber(tokens)} tokens (turn ${turn.turn})`;
-        bars.push(`<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${barW.toFixed(2)}" height="${h.toFixed(2)}" fill="${style.color}" class="sb-rect" data-tooltip="${escapeHtml(tooltipText)}"><title>${escapeHtml(tooltipText)}</title></rect>`);
+        const tooltipText = `${lane.label} — ${formatNumber(tokens)} tokens (turn ${turn.turn})`;
+        bars.push(`<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${barW.toFixed(2)}" height="${h.toFixed(2)}" fill="${lane.color}" class="sb-rect" data-tooltip="${escapeHtml(tooltipText)}"><title>${escapeHtml(tooltipText)}</title></rect>`);
         yOffset += h;
       }
     });
@@ -573,10 +683,13 @@ export class PromptimizerPanel {
     });
     xLabels.push(`<text x="${padL + innerW / 2}" y="${height - 4}" class="axis-label" text-anchor="middle">turn</text>`);
 
-    const legend = CATEGORY_ORDER.map((cat) => {
-      const s = CATEGORY_STYLES[cat];
-      return `<span class="legend-item" title="${escapeHtml(s.description)}"><span class="legend-swatch" style="background:${s.color}"></span>${escapeHtml(s.label)}</span>`;
-    }).join('');
+    // Legend: drop lanes that contributed nothing to keep it readable.
+    const usedKeys = new Set<string>();
+    perTurn.forEach((m) => { for (const [k, v] of m.entries()) { if (v > 0) { usedKeys.add(k); } } });
+    const legend = lanes
+      .filter((l) => usedKeys.has(l.key))
+      .map((l) => `<span class="legend-item" title="${escapeHtml(l.description)}"><span class="legend-swatch" style="background:${l.color}"></span>${escapeHtml(l.label)}</span>`)
+      .join('');
 
     return `<div class="chart-wrap">
       <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Stacked bar chart of tokens per turn by category">
@@ -601,15 +714,88 @@ export class PromptimizerPanel {
       ? turns.flatMap((t) => t.blocks)
       : (turns[this.treemapTurn]?.blocks ?? []);
 
-    const totals = new Map<BlockCategory, number>();
+    // Same lane scheme as the per-turn stacked bar so the views agree:
+    //   * tool_result split per tool name (top-N + "other")
+    //   * assistant_message split into Output·Text vs Output·Tool Use
+    //   * everything else by raw category
+    const TOP_TOOLS = 6;
+    const TOOL_PALETTE = ['#d7ba7d', '#e8a878', '#cf8b6c', '#b06e58', '#a8896b', '#bf7f3f', '#8e5a2c'];
+    const TOOL_OTHER_COLOR = '#7a6b4f';
+    const ASSISTANT_TOOL_USE_COLOR = '#6796c6';
+
+    const toolTotals = new Map<string, number>();
     for (const b of selectedBlocks) {
-      totals.set(b.category, (totals.get(b.category) ?? 0) + (b.tokens ?? 0));
+      if (b.category !== 'tool_result') { continue; }
+      const n = (b.name?.trim()) || '(unnamed)';
+      toolTotals.set(n, (toolTotals.get(n) ?? 0) + (b.tokens ?? 0));
     }
-    const totalTokens = Array.from(totals.values()).reduce((s, v) => s + v, 0);
+    const rankedTools = Array.from(toolTotals.entries())
+      .filter(([, v]) => v > 0)
+      .sort((a, b) => b[1] - a[1]);
+    const topToolNames = new Set(rankedTools.slice(0, TOP_TOOLS).map(([n]) => n));
+    const toolColor = new Map<string, string>();
+    rankedTools.slice(0, TOP_TOOLS).forEach(([n], i) => {
+      toolColor.set(n, TOOL_PALETTE[i % TOOL_PALETTE.length]);
+    });
+    const hasOtherTools = rankedTools.length > TOP_TOOLS;
+
+    interface LaneSpec { label: string; color: string; description: string; }
+    const laneFor = (b: Block): { key: string; spec: LaneSpec } => {
+      if (b.category === 'tool_result') {
+        const raw = (b.name?.trim()) || '(unnamed)';
+        const isTop = topToolNames.has(raw);
+        const collapse = !isTop && (hasOtherTools || raw === '(unnamed)');
+        const name = collapse ? '__other__' : raw;
+        if (collapse) {
+          return {
+            key: 'tool_result:__other__',
+            spec: {
+              label: `Tool · other (${rankedTools.length - TOP_TOOLS})`,
+              color: TOOL_OTHER_COLOR,
+              description: 'Combined output from tools outside the top contributors.',
+            },
+          };
+        }
+        return {
+          key: `tool_result:${name}`,
+          spec: {
+            label: `Tool · ${name}`,
+            color: toolColor.get(name) ?? TOOL_OTHER_COLOR,
+            description: `Output returned from \`${name}\` tool calls.`,
+          },
+        };
+      }
+      if (b.category === 'assistant_message' && b.meta && (b.meta as Record<string, unknown>)['subkind'] === 'tool_use') {
+        return {
+          key: 'assistant_tool_use',
+          spec: {
+            label: 'Output · Tool Use',
+            color: ASSISTANT_TOOL_USE_COLOR,
+            description: 'Output tokens spent on tool-call JSON (function/tool invocations the model emitted).',
+          },
+        };
+      }
+      const cat = b.category;
+      const s = CATEGORY_STYLES[cat];
+      const label = cat === 'assistant_message' ? 'Output · Text' : s.label;
+      return { key: `cat:${cat}`, spec: { label, color: s.color, description: s.description } };
+    };
+
+    const totals = new Map<string, { value: number; spec: LaneSpec }>();
+    for (const b of selectedBlocks) {
+      const { key, spec } = laneFor(b);
+      const existing = totals.get(key);
+      if (existing) {
+        existing.value += b.tokens ?? 0;
+      } else {
+        totals.set(key, { value: b.tokens ?? 0, spec });
+      }
+    }
+    const totalTokens = Array.from(totals.values()).reduce((s, v) => s + v.value, 0);
     const items: TreemapItem[] = [];
-    for (const [cat, v] of totals.entries()) {
-      if (v <= 0) { continue; }
-      items.push({ key: cat, label: CATEGORY_STYLES[cat].label, value: v, color: CATEGORY_STYLES[cat].color, description: CATEGORY_STYLES[cat].description });
+    for (const [key, { value, spec }] of totals.entries()) {
+      if (value <= 0) { continue; }
+      items.push({ key, label: spec.label, value, color: spec.color, description: spec.description });
     }
 
     const width = 520;

@@ -113,7 +113,14 @@ function blockFromAnthropicMessage(
       } else if (type === 'image' || type === 'document') {
         blocks.push({ id, category: 'attachment', text: asString(p['source']) ?? JSON.stringify(p) });
       } else if (type === 'tool_use') {
-        blocks.push({ id, category: 'assistant_message', text: JSON.stringify(p) });
+        const toolName = asString(p['name']);
+        blocks.push({
+          id,
+          category: 'assistant_message',
+          text: JSON.stringify(p),
+          ...(toolName ? { name: toolName } : {}),
+          meta: { subkind: 'tool_use' },
+        });
       }
     });
   }
@@ -192,6 +199,36 @@ export function payloadToRawTurn(
       if (role !== 'user' && role !== 'assistant') { return; }
       blocks.push(...blockFromAnthropicMessage(turn, role, msg['content'], i));
     });
+  }
+
+  // If the payload includes the response, harvest the assistant content +
+  // authoritative output token count so per-turn views reflect what the
+  // model actually produced (not just what was sent up).
+  const response = (payload['response'] && typeof payload['response'] === 'object')
+    ? payload['response'] as Record<string, unknown>
+    : undefined;
+  if (response) {
+    const respBlocks = blockFromAnthropicMessage(turn, 'assistant', response['content'], 9000);
+    const usage = response['usage'] && typeof response['usage'] === 'object'
+      ? response['usage'] as Record<string, unknown>
+      : undefined;
+    const outputTokens = usage && typeof usage['output_tokens'] === 'number'
+      ? (usage['output_tokens'] as number)
+      : undefined;
+    if (respBlocks.length > 0 && outputTokens && outputTokens > 0) {
+      // Attribute the authoritative output count to the prose block (or last
+      // assistant block as fallback). Tool_use JSON blocks keep heuristic.
+      let target: Block | undefined;
+      for (let i = respBlocks.length - 1; i >= 0; i--) {
+        const b = respBlocks[i];
+        if (b.category !== 'assistant_message') { continue; }
+        const subkind = b.meta && (b.meta as Record<string, unknown>)['subkind'];
+        if (subkind !== 'tool_use') { target = b; break; }
+        if (!target) { target = b; }
+      }
+      if (target) { target.tokens = outputTokens; }
+    }
+    blocks.push(...respBlocks);
   }
 
   return { session_id, turn, model, blocks };
@@ -684,6 +721,45 @@ export function parseVscodeDebugLog(filePath: string): import('./types').Session
 }
 
 /**
+ * Read the AI-generated title for a VS Code Copilot Chat session from the
+ * `title-*.jsonl` file stored alongside `main.jsonl` in the debug-logs dir.
+ * Returns `undefined` if no title file is found or parseable.
+ */
+function readChatSessionTitle(sessionDebugDir: string): string | undefined {
+  let entries: fs.Dirent[];
+  try { entries = fs.readdirSync(sessionDebugDir, { withFileTypes: true }); } catch { return undefined; }
+  for (const e of entries) {
+    if (!e.isFile() || !e.name.startsWith('title-') || !e.name.endsWith('.jsonl')) { continue; }
+    let content: string;
+    try { content = fs.readFileSync(path.join(sessionDebugDir, e.name), 'utf-8'); } catch { continue; }
+    // Find the last agent_response whose response contains the title text.
+    let lastTitle: string | undefined;
+    for (const rawLine of content.split('\n')) {
+      const line = rawLine.trim();
+      if (!line || line[0] !== '{') { continue; }
+      let parsed: VscodeDebugLogEntry;
+      try { parsed = JSON.parse(line) as VscodeDebugLogEntry; } catch { continue; }
+      if (parsed.type !== 'agent_response') { continue; }
+      const resp = asString(parsed.attrs?.['response']);
+      if (!resp) { continue; }
+      // Response is a JSON string like `[{"role":"assistant","parts":[{"type":"text","content":"Title text"}]}]`
+      try {
+        const parts = JSON.parse(resp) as Array<{ role?: string; parts?: Array<{ type?: string; content?: string }> }>;
+        for (const p of parts) {
+          for (const part of p.parts ?? []) {
+            if (part.type === 'text' && part.content && part.content.trim()) {
+              lastTitle = part.content.trim();
+            }
+          }
+        }
+      } catch { /* not parseable — skip */ }
+    }
+    if (lastTitle) { return lastTitle; }
+  }
+  return undefined;
+}
+
+/**
  * Build turns and usage from a parsed VS Code debug-log `main.jsonl` file.
  * VS Code debug logs use event types: `user_message`, `agent_response`,
  * `tool_call`, `turn_start`, `turn_end`, `llm_request`, `session_start`.
@@ -704,13 +780,40 @@ function parseVscodeDebugLogFull(filePath: string): IngestedSession | undefined 
   let totalInput = 0;
   let totalOutput = 0;
   let apiCalls = 0;
+  // Output tokens reported by `llm_request` events in the current turn. We
+  // attribute these to the turn's prose assistant_message block (or fall back
+  // to the last assistant_message) so they show up in the per-turn chart
+  // instead of only the session totals.
+  let pendingTurnOutput = 0;
 
   const pushTurn = (): void => {
     if (currentBlocks.length > 0) {
+      if (pendingTurnOutput > 0) {
+        // Prefer a prose block over tool_use JSON blocks.
+        let target: Block | undefined;
+        for (let i = currentBlocks.length - 1; i >= 0; i--) {
+          const b = currentBlocks[i];
+          if (b.category !== 'assistant_message') { continue; }
+          const subkind = b.meta && (b.meta as Record<string, unknown>)['subkind'];
+          if (subkind !== 'tool_use') { target = b; break; }
+          if (!target) { target = b; }
+        }
+        if (target) {
+          target.tokens = pendingTurnOutput;
+        } else {
+          currentBlocks.push({
+            id: `msg-a-${turnIdx}-${subIdx++}`,
+            category: 'assistant_message',
+            text: '',
+            tokens: pendingTurnOutput,
+          });
+        }
+      }
       turns.push({ session_id: sessionId, turn: turnIdx, model, blocks: currentBlocks });
       currentBlocks = [];
       subIdx = 0;
     }
+    pendingTurnOutput = 0;
   };
 
   for (const rawLine of content.split('\n')) {
@@ -761,6 +864,8 @@ function parseVscodeDebugLogFull(filePath: string): IngestedSession | undefined 
           id: `tool-call-${turnIdx}-${subIdx++}`,
           category: 'assistant_message',
           text: `${toolName}(${argsText})`,
+          name: toolName,
+          meta: { subkind: 'tool_use' },
         });
         if (result !== undefined) {
           const resultText = typeof result === 'string' ? result : JSON.stringify(result);
@@ -780,6 +885,7 @@ function parseVscodeDebugLogFull(filePath: string): IngestedSession | undefined 
         const output = typeof attrs['outputTokens'] === 'number' ? (attrs['outputTokens'] as number) : 0;
         totalInput += input;
         totalOutput += output;
+        pendingTurnOutput += output;
         apiCalls++;
         break;
       }
@@ -791,14 +897,18 @@ function parseVscodeDebugLogFull(filePath: string): IngestedSession | undefined 
 
   if (turns.length === 0 && apiCalls === 0) { return undefined; }
 
+  const sessionDebugDir = path.dirname(filePath);
+  const chatTitle = readChatSessionTitle(sessionDebugDir);
   const shortId = sessionDir.slice(0, 8);
   const session: IngestedSession = {
     session_id: sessionId,
     model,
     turns,
-    label: firstPrompt
-      ? `${firstPromptSummary(firstPrompt)} [${shortId}]`
-      : `VS Code session [${shortId}]`,
+    label: chatTitle
+      ? `${chatTitle}`
+      : firstPrompt
+        ? `${firstPromptSummary(firstPrompt)}`
+        : `VSCode session [${shortId}]`,
     firstPrompt: firstPrompt ? firstPromptSummary(firstPrompt, 200) : undefined,
     startedAt,
   };
@@ -978,6 +1088,7 @@ function buildSessionFromEvents(sessionId: string, events: CopilotEvent[], copil
             id: `msg-a-tool-${current.idx}-${subIdx++}`,
             category: 'assistant_message',
             text: toolText,
+            meta: { subkind: 'tool_use' },
           });
         }
         break;
