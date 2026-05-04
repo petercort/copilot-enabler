@@ -752,7 +752,20 @@ function firstPromptSummary(text: string, maxLen = 60): string {
   return `${oneLine.slice(0, maxLen - 1)}…`;
 }
 
-function labelFor(context: Record<string, string> | undefined, firstPrompt: string | undefined, shortId: string): string {
+function readSessionTitle(sessionDir: string): string | undefined {
+  const jsonFile = path.join(sessionDir, 'session.json');
+  try {
+    const raw = fs.readFileSync(jsonFile, 'utf-8');
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const t = parsed['title'];
+    return typeof t === 'string' && t.trim() ? t.trim() : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function labelFor(context: Record<string, string> | undefined, firstPrompt: string | undefined, shortId: string, copilotTitle?: string): string {
+  if (copilotTitle) { return `${copilotTitle} [${shortId}]`; }
   const parts: string[] = [];
   if (context?.['repository']) {
     parts.push(context['branch'] ? `${context['repository']}@${context['branch']}` : context['repository']);
@@ -764,7 +777,7 @@ function labelFor(context: Record<string, string> | undefined, firstPrompt: stri
   return `${parts.join(' — ')} [${shortId}]`;
 }
 
-function buildSessionFromEvents(sessionId: string, events: CopilotEvent[]): IngestedSession | undefined {
+function buildSessionFromEvents(sessionId: string, events: CopilotEvent[], copilotTitle?: string): IngestedSession | undefined {
   let model: string | undefined;
   let systemContext: Block | undefined;
   let context: Record<string, string> | undefined;
@@ -891,7 +904,7 @@ function buildSessionFromEvents(sessionId: string, events: CopilotEvent[]): Inge
     session_id: sessionId,
     model,
     turns,
-    label: labelFor(context, firstPrompt, shortId),
+    label: labelFor(context, firstPrompt, shortId, copilotTitle),
     context,
     firstPrompt: firstPrompt ? firstPromptSummary(firstPrompt, 200) : undefined,
     startedAt,
@@ -925,11 +938,13 @@ export function ingestCopilotSessions(): IngestedSession[] {
   }
   for (const d of dirs) {
     if (!d.isDirectory()) { continue; }
-    const file = path.join(root, d.name, 'events.jsonl');
+    const sessionDir = path.join(root, d.name);
+    const file = path.join(sessionDir, 'events.jsonl');
     if (!fs.existsSync(file)) { continue; }
     const events = readCopilotEvents(file);
     if (events.length === 0) { continue; }
-    const session = buildSessionFromEvents(`copilot-session:${d.name}`, events);
+    const copilotTitle = readSessionTitle(sessionDir);
+    const session = buildSessionFromEvents(`copilot-session:${d.name}`, events, copilotTitle);
     if (session) { out.push(session); }
   }
   // Attach authoritative usage from debug logs (best-effort).
@@ -975,6 +990,7 @@ interface HistoryFile {
   cwd?: string;
   repository?: string;
   branch?: string;
+  title?: string;
   chatMessages?: HistoryChatMessage[];
   timeline?: unknown;
 }
@@ -1081,7 +1097,7 @@ function buildSessionFromHistory(file: HistoryFile, sessionId: string): Ingested
     session_id: sessionId,
     model: file.model,
     turns,
-    label: labelFor(context, firstPrompt, shortId),
+    label: labelFor(context, firstPrompt, shortId, file.title || undefined),
     context: Object.keys(context).length ? context : undefined,
     firstPrompt: firstPrompt ? firstPromptSummary(firstPrompt, 200) : undefined,
     startedAt: file.startTime,
