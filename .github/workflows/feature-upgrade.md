@@ -12,6 +12,7 @@ network:
   allowed:
     - defaults
     - node
+    - code.visualstudio.com
 tools:
   web-fetch:
   github:
