@@ -70,6 +70,10 @@ function buildContext(opts: {
       acceptedCompletions: 0,
       acceptanceRate: 0,
       detectedHints: opts.logHints ?? new Map(),
+      llmRequests: 0,
+      totalInputTokens: 0,
+      totalOutputTokens: 0,
+      hasVSCodeLogs: false,
     },
     settings: {
       found: true,
@@ -294,7 +298,8 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
   test('custom-agent-skills: detects "agent-skill" in log text', () => {
     const hints = new Map<string, boolean>();
     detectHintsInText('registered agent-skill "deploy" from mcp server', hints);
-    expect(hints.get('agent-skill')).toBe(true);
+    // 'skill' is the catalog hint; 'agent-skill' contains the 'skill' substring.
+    expect(hints.get('skill')).toBe(true);
   });
 
   test('custom-agents: detects "custom agent" in log text', () => {
@@ -639,7 +644,7 @@ describe('Feature detection via scanner sources', () => {
   describe('Workspace-based detection', () => {
     test('custom-instructions-file detected from workspace scanner', () => {
       const wsHints = hintsFrom(['copilot-instructions.md']);
-      const feature = byId('custom-instructions');
+      const feature = byId('copilot-instructions');
       expect(featureDetected(feature, wsHints)).toBe(true);
     });
 
@@ -687,7 +692,7 @@ describe('Feature detection via scanner sources', () => {
       const merged = mergeHints(logHints, settingsHints, wsHints, extHints);
 
       expect(featureDetected(byId('core-inline-completion'), merged)).toBe(true);
-      expect(featureDetected(byId('custom-instructions'), merged)).toBe(true);
+      expect(featureDetected(byId('copilot-instructions'), merged)).toBe(true);
       expect(featureDetected(byId('custom-mcp-servers'), merged)).toBe(true);
     });
 
@@ -753,7 +758,7 @@ describe('AdoptionAgent', () => {
     expect(usedIds).toContain('core-inline-completion');    // inline chat
     expect(usedIds).toContain('core-agent-mode');            // agentic
     expect(usedIds).toContain('custom-mcp-servers');     // mcp.json
-    expect(usedIds).toContain('custom-instructions'); // copilot-instructions.md
+    expect(usedIds).toContain('copilot-instructions'); // copilot-instructions.md
 
     expect(report.score).toBeGreaterThan(0);
     expect(report.score).toBeLessThan(100);
@@ -908,7 +913,7 @@ describe('End-to-end realistic machine profile', () => {
     expect(usedIds).toContain('core-inline-completion');    // fetchcompletions from log
     expect(usedIds).toContain('core-multiline-completes'); // detected from 'completion' + 'fetchcompletions'
     expect(usedIds).toContain('core-agent-mode');
-    expect(usedIds).toContain('custom-instructions');
+    expect(usedIds).toContain('copilot-instructions');
     expect(usedIds).toContain('custom-mcp-servers');
     expect(usedIds).toContain('core-chat-panel'); // detected from "Copilot Chat: ..." log line
 

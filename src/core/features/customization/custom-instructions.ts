@@ -20,5 +20,12 @@ Your workflow:
 3. Create or update necessary configuration files.
 
 Start by understanding the project.`,
+  tutorialPrompt: `I'd like to learn about Custom Instructions in GitHub Copilot and how repository-specific guidance can improve suggestions.
+
+Please teach me:
+1. What Custom Instructions are and where they live (.github/instructions/).
+2. How applyTo patterns scope instructions to specific files.
+3. Best practices for writing concise, high-signal instructions.
+4. Examples of instructions that meaningfully improve Copilot output.`,
   addedIn: '1.110.0',
 });
