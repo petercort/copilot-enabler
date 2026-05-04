@@ -14,4 +14,5 @@ export const coreAgentMode = defineFeature({
     "Open Copilot Chat and select 'Agent' from the mode picker.",
     'Describe a multi-step task and Copilot will plan and execute it.',
   ],
+  addedIn: '1.110.0',
 });

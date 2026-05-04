@@ -34,4 +34,5 @@ Please help me understand this feature by:
 5. Alternatives to web search (like #codebase context)
 
 Show me real examples with actual URLs relevant to my tech stack.`,
+  addedIn: '1.110.0',
 });

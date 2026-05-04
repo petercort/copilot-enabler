@@ -46,4 +46,5 @@ Please help me understand this feature by:
 Reference: https://code.visualstudio.com/docs/copilot/customization/hooks — keep suggestions limited to documented hook points and schema.
 
 Please tailor your suggestions to my actual development environment and tools.`,
+  addedIn: '1.110.0',
 });

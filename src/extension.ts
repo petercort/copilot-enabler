@@ -15,6 +15,7 @@ import { DashboardPanel } from './views/dashboardPanel';
 import { SettingsPanel } from './views/settingsPanel';
 import { Recommendation, buildRecommendation } from './core/agents';
 import { runPromptimizer, PromptimizerResult, Finding, PricingModel } from './core/promptimizer';
+import { IngestedSession } from './core/promptimizer/types';
 import { PromptimizerPanel } from './views/promptimizerPanel';
 import { PromptimizerTreeProvider } from './views/promptimizerTree';
 import { autoStartIfEnabled, isWatcherActive, startWatcher, stopWatcher } from './views/promptimizerWatcher';
@@ -59,6 +60,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotEnabler.promptimizer.ingestCopilotLogs', () => handlePromptimizerIngestCopilotLogs(context)),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.refresh', () => handlePromptimizerIngestCopilotLogs(context)),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.openFinding', (finding?: Finding) => handlePromptimizerOpenFinding(context, finding)),
+    vscode.commands.registerCommand('copilotEnabler.promptimizer.openSession', (session?: IngestedSession) => handlePromptimizerOpenSession(context, session)),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.startWatcher', () => startWatcher()),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.stopWatcher', () => stopWatcher()),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.toggleWatcher', () => {
@@ -152,8 +154,10 @@ async function doAnalysis(context: vscode.ExtensionContext, silent = false): Pro
       const promptResult = runPromptimizer({
         sources: [
           { type: 'log-entries', entries: logEntries },
+          { type: 'copilot-chat' },
           { type: 'copilot-sessions' },
           { type: 'copilot-history' },
+          { type: 'vscode-debug-logs' },
         ],
         model,
       });
@@ -468,11 +472,29 @@ function mergePromptimizerResult(next: PromptimizerResult): void {
   if (!lastPromptimizerResult) {
     lastPromptimizerResult = next;
   } else {
-    const sessions = [...lastPromptimizerResult.sessions, ...next.sessions];
-    const findings = [...lastPromptimizerResult.findings, ...next.findings].sort(
+    // Deduplicate sessions by session_id — re-ingesting the same log files must not produce duplicates.
+    const existingSessionIds = new Set(lastPromptimizerResult.sessions.map((s) => s.session_id));
+    const newSessions = next.sessions.filter((s) => !existingSessionIds.has(s.session_id));
+    const sessions = [...lastPromptimizerResult.sessions, ...newSessions];
+
+    // Deduplicate findings by rule + all evidence blocks — using only blocks[0] risks
+    // collision across sessions since block IDs like "msg-u-0-0" are session-scoped.
+    const findingKey = (f: { rule: string; evidence: { blocks: string[] } }) =>
+      `${f.rule}:${f.evidence.blocks.join(',')}`;
+    const existingFindingKeys = new Set(lastPromptimizerResult.findings.map(findingKey));
+    const newFindings = next.findings.filter((f) => !existingFindingKeys.has(findingKey(f)));
+    const findings = [...lastPromptimizerResult.findings, ...newFindings].sort(
       (a, b) => (b.estimated_savings?.usd_per_100_turns ?? 0) - (a.estimated_savings?.usd_per_100_turns ?? 0),
     );
-    lastPromptimizerResult = { sessions, findings, model: next.model };
+
+    const staticFindings = [
+      ...lastPromptimizerResult.staticFindings,
+      ...next.staticFindings.filter((sf) =>
+        !lastPromptimizerResult!.staticFindings.some((e) => e.rule === sf.rule && e.file === sf.file),
+      ),
+    ];
+
+    lastPromptimizerResult = { sessions, findings, model: next.model, staticFindings };
   }
   promptimizerTree.refresh(lastPromptimizerResult);
 }
@@ -548,6 +570,7 @@ async function handlePromptimizerIngestCopilotLogs(context: vscode.ExtensionCont
           { type: 'copilot-chat' },
           { type: 'copilot-sessions' },
           { type: 'copilot-history' },
+          { type: 'vscode-debug-logs' },
         ],
         model,
       }),
@@ -579,4 +602,15 @@ async function handlePromptimizerOpenFinding(
   if (finding) {
     vscode.window.showInformationMessage(`${finding.rule}: ${finding.message ?? ''}`);
   }
+}
+
+async function handlePromptimizerOpenSession(
+  context: vscode.ExtensionContext,
+  session?: IngestedSession,
+): Promise<void> {
+  if (!lastPromptimizerResult) {
+    vscode.window.showWarningMessage('Run the Promptimizer first.');
+    return;
+  }
+  PromptimizerPanel.showWithSession(context.extensionUri, lastPromptimizerResult, session?.session_id);
 }

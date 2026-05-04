@@ -39,4 +39,5 @@ Please help me understand this feature by:
    - Using NES feedback to improve your workflow
 
 Show me practical examples with real refactoring scenarios from my code.`,
+  addedIn: '1.110.0',
 });

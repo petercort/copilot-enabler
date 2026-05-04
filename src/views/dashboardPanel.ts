@@ -2,8 +2,9 @@
 
 import * as vscode from 'vscode';
 import { AnalysisResult } from '../core/analyzer';
-import { allCategories, Feature, featuresByCategory, visibleCatalog } from '../core/featureCatalog';
+import { allCategories, Feature, featuresByCategory, visibleCatalog, getFeatureAvailability } from '../core/featureCatalog';
 import { implementableFeatures, tutorialPrompts } from '../core/prompts';
+import { StaticFinding } from '../core/promptimizer/types';
 
 export class DashboardPanel {
   private static currentPanel: DashboardPanel | undefined;
@@ -31,6 +32,16 @@ export class DashboardPanel {
           vscode.commands.executeCommand('copilotEnabler.implement', { featureID: message.featureID });
         } else if (message.command === 'showMe') {
           vscode.commands.executeCommand('copilotEnabler.showMe', { featureID: message.featureID });
+        } else if (message.command === 'openFile') {
+          if (typeof message.filePath !== 'string' || !message.filePath) {
+            return;
+          }
+          const uri = vscode.Uri.file(message.filePath);
+          vscode.window.showTextDocument(uri, { preview: false }).then(undefined, () => {
+            vscode.window.showWarningMessage(`Could not open file: ${message.filePath}`);
+          });
+        } else if (message.command === 'implementOptimization') {
+          vscode.commands.executeCommand('copilotEnabler.implement', { featureID: 'copilot-instructions' });
         } else if (message.command === 'shareLinkedIn') {
           const text = DashboardPanel.buildShareText(DashboardPanel.lastResult);
           vscode.env.clipboard.writeText(text).then(() => {
@@ -88,6 +99,7 @@ export class DashboardPanel {
       .join('');
 
     const matrixHtml = this.featureMatrix(result);
+    const optimizationHtml = buildOptimizationSection(result.staticFindings ?? []);
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -125,6 +137,7 @@ export class DashboardPanel {
       color: var(--vscode-textLink-foreground, #3794ff);
     }
     .score-card .label { font-size: 0.85em; opacity: 0.8; margin-top: 4px; }
+    .score-card-note { font-size: 0.75em; opacity: 0.7; margin-top: 6px; color: var(--vscode-editorWarning-foreground, #cca700); cursor: default; }
     table { width: 100%; border-collapse: collapse; margin: 12px 0; }
     th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--vscode-panel-border, #333); }
     th { opacity: 0.7; font-size: 0.85em; }
@@ -257,6 +270,82 @@ export class DashboardPanel {
     }
     .share-btn:hover { background: #004182; }
     .share-copied { font-size: 0.85em; opacity: 0.8; display: none; }
+    /* ── Optimization To-Dos ── */
+    .opt-section { margin-top: 32px; }
+    .opt-empty { opacity: 0.6; font-style: italic; margin: 12px 0; }
+    .opt-summary { font-size: 0.85em; opacity: 0.7; margin-bottom: 16px; }
+    .opt-todo-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+    .opt-todo {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--vscode-panel-border, #333);
+      background: var(--vscode-editor-inactiveSelectionBackground, #1a1a2e);
+      transition: opacity 0.2s;
+    }
+    .opt-todo.done { opacity: 0.4; }
+    .opt-todo.done .opt-todo-msg { text-decoration: line-through; }
+    .opt-todo-check {
+      margin-top: 2px;
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      cursor: pointer;
+      accent-color: var(--vscode-textLink-foreground, #3794ff);
+    }
+    .opt-todo-body { flex: 1; min-width: 0; }
+    .opt-todo-header { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+    .opt-rule-badge {
+      font-size: 0.72em;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 3px;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+    }
+    .opt-rule-authoring { background: #1c4a7a; color: #7ec8e3; }
+    .opt-rule-hygiene   { background: #3a2a00; color: #f0c040; }
+    .opt-rule-compression { background: #2a1a3a; color: #c586c0; }
+    .opt-risk-high   { color: #f14c4c; font-size: 0.78em; font-weight: 600; }
+    .opt-risk-medium { color: #e36209; font-size: 0.78em; font-weight: 600; }
+    .opt-risk-low    { color: #4ec9b0; font-size: 0.78em; font-weight: 600; }
+    .opt-risk-none   { color: #888;    font-size: 0.78em; }
+    .opt-todo-msg { font-size: 0.88em; line-height: 1.5; }
+    .opt-todo-file {
+      font-size: 0.76em;
+      opacity: 0.55;
+      margin-top: 4px;
+      word-break: break-all;
+    }
+    .opt-todo-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .opt-action-btn {
+      font-size: 0.78em;
+      padding: 2px 10px;
+      border: 1px solid var(--vscode-textLink-foreground, #3794ff);
+      border-radius: 3px;
+      background: transparent;
+      color: var(--vscode-textLink-foreground, #3794ff);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .opt-action-btn:hover { background: rgba(55,148,255,0.12); }
+    .opt-fix-all-btn {
+      font-size: 0.82em;
+      padding: 4px 14px;
+      border: none;
+      border-radius: 4px;
+      background: var(--vscode-button-background, #0e639c);
+      color: var(--vscode-button-foreground, #fff);
+      cursor: pointer;
+      margin-bottom: 14px;
+    }
+    .opt-fix-all-btn:hover { background: var(--vscode-button-hoverBackground, #1177bb); }
+    /* ── Version badges ── */
+    .badge { display: inline-block; font-size: 0.72em; font-weight: 700; padding: 1px 7px; border-radius: 3px; letter-spacing: 0.03em; white-space: nowrap; vertical-align: middle; margin-left: 6px; }
+    .badge-new { background: #1a3a1a; color: #4ec9b0; }
+    .badge-locked { background: #3a2a00; color: #f0c040; }
   </style>
 </head>
 <body>
@@ -275,6 +364,15 @@ export class DashboardPanel {
       <div class="value">${result.logSummary.totalEntries}</div>
       <div class="label">Log Entries Analyzed</div>
     </div>
+    <div class="score-card">
+      <div class="value">${result.logSummary.llmRequests > 0
+        ? `${result.logSummary.totalInputTokens.toLocaleString()} / ${result.logSummary.totalOutputTokens.toLocaleString()}`
+        : '—'}</div>
+      <div class="label">Input / Output Tokens</div>
+      ${result.logSummary.hasVSCodeLogs
+        ? `<div class="score-card-note" title="Enable debug output logging to capture per-call token data">⚠ Cache token data unavailable for VS Code log entries</div>`
+        : ''}
+    </div>
   </div>
 
   <div class="share-bar">
@@ -292,6 +390,8 @@ export class DashboardPanel {
 
   <h2>Feature Adoption Matrix</h2>
   ${matrixHtml}
+
+  ${optimizationHtml}
 
   <div class="info-popup-overlay" id="infoOverlay">
     <div class="info-popup">
@@ -336,6 +436,23 @@ export class DashboardPanel {
         }
         document.getElementById('infoOverlay').classList.add('visible');
       }
+      const openFileBtn = e.target.closest('[data-open-file]');
+      if (openFileBtn) {
+        e.preventDefault();
+        vscode.postMessage({ command: 'openFile', filePath: openFileBtn.dataset.openFile });
+      }
+      const fixAllBtn = e.target.closest('#optFixAllBtn');
+      if (fixAllBtn) {
+        e.preventDefault();
+        vscode.postMessage({ command: 'implementOptimization' });
+      }
+    });
+    // Optimization to-do checkboxes
+    document.addEventListener('change', (e) => {
+      const cb = e.target.closest('.opt-todo-check');
+      if (!cb) { return; }
+      const todo = cb.closest('.opt-todo');
+      if (todo) { todo.classList.toggle('done', cb.checked); }
     });
     document.getElementById('infoClose').addEventListener('click', () => {
       document.getElementById('infoOverlay').classList.remove('visible');
@@ -367,8 +484,11 @@ export class DashboardPanel {
     for (const cat of allCategories) {
       const catFeatures = byCat.get(cat) ?? [];
       if (catFeatures.length === 0) { continue; }
-      const detectable = catFeatures.filter((f) => f.detectHints.length > 0);
-      const notDetectable = catFeatures.filter((f) => f.detectHints.length === 0);
+      // Exclude unavailable from ratio/progress calculation
+      const available = catFeatures.filter((f) => getFeatureAvailability(f) !== 'unavailable');
+      const detectable = available.filter((f) => f.detectHints.length > 0);
+      const notDetectable = available.filter((f) => f.detectHints.length === 0);
+      const unavailableFeatures = catFeatures.filter((f) => getFeatureAvailability(f) === 'unavailable');
       const used = detectable.filter((f) => usedIDs.has(f.id)).length;
       const pct = detectable.length > 0 ? Math.floor((used / detectable.length) * 100) : 0;
 
@@ -377,13 +497,22 @@ export class DashboardPanel {
       html += '<table><thead><tr><th>Feature</th><th>Status</th><th>Links</th></tr></thead><tbody>';
       for (const f of detectable) {
         const isUsed = usedIDs.has(f.id);
-        const status = isUsed ? '✅ Using' : '⬜ Not detected';
+        const availability = getFeatureAvailability(f);
+        const badge = availability === 'new' ? '<span class="badge badge-new">New</span>' : '';
+        const status = isUsed ? `✅ Using${badge}` : `⬜ Not detected${badge}`;
         const infoIcon = buildInfoIcon(f);
         html += `<tr><td>${escapeHtml(f.name)}${infoIcon}</td><td>${status}</td><td>${buildLinksCell(f.id, f.docsURL, impl, tutorials)}</td></tr>`;
       }
       for (const f of notDetectable) {
+        const availability = getFeatureAvailability(f);
+        const badge = availability === 'new' ? '<span class="badge badge-new">New</span>' : '';
         const infoIcon = buildInfoIcon(f);
-        html += `<tr><td>${escapeHtml(f.name)}${infoIcon}</td><td></td><td>${buildLinksCell(f.id, f.docsURL, impl, tutorials)}</td></tr>`;
+        html += `<tr><td>${escapeHtml(f.name)}${infoIcon}${badge}</td><td></td><td>${buildLinksCell(f.id, f.docsURL, impl, tutorials)}</td></tr>`;
+      }
+      for (const f of unavailableFeatures) {
+        const infoIcon = buildInfoIcon(f);
+        const badge = `<span class="badge badge-locked">Requires v${escapeHtml(f.addedIn)}+</span>`;
+        html += `<tr><td>${escapeHtml(f.name)}${infoIcon}${badge}</td><td></td><td><a href="${escapeHtml(f.docsURL)}" target="_blank">Docs</a></td></tr>`;
       }
       html += '</tbody></table>';
     }
@@ -414,8 +543,87 @@ export class DashboardPanel {
   }
 }
 
-function buildLinksCell(featureID: string, docsURL: string, impl: Set<string>, tutorials?: Set<string>): string {
-  const links: string[] = [];
+// ──────────────────────────────────────────────────────────────────────────────
+// Optimization section builder
+// ──────────────────────────────────────────────────────────────────────────────
+
+const RULE_LABELS: Record<string, string> = {
+  'S-AOC1': 'Always-On Budget',
+  'S-ASC1': 'Missing applyTo Scope',
+  'S-RP1':  'Broad Retrieval',
+  'S-PCS1': 'Cache Stability',
+  'S-FP1':  'Performative Fluff',
+  'S-RB1':  'Rule Bloat',
+  'S-FS1':  'Few-Shot Overload',
+  'S-DED1': 'Duplicate Content',
+};
+
+function buildOptimizationSection(findings: StaticFinding[]): string {
+  const highCount  = findings.filter((f) => f.quality_risk === 'high').length;
+  const medCount   = findings.filter((f) => f.quality_risk === 'medium').length;
+
+  const summaryParts: string[] = [];
+  if (highCount > 0)  { summaryParts.push(`<span class="opt-risk-high">${highCount} high</span>`); }
+  if (medCount > 0)   { summaryParts.push(`<span class="opt-risk-medium">${medCount} medium</span>`); }
+  const lowCount = findings.length - highCount - medCount;
+  if (lowCount > 0)   { summaryParts.push(`<span class="opt-risk-low">${lowCount} low</span>`); }
+
+  const emptyMsg = findings.length === 0
+    ? '<p class="opt-empty">No optimization findings — your instruction files look well-architected! 🎉</p>'
+    : '';
+
+  const fixAllBtn = findings.length > 0
+    ? `<button class="opt-fix-all-btn" id="optFixAllBtn">▶ Fix with Copilot</button>`
+    : '';
+
+  const todosHtml = findings
+    .sort((a, b) => {
+      const order = { high: 0, medium: 1, low: 2, none: 3 };
+      return (order[a.quality_risk] ?? 3) - (order[b.quality_risk] ?? 3);
+    })
+    .map((f, idx) => {
+      const id = `opt-todo-${idx}`;
+      const catClass = `opt-rule-${f.category}`;
+      const riskClass = `opt-risk-${f.quality_risk}`;
+      const riskLabel = f.quality_risk === 'none' ? '' : f.quality_risk.toUpperCase();
+      const ruleLabel = RULE_LABELS[f.rule] ?? f.rule;
+      const shortFile = f.file.replace(/\\/g, '/').split('/').slice(-3).join('/');
+
+      const actions: string[] = [];
+      actions.push(`<button class="opt-action-btn" data-open-file="${escapeHtml(f.file)}">📂 Open file</button>`);
+
+      return `
+      <li class="opt-todo" id="${id}">
+        <input class="opt-todo-check" type="checkbox" id="${id}-cb" aria-label="Mark as done">
+        <div class="opt-todo-body">
+          <div class="opt-todo-header">
+            <span class="opt-rule-badge ${catClass}">${escapeHtml(f.rule)}</span>
+            <span>${escapeHtml(ruleLabel)}</span>
+            ${riskLabel ? `<span class="${riskClass}">${riskLabel}</span>` : ''}
+          </div>
+          <div class="opt-todo-msg">${escapeHtml(f.message)}</div>
+          <div class="opt-todo-file" title="${escapeHtml(f.file)}">📄 …/${escapeHtml(shortFile)}${f.line ? `:${f.line}` : ''}</div>
+          <div class="opt-todo-actions">${actions.join('')}</div>
+        </div>
+      </li>`;
+    })
+    .join('');
+
+  return `
+  <div class="opt-section">
+    <h2>🛠 Optimization To-Dos</h2>
+    <p class="opt-summary">
+      ${findings.length > 0
+        ? `${findings.length} finding${findings.length !== 1 ? 's' : ''} — ${summaryParts.join(', ')} — from Well-Architected token rules on your instruction files.`
+        : 'Well-Architected token rules scanned your instruction files.'}
+    </p>
+    ${fixAllBtn}
+    ${emptyMsg}
+    <ul class="opt-todo-list">${todosHtml}</ul>
+  </div>`;
+}
+
+function buildLinksCell(featureID: string, docsURL: string, impl: Set<string>, tutorials?: Set<string>): string {  const links: string[] = [];
   if (docsURL) {
     links.push(`<a href="${docsURL}" title="Documentation">📖 Docs</a>`);
   }

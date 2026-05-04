@@ -14,4 +14,5 @@ export const toolsVscode = defineFeature({
   setupSteps: [
     'Type @vscode in the chat panel to ask about editor configuration.',
   ],
+  addedIn: '1.110.0',
 });

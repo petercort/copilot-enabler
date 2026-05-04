@@ -39,4 +39,5 @@ Please help me understand this feature by:
    - Interpreting the relevant code samples it shows
 
 Demonstrate with actual patterns and conventions from my codebase.`,
+  addedIn: '1.110.0',
 });

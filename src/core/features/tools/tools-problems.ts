@@ -30,4 +30,5 @@ Please help me understand this feature by:
 5. Tips for describing additional context around the problems for better solutions
 
 Make examples specific to my current project and its actual errors if any exist.`,
+  addedIn: '1.110.0',
 });

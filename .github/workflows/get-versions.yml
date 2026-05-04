@@ -1,0 +1,77 @@
+name: Get latest versions
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 1 * * *"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get latest VS Code release
+        id: vscode
+        run: |
+          LATEST=$(gh release list --repo microsoft/vscode --limit 1 --json tagName --jq '.[0].tagName' | sed 's/^[^0-9]*//')
+          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Read tracked version
+        id: tracked
+        run: |
+          TRACKED=$(jq -r '.contributes.configuration.properties["copilotEnabler.latestVersionChecked"].default' package.json)
+          echo "tracked=$TRACKED" >> "$GITHUB_OUTPUT"
+
+      - name: Check if update is needed
+        id: check
+        run: |
+          LATEST="${{ steps.vscode.outputs.latest }}"
+          TRACKED="${{ steps.tracked.outputs.tracked }}"
+          if [ "$LATEST" != "$TRACKED" ]; then
+            echo "new_version=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "new_version=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check for existing open issue
+        id: existing
+        if: steps.check.outputs.new_version == 'true'
+        run: |
+          COUNT=$(gh issue list \
+            --repo "$GITHUB_REPOSITORY" \
+            --label "vscode-update" \
+            --state open \
+            --json number \
+            --jq 'length')
+          echo "open_count=$COUNT" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create issue for new VS Code version
+        if: steps.check.outputs.new_version == 'true' && steps.existing.outputs.open_count == '0'
+        run: |
+          LATEST="${{ steps.vscode.outputs.latest }}"
+          gh issue create \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "[VSCode Update]: $LATEST" \
+            --label "vscode-update" \
+            --body "## VS Code has been updated!
+
+          A new VS Code release has been detected. Please review the release notes and reconcile the feature catalog.
+
+          **VSCode Version:** $LATEST
+          **Previously tracked:** ${{ steps.tracked.outputs.tracked }}
+
+          Release notes: https://github.com/microsoft/vscode/releases/tag/$LATEST
+
+          Once the catalog has been updated, bump \`copilotEnabler.latestVersionChecked\` in \`package.json\` to \`$LATEST\`."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

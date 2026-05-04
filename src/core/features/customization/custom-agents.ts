@@ -43,4 +43,5 @@ Please help me understand this feature by:
 5. If I'm interested, walk me through creating one of these custom agents step by step
 
 Please make this conversational and tailored to my actual workspace - don't just give generic examples.`,
+  addedIn: '1.110.0',
 });

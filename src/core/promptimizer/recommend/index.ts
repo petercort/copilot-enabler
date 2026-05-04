@@ -1,14 +1,17 @@
-// Rule registry. v1 only registers the caching rules (§5.1); authoring and
-// hygiene rules will plug in here later via `registerRuleSet`.
+// Rule registry. Caching, general, hygiene, and deduplication rule sets
+// are registered at module load. Additional rule sets can be added at runtime
+// via `registerRuleSet`.
 
 import { Finding, IngestedSession, PricingModel, QualityRisk } from '../types';
 import { runCachingRules } from './caching';
+import { runDeduplicationRules } from './deduplication';
 import { runGeneralRules } from './general';
+import { runHygieneRules } from './hygiene';
 
 /** Rule set signature: given sessions + model, return zero or more findings. */
 export type RuleSet = (sessions: IngestedSession[], model: PricingModel) => Finding[];
 
-const ruleSets: RuleSet[] = [runCachingRules, runGeneralRules];
+const ruleSets: RuleSet[] = [runCachingRules, runGeneralRules, runHygieneRules, runDeduplicationRules];
 
 /** Register an additional rule set (v2: authoring, hygiene, compression). */
 export function registerRuleSet(rs: RuleSet): void {

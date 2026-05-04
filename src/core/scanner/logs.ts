@@ -22,6 +22,13 @@ export interface LogSummary {
   acceptedCompletions: number;
   acceptanceRate: number;
   detectedHints: Map<string, boolean>;
+  llmRequests: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  /** True when any entries came from VS Code's standard log files (not the
+   *  debug-output JSONL format). Those files do not carry token data, so
+   *  cache-token counts cannot be determined from them. */
+  hasVSCodeLogs: boolean;
 }
 
 /**
@@ -80,6 +87,44 @@ function getCopilotLogPath(): string | undefined {
   }
 }
 
+/** Get paths to all GitHub Copilot Chat debug-logs folders in workspaceStorage. */
+export function getWorkspaceStorageDebugLogPaths(): string[] {
+  const homeDir = os.homedir();
+  let storageBase: string;
+  switch (process.platform) {
+    case 'win32': {
+      const appData = process.env['APPDATA'];
+      if (!appData) { return []; }
+      storageBase = path.join(appData, 'Code', 'User', 'workspaceStorage');
+      break;
+    }
+    case 'darwin':
+      storageBase = path.join(homeDir, 'Library', 'Application Support', 'Code', 'User', 'workspaceStorage');
+      break;
+    case 'linux':
+      storageBase = path.join(homeDir, '.config', 'Code', 'User', 'workspaceStorage');
+      break;
+    default:
+      return [];
+  }
+
+  const debugLogPaths: string[] = [];
+  try {
+    const workspaceFolders = fs.readdirSync(storageBase, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+      .map(d => path.join(storageBase, d.name));
+    for (const wsFolder of workspaceFolders) {
+      const debugLogsPath = path.join(wsFolder, 'GitHub.copilot-chat', 'debug-logs');
+      if (fs.existsSync(debugLogsPath)) {
+        debugLogPaths.push(debugLogsPath);
+      }
+    }
+  } catch {
+    // Skip on access errors
+  }
+  return debugLogPaths;
+}
+
 /** Check if a file path is a Copilot log. */
 function isCopilotLog(filePath: string): boolean {
   const lower = filePath.toLowerCase();
@@ -101,14 +146,27 @@ function parseLogFile(filePath: string): LogEntry[] {
       }
       try {
         const parsed = JSON.parse(trimmed);
-        const entry: LogEntry = {
-          timestamp: parsed.timestamp ?? new Date().toISOString(),
-          level: parsed.level ?? 'info',
-          message: parsed.message ?? parsed.msg ?? trimmed,
-          source: filePath,
-          data: parsed.data ?? parsed,
-        };
-        entries.push(entry);
+        // Detect workspaceStorage debug-log format (has numeric ts and string type)
+        if (typeof parsed.ts === 'number' && typeof parsed.type === 'string') {
+          const attrs = (parsed.attrs ?? {}) as Record<string, unknown>;
+          const entry: LogEntry = {
+            timestamp: new Date(parsed.ts).toISOString(),
+            level: parsed.status === 'error' ? 'error' : 'info',
+            message: (parsed.name ?? parsed.type) as string,
+            source: filePath,
+            data: { type: parsed.type, name: parsed.name, dur: parsed.dur, ...attrs },
+          };
+          entries.push(entry);
+        } else {
+          const entry: LogEntry = {
+            timestamp: parsed.timestamp ?? new Date().toISOString(),
+            level: parsed.level ?? 'info',
+            message: parsed.message ?? parsed.msg ?? trimmed,
+            source: filePath,
+            data: parsed.data ?? parsed,
+          };
+          entries.push(entry);
+        }
       } catch {
         entries.push({
           timestamp: new Date().toISOString(),
@@ -148,14 +206,18 @@ function readLogFiles(logPath: string): LogEntry[] {
 
 /** ScanCopilotLogs scans VS Code Copilot logs and returns parsed entries. */
 export function scanCopilotLogs(): LogEntry[] {
+  const entries: LogEntry[] = [];
+
   const logPath = getCopilotLogPath();
-  if (!logPath) {
-    return [];
+  if (logPath && fs.existsSync(logPath)) {
+    entries.push(...readLogFiles(logPath));
   }
-  if (!fs.existsSync(logPath)) {
-    return [];
+
+  for (const debugLogPath of getWorkspaceStorageDebugLogPaths()) {
+    entries.push(...readLogFiles(debugLogPath));
   }
-  return readLogFiles(logPath);
+
+  return entries;
 }
 
 /** AnalyzeLogs produces an aggregated summary from raw log entries. */
@@ -167,6 +229,10 @@ export function analyzeLogs(entries: LogEntry[]): LogSummary {
     acceptedCompletions: 0,
     acceptanceRate: 0,
     detectedHints: new Map(),
+    llmRequests: 0,
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    hasVSCodeLogs: false,
   };
 
   for (const e of entries) {
@@ -185,6 +251,22 @@ export function analyzeLogs(entries: LogEntry[]): LogSummary {
     }
 
     detectHintsInText(lower, s.detectedHints);
+
+    // Mark if this entry came from VS Code's standard log files (no token data)
+    if (e.source && !e.source.includes('workspaceStorage')) {
+      s.hasVSCodeLogs = true;
+    }
+
+    // Aggregate token usage from debug-log llm_request entries
+    if (e.data?.type === 'llm_request') {
+      s.llmRequests++;
+      if (typeof e.data.inputTokens === 'number') {
+        s.totalInputTokens += e.data.inputTokens;
+      }
+      if (typeof e.data.outputTokens === 'number') {
+        s.totalOutputTokens += e.data.outputTokens;
+      }
+    }
   }
 
   if (s.totalCompletions > 0) {

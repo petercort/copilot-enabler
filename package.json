@@ -10,7 +10,7 @@
     "url": "https://github.com/petercort/copilot-enabler"
   },
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.116.0"
   },
   "categories": [
     "Other"
@@ -31,11 +31,12 @@
       {
         "command": "copilotEnabler.analyze",
         "title": "Copilot Enabler: Run Full Analysis",
-        "icon": "$(graph)"
+        "icon": "$(refresh)"
       },
       {
         "command": "copilotEnabler.featureMatrix",
-        "title": "Copilot Enabler: Scorecard"
+        "title": "Copilot Enabler: Scorecard",
+        "icon": "$(graph-line)"
       },
       {
         "command": "copilotEnabler.featureCatalog",
@@ -96,6 +97,10 @@
         "title": "Copilot Enabler: Show Finding Detail"
       },
       {
+        "command": "copilotEnabler.promptimizer.openSession",
+        "title": "Copilot Enabler: Show Session Detail"
+      },
+      {
         "command": "copilotEnabler.promptimizer.startWatcher",
         "title": "Copilot Enabler: Promptimizer — Watch for Large Tool Results"
       },
@@ -152,6 +157,11 @@
           "group": "navigation"
         },
         {
+          "command": "copilotEnabler.featureMatrix",
+          "when": "view == copilotEnabler.features || view == copilotEnabler.recommendations",
+          "group": "navigation"
+        },
+        {
           "command": "copilotEnabler.promptimizer.open",
           "when": "view == copilotEnabler.promptimizer",
           "group": "navigation"
@@ -185,6 +195,11 @@
           },
           "default": [],
           "description": "Feature IDs to hide from analysis, recommendations, and tree views. Use the context menu on features to hide/unhide them, or the command palette to reset."
+        },
+        "copilotEnabler.latestVersionChecked": {
+          "type": "string",
+          "default": "1.110.0",
+          "description": "The most recent VS Code release the feature catalog has been reconciled against. Used by the auto-update workflow as a watermark to track which version has been reviewed."
         },
         "copilotEnabler.promptimizer.tokenizer": {
           "type": "string",

@@ -14,4 +14,5 @@ export const toolsWorkspace = defineFeature({
   setupSteps: [
     'Type @workspace in the chat panel followed by your question.',
   ],
+  addedIn: '1.110.0',
 });

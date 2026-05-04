@@ -13,6 +13,7 @@ import {
   LogEntryLike,
 } from './ingest';
 import { runRules } from './recommend';
+import { scanCustomizationFiles } from './staticScan';
 import {
   HeuristicTokenizer,
   Tokenizer,
@@ -39,6 +40,8 @@ export interface RunPromptimizerOptions {
   sources: PromptimizerSource[];
   tokenizer?: Tokenizer;
   model?: PricingModel;
+  /** Absolute workspace root paths to scan for customization files (optional). */
+  workspaceRoots?: string[];
 }
 
 function classifySession(session: IngestedSession): IngestedSession {
@@ -69,29 +72,42 @@ export function runPromptimizer(opts: RunPromptimizerOptions): PromptimizerResul
   const tokenizer = opts.tokenizer ?? new HeuristicTokenizer();
   const model: PricingModel = opts.model ?? 'claude-sonnet-4.6';
 
-  const sessions: IngestedSession[] = [];
+  // Source priority for deduplication: later entries win when raw session IDs collide.
+  // Order matters — copilot-history (richest) should be processed last so it
+  // overwrites the same session ingested from copilot-sessions or log-entries.
+  const SOURCE_PRIORITY: Record<string, number> = {
+    'log-entries': 0,
+    'copilot-chat': 1,
+    'vscode-debug-logs': 2,
+    'jsonl': 3,
+    'har': 3,
+    'copilot-sessions': 4,
+    'copilot-history': 5,
+  };
+
+  const rawSessions: IngestedSession[] = [];
   for (const src of opts.sources) {
     switch (src.type) {
       case 'copilot-chat':
-        sessions.push(...ingestCopilotChatLogs());
+        rawSessions.push(...ingestCopilotChatLogs());
         break;
       case 'copilot-sessions':
-        sessions.push(...ingestCopilotSessions());
+        rawSessions.push(...ingestCopilotSessions());
         break;
       case 'copilot-history':
-        sessions.push(...ingestCopilotHistorySessions());
+        rawSessions.push(...ingestCopilotHistorySessions());
         break;
       case 'vscode-debug-logs':
-        sessions.push(...ingestVscodeDebugLogs());
+        rawSessions.push(...ingestVscodeDebugLogs());
         break;
       case 'jsonl':
-        sessions.push(...ingestJsonl(src.path));
+        rawSessions.push(...ingestJsonl(src.path));
         break;
       case 'har':
-        sessions.push(...ingestHar(src.path));
+        rawSessions.push(...ingestHar(src.path));
         break;
       case 'log-entries':
-        sessions.push(...ingestFromLogEntries(src.entries));
+        rawSessions.push(...ingestFromLogEntries(src.entries));
         break;
       default: {
         const bad = src as { type: string };
@@ -100,6 +116,27 @@ export function runPromptimizer(opts: RunPromptimizerOptions): PromptimizerResul
     }
   }
 
+  // Deduplicate: strip source-type prefixes (e.g. "copilot-session:", "copilot-history:")
+  // and keep the highest-priority session for each raw ID.
+  const SESSION_PREFIX_RE = /^(?:copilot-session|copilot-history|copilot-chat|vscode-debug|jsonl|har|log-entry):/;
+  function rawSessionId(id: string): string {
+    return id.replace(SESSION_PREFIX_RE, '');
+  }
+  function sourcePriority(id: string): number {
+    const prefix = id.split(':')[0];
+    return SOURCE_PRIORITY[prefix] ?? -1;
+  }
+
+  const seen = new Map<string, IngestedSession>();
+  for (const s of rawSessions) {
+    const key = rawSessionId(s.session_id);
+    const existing = seen.get(key);
+    if (!existing || sourcePriority(s.session_id) > sourcePriority(existing.session_id)) {
+      seen.set(key, s);
+    }
+  }
+  const sessions = Array.from(seen.values());
+
   for (const s of sessions) {
     classifySession(s);
     tokenizeSession(s, tokenizer);
@@ -107,7 +144,8 @@ export function runPromptimizer(opts: RunPromptimizerOptions): PromptimizerResul
   computeStability(sessions);
 
   const findings = runRules(sessions, model);
-  return { sessions, findings, model };
+  const staticFindings = scanCustomizationFiles(opts.workspaceRoots ?? []);
+  return { sessions, findings, model, staticFindings };
 }
 
 export * from './types';
@@ -125,3 +163,15 @@ export {
 } from './cost';
 export { runRules, registerRuleSet, scoreFinding } from './recommend';
 export { runCachingRules } from './recommend/caching';
+export { runHygieneRules, ruleFluff, ruleRuleBloat, ruleFewShot } from './recommend/hygiene';
+export { runDeduplicationRules, ruleDeduplication } from './recommend/deduplication';
+export { ruleMcpToolOverhead, ruleLostInMiddle } from './recommend/general';
+export {
+  scanCustomizationFiles,
+  discoverCustomizationFiles,
+  findDuplicatePairs,
+  ruleFluffPhrases as staticRuleFluffPhrases,
+  ruleRuleBloat as staticRuleRuleBloat,
+  ruleFewShotOverload as staticRuleFewShotOverload,
+} from './staticScan';
+export type { DedupPair } from './staticScan';

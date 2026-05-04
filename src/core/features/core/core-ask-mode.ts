@@ -13,4 +13,5 @@ export const coreAskMode = defineFeature({
   setupSteps: [
     "Open Copilot Chat and select 'Ask' from the mode picker at the top of the chat panel.",
   ],
+  addedIn: '1.110.0',
 });

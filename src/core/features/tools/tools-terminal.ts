@@ -14,4 +14,5 @@ export const toolsTerminal = defineFeature({
   setupSteps: [
     'Type @terminal in the chat panel to get help with shell commands.',
   ],
+  addedIn: '1.110.0',
 });

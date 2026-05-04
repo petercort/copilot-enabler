@@ -3,15 +3,21 @@
 import * as vscode from 'vscode';
 import { Recommendation } from '../core/agents';
 import { implementableFeatures } from '../core/prompts';
+import { visibleCatalog, getFeatureAvailability } from '../core/featureCatalog';
 
 class RecommendationItem extends vscode.TreeItem {
-  constructor(public readonly recommendation: Recommendation) {
+  constructor(
+    public readonly recommendation: Recommendation,
+    isNew: boolean,
+  ) {
     super(
       `${recommendation.stars} ${recommendation.title}`,
       vscode.TreeItemCollapsibleState.None,
     );
 
-    this.description = recommendation.description;
+    const newSuffix = isNew ? ' · New' : '';
+
+    this.description = recommendation.description + newSuffix;
     this.tooltip = new vscode.MarkdownString(
       `**${recommendation.title}**\n\n${recommendation.description}\n\n` +
         `**Steps:**\n${recommendation.actionItems.map((s) => `1. ${s}`).join('\n')}\n\n` +
@@ -51,6 +57,12 @@ export class RecommendationTreeProvider implements vscode.TreeDataProvider<Recom
     if (element) {
       return [];
     }
-    return this.recommendations.map((r) => new RecommendationItem(r));
+    // Precompute availability once to avoid repeated visibleCatalog() + find() calls per item.
+    const featureCatalog = visibleCatalog();
+    const availabilityMap = new Map(featureCatalog.map((f) => [f.id, getFeatureAvailability(f)]));
+
+    return this.recommendations
+      .filter((r) => availabilityMap.get(r.featureID) !== 'unavailable')
+      .map((r) => new RecommendationItem(r, availabilityMap.get(r.featureID) === 'new'));
   }
 }

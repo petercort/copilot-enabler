@@ -1,0 +1,12 @@
+name: VSCode has been updated!
+description: VSCode has been updated! Go find the updates and update the extension!
+title: "[VSCode Update]: "
+labels: ["vscode-update"]
+type: "vscode-update"
+body:
+  - type: textarea
+    id: version
+    attributes:
+      label: VSCode Version
+      description: Please enter the version of VSCode you are using.
+      placeholder: e.g., 1.118.0

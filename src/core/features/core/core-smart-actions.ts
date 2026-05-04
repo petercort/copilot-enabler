@@ -41,4 +41,5 @@ Please help me understand this feature by:
    - Renaming symbols in my current project
 
 Walk me through using Smart Actions with my actual work in progress.`,
+  addedIn: '1.110.0',
 });

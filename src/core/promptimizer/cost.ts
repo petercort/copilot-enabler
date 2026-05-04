@@ -3,7 +3,7 @@
 // Base `fresh` input rates are from GitHub Copilot pricing documentation.
 // Cache tiers are derived multipliers (write5m = 1.25×, write1h = 1.25×, read = 0.1×).
 
-import { CostModel, PricingModel, PricingTier } from './types';
+import { CostModel, PricingModel, PricingTier, SessionUsage } from './types';
 
 const WRITE_5M_MULT = 1.25;
 const WRITE_1H_MULT = 1.25;
@@ -79,6 +79,29 @@ export function cachedCostUsdPer100Turns(
   const write = estimateUsdPer100Turns(tokens, model, writeTier, 1);
   const reads = estimateUsdPer100Turns(tokens, model, 'read', turns - 1);
   return write + reads;
+}
+
+/**
+ * Effective input-cost rate scaling factor for a session that has authoritative
+ * usage data. Returns the ratio of the session's actual blended input rate to
+ * the plain fresh rate so that savings estimates can be corrected for caching.
+ *
+ * Without authoritative data (no `usage`) returns 1.0, leaving estimates at
+ * their all-fresh baseline. When a session is heavily cached the factor can be
+ * as low as 0.1 (all cache reads), which proportionally reduces overstated
+ * savings produced by rules that assume every token is billed at the fresh rate.
+ */
+export function effectiveInputRateScale(usage: SessionUsage | undefined, model: PricingModel): number {
+  if (!usage) { return 1.0; }
+  const totalInput = usage.inputUncached + usage.cacheWrite + usage.cacheRead;
+  if (totalInput === 0) { return 1.0; }
+  const fresh = rateFor(model, 'fresh');
+  const effectiveRate =
+    (usage.inputUncached * fresh +
+      usage.cacheWrite * fresh * WRITE_5M_MULT +
+      usage.cacheRead * fresh * READ_MULT) /
+    totalInput;
+  return effectiveRate / fresh;
 }
 
 /** Savings from switching the given `tokens` from fresh to a cached tier. */

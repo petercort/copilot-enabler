@@ -54,4 +54,5 @@ Please help me understand this feature by:
 6. If I'm interested, show me what my .vscode/mcp.json would look like with the suggested servers
 
 Please make this practical and specific to my workspace and workflow.`,
+  addedIn: '1.110.0',
 });

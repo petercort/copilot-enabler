@@ -57,4 +57,5 @@ Please help me understand this feature by:
 6. Walk me through creating one prompt file that would be most useful for my workflow
 
 Please make this specific to my actual codebase - understand what I'm building and what patterns would genuinely help.`,
+  addedIn: '1.110.0',
 });

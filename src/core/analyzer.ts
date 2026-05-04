@@ -1,8 +1,11 @@
 // Port of internal/analyzer/analyzer.go
 
-import { visibleCatalog } from './featureCatalog';
+import * as vscode from 'vscode';
+import { visibleCatalog, getFeatureAvailability } from './featureCatalog';
 import { allAgents, AgentReport, Recommendation } from './agents';
 import { LogEntry, LogSummary, SettingsResult, WorkspaceResult, ExtensionsResult, analyzeLogs } from './scanner';
+import { scanCustomizationFiles } from './promptimizer/staticScan';
+import { StaticFinding } from './promptimizer/types';
 
 /** Result is the unified output of the full analysis pipeline. */
 export interface AnalysisResult {
@@ -12,6 +15,8 @@ export interface AnalysisResult {
   usedFeatures: number;
   topRecommendations: Recommendation[];
   logSummary: LogSummary;
+  /** Static optimization findings from Well-Architected token rules. */
+  staticFindings: StaticFinding[];
 }
 
 /** Run executes all agents against the collected data and returns a unified result. */
@@ -21,7 +26,9 @@ export function runAnalysis(
   workspace: WorkspaceResult,
   extensions: ExtensionsResult,
 ): AnalysisResult {
-  const featureCatalog = visibleCatalog();
+  const allVisible = visibleCatalog();
+  // Exclude features that require a newer VS Code version from scoring
+  const featureCatalog = allVisible.filter((f) => getFeatureAvailability(f) !== 'unavailable');
   const logSummary = analyzeLogs(logEntries);
 
   const ctx = {
@@ -73,6 +80,23 @@ export function runAnalysis(
   // Exclude not-detectable features from the total count
   const detectableCount = featureCatalog.filter((f) => f.detectHints.length > 0).length;
 
+  // Run static optimization scan against workspace customization files.
+  let staticFindings: StaticFinding[] = [];
+  try {
+    const rootPaths: string[] = [];
+    try {
+      const folders = vscode.workspace.workspaceFolders;
+      if (folders) {
+        for (const f of folders) { rootPaths.push(f.uri.fsPath); }
+      }
+    } catch {
+      // Not in a vscode context (tests) — leave rootPaths empty.
+    }
+    staticFindings = scanCustomizationFiles(rootPaths);
+  } catch {
+    // Static scan is best-effort; never fail the full analysis.
+  }
+
   return {
     agentReports: reports,
     overallScore,
@@ -80,5 +104,6 @@ export function runAnalysis(
     usedFeatures: usedSet.size,
     topRecommendations: allRecs.slice(0, limit),
     logSummary,
+    staticFindings,
   };
 }

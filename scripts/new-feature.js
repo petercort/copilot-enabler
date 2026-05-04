@@ -114,6 +114,17 @@ async function main() {
     'First setup step: ',
   );
 
+  // Prompt for addedIn version with validation
+  let addedIn = '';
+  const versionPattern = /^\d+\.\d+\.\d+$/;
+  while (!versionPattern.test(addedIn)) {
+    addedIn = await question('Added in version (e.g., 1.110.0) [default: 1.110.0]: ');
+    if (addedIn.trim() === '') { addedIn = '1.110.0'; }
+    if (!versionPattern.test(addedIn)) {
+      console.log('  ⚠  Version must match MAJOR.MINOR.PATCH (e.g., 1.111.0). Please try again.');
+    }
+  }
+
   rl.close();
 
   // Determine subdirectory and file path
@@ -151,6 +162,7 @@ export const ${toCamelCase(id)} = defineFeature({
   setupSteps: [
     ${setupStepsArray},
   ],
+  addedIn: '${addedIn}',
   systemPrompt: \`${systemPrompt.replace(/\\/g, '\\\\').replace(/`/g, '\\`')}\`,
 });
 `;
