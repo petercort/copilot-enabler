@@ -370,3 +370,128 @@ describe('Promptimizer - ingest (VS Code debug logs)', () => {
   });
 });
 
+
+describe('Promptimizer - ingest (session title from session.json)', () => {
+  test('uses Copilot title from session.json when present, overriding firstPrompt label', () => {
+    const { ingestCopilotSessions } = require('../core/promptimizer/ingest');
+    const tmp = path.join(os.tmpdir(), `promptimizer-title-${Date.now()}`);
+    const sid = 'title-test-session';
+    const sessionRoot = path.join(tmp, '.copilot', 'session-state', sid);
+    fs.mkdirSync(sessionRoot, { recursive: true });
+
+    const events = [
+      { type: 'session.start', data: { context: { cwd: '/some/project', branch: 'main' } } },
+      { type: 'user.message', data: { content: 'This is the first user command' } },
+      { type: 'assistant.message', data: { content: 'Got it!' } },
+    ];
+    fs.writeFileSync(path.join(sessionRoot, 'events.jsonl'), events.map((e) => JSON.stringify(e)).join('\n') + '\n');
+    fs.writeFileSync(path.join(sessionRoot, 'session.json'), JSON.stringify({ title: 'Add MCP server config' }));
+
+    try {
+      const osMod = require('os');
+      jest.spyOn(osMod, 'homedir').mockReturnValue(tmp);
+      const sessions = ingestCopilotSessions();
+      const ours = sessions.find((s: { session_id: string }) => s.session_id.endsWith(sid));
+      expect(ours).toBeDefined();
+      // Label should use the Copilot-provided title, not the first user message
+      expect(ours.label).toContain('Add MCP server config');
+      expect(ours.label).not.toContain('This is the first user command');
+      // firstPrompt is still stored for reference
+      expect(ours.firstPrompt).toBe('This is the first user command');
+    } finally {
+      jest.restoreAllMocks();
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  test('falls back to derived label when session.json has no title', () => {
+    const { ingestCopilotSessions } = require('../core/promptimizer/ingest');
+    const tmp = path.join(os.tmpdir(), `promptimizer-notitle-${Date.now()}`);
+    const sid = 'no-title-session';
+    const sessionRoot = path.join(tmp, '.copilot', 'session-state', sid);
+    fs.mkdirSync(sessionRoot, { recursive: true });
+
+    const events = [
+      { type: 'session.start', data: { context: { cwd: '/my/repo' } } },
+      { type: 'user.message', data: { content: 'Hello there' } },
+      { type: 'assistant.message', data: { content: 'Hi!' } },
+    ];
+    fs.writeFileSync(path.join(sessionRoot, 'events.jsonl'), events.map((e) => JSON.stringify(e)).join('\n') + '\n');
+    // Write a session.json that has no title field
+    fs.writeFileSync(path.join(sessionRoot, 'session.json'), JSON.stringify({ model: 'claude-sonnet-4.6' }));
+
+    try {
+      const osMod = require('os');
+      jest.spyOn(osMod, 'homedir').mockReturnValue(tmp);
+      const sessions = ingestCopilotSessions();
+      const ours = sessions.find((s: { session_id: string }) => s.session_id.endsWith(sid));
+      expect(ours).toBeDefined();
+      // Should fall back to derived label (cwd basename + first prompt)
+      expect(ours.label).toContain('repo');
+      expect(ours.label).toContain('Hello there');
+    } finally {
+      jest.restoreAllMocks();
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  test('falls back to derived label when session.json is missing', () => {
+    const { ingestCopilotSessions } = require('../core/promptimizer/ingest');
+    const tmp = path.join(os.tmpdir(), `promptimizer-missing-${Date.now()}`);
+    const sid = 'missing-json-session';
+    const sessionRoot = path.join(tmp, '.copilot', 'session-state', sid);
+    fs.mkdirSync(sessionRoot, { recursive: true });
+
+    const events = [
+      { type: 'session.start', data: { context: { repository: 'org/repo', branch: 'feat' } } },
+      { type: 'user.message', data: { content: 'Refactor the auth module' } },
+      { type: 'assistant.message', data: { content: 'Sure!' } },
+    ];
+    fs.writeFileSync(path.join(sessionRoot, 'events.jsonl'), events.map((e) => JSON.stringify(e)).join('\n') + '\n');
+    // No session.json written
+
+    try {
+      const osMod = require('os');
+      jest.spyOn(osMod, 'homedir').mockReturnValue(tmp);
+      const sessions = ingestCopilotSessions();
+      const ours = sessions.find((s: { session_id: string }) => s.session_id.endsWith(sid));
+      expect(ours).toBeDefined();
+      // Should fall back to derived label (repository + first prompt)
+      expect(ours.label).toContain('org/repo');
+      expect(ours.label).toContain('Refactor the auth module');
+    } finally {
+      jest.restoreAllMocks();
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  test('ingestCopilotHistorySessions uses title field from history JSON when present', () => {
+    const { ingestCopilotHistorySessions } = require('../core/promptimizer/ingest');
+    const tmp = path.join(os.tmpdir(), `promptimizer-hist-title-${Date.now()}`);
+    const root = path.join(tmp, '.copilot', 'history-session-state');
+    fs.mkdirSync(root, { recursive: true });
+    const body = {
+      sessionId: 'title-hist',
+      startTime: '2025-10-08T21:10:16.398Z',
+      title: 'Set up GitHub Actions CI',
+      chatMessages: [
+        { role: 'user', content: 'can you help me set up github actions' },
+        { role: 'assistant', content: 'sure' },
+      ],
+    };
+    fs.writeFileSync(path.join(root, 'session_title_hist.json'), JSON.stringify(body));
+
+    try {
+      const osMod = require('os');
+      jest.spyOn(osMod, 'homedir').mockReturnValue(tmp);
+      const sessions = ingestCopilotHistorySessions();
+      expect(sessions.length).toBe(1);
+      const s = sessions[0];
+      expect(s.label).toContain('Set up GitHub Actions CI');
+      expect(s.label).not.toContain('can you help me set up github actions');
+    } finally {
+      jest.restoreAllMocks();
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+});
