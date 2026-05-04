@@ -92,9 +92,12 @@ export function getWorkspaceStorageDebugLogPaths(): string[] {
   const homeDir = os.homedir();
   let storageBase: string;
   switch (process.platform) {
-    case 'win32':
-      storageBase = path.join(process.env['APPDATA'] ?? '', 'Code', 'User', 'workspaceStorage');
+    case 'win32': {
+      const appData = process.env['APPDATA'];
+      if (!appData) { return []; }
+      storageBase = path.join(appData, 'Code', 'User', 'workspaceStorage');
       break;
+    }
     case 'darwin':
       storageBase = path.join(homeDir, 'Library', 'Application Support', 'Code', 'User', 'workspaceStorage');
       break;

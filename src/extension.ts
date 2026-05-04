@@ -477,9 +477,10 @@ function mergePromptimizerResult(next: PromptimizerResult): void {
     const newSessions = next.sessions.filter((s) => !existingSessionIds.has(s.session_id));
     const sessions = [...lastPromptimizerResult.sessions, ...newSessions];
 
-    // Deduplicate findings by rule + first evidence block (proxy for the same session finding).
+    // Deduplicate findings by rule + all evidence blocks — using only blocks[0] risks
+    // collision across sessions since block IDs like "msg-u-0-0" are session-scoped.
     const findingKey = (f: { rule: string; evidence: { blocks: string[] } }) =>
-      `${f.rule}:${f.evidence.blocks[0] ?? ''}`;
+      `${f.rule}:${f.evidence.blocks.join(',')}`;
     const existingFindingKeys = new Set(lastPromptimizerResult.findings.map(findingKey));
     const newFindings = next.findings.filter((f) => !existingFindingKeys.has(findingKey(f)));
     const findings = [...lastPromptimizerResult.findings, ...newFindings].sort(

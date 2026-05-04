@@ -33,12 +33,15 @@ export class DashboardPanel {
         } else if (message.command === 'showMe') {
           vscode.commands.executeCommand('copilotEnabler.showMe', { featureID: message.featureID });
         } else if (message.command === 'openFile') {
+          if (typeof message.filePath !== 'string' || !message.filePath) {
+            return;
+          }
           const uri = vscode.Uri.file(message.filePath);
           vscode.window.showTextDocument(uri, { preview: false }).then(undefined, () => {
             vscode.window.showWarningMessage(`Could not open file: ${message.filePath}`);
           });
         } else if (message.command === 'implementOptimization') {
-          vscode.commands.executeCommand('copilotEnabler.implement', { featureID: 'custom-prompt-optimization' });
+          vscode.commands.executeCommand('copilotEnabler.implement', { featureID: 'copilot-instructions' });
         } else if (message.command === 'shareLinkedIn') {
           const text = DashboardPanel.buildShareText(DashboardPanel.lastResult);
           vscode.env.clipboard.writeText(text).then(() => {

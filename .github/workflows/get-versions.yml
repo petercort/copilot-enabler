@@ -72,6 +72,6 @@ jobs:
 
           Release notes: https://github.com/microsoft/vscode/releases/tag/$LATEST
 
-          Once the catalog has been updated, bump \`current_version\` in \`latest-version-support.json\` and \`copilotEnabler.latestVersionChecked\` in \`package.json\` to \`$LATEST\`."
+          Once the catalog has been updated, bump \`copilotEnabler.latestVersionChecked\` in \`package.json\` to \`$LATEST\`."
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

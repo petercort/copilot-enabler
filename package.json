@@ -97,6 +97,10 @@
         "title": "Copilot Enabler: Show Finding Detail"
       },
       {
+        "command": "copilotEnabler.promptimizer.openSession",
+        "title": "Copilot Enabler: Show Session Detail"
+      },
+      {
         "command": "copilotEnabler.promptimizer.startWatcher",
         "title": "Copilot Enabler: Promptimizer — Watch for Large Tool Results"
       },
@@ -195,7 +199,7 @@
         "copilotEnabler.latestVersionChecked": {
           "type": "string",
           "default": "1.110.0",
-          "description": "The most recent VS Code release the feature catalog has been reconciled against. Used by the auto-update workflow as a watermark; features with addedIn matching this version will display a 'New' badge."
+          "description": "The most recent VS Code release the feature catalog has been reconciled against. Used by the auto-update workflow as a watermark to track which version has been reviewed."
         },
         "copilotEnabler.promptimizer.tokenizer": {
           "type": "string",

@@ -6,7 +6,7 @@ name: Copilot Setup Steps
   workflow_dispatch: null
 jobs:
   copilot-setup-steps:
-    runs-on: ubuntu-latest-cool
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:

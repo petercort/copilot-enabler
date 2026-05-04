@@ -1,6 +1,6 @@
 # Copilot Instructions for This Project
 
-VS Code extension (TypeScript, `engines.vscode: ^1.85.0`) that analyzes Copilot adoption. Entry point: `src/extension.ts`, compiled to `out/` via `tsc -p ./`.
+VS Code extension (TypeScript, `engines.vscode: ^1.116.0`) that analyzes Copilot adoption. Entry point: `src/extension.ts`, compiled to `out/` via `tsc -p ./`.
 
 ## Commands
 
