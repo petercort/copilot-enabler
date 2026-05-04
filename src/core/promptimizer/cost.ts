@@ -1,20 +1,20 @@
 // Anthropic pricing table and $/100-turn helpers per §5.2.
 //
-// Base `fresh` input rates are the Anthropic published numbers. Cache tiers
-// are derived multipliers (write5m = 1.25×, write1h = 2.0×, read = 0.1×).
+// Base `fresh` input rates are from GitHub Copilot pricing documentation.
+// Cache tiers are derived multipliers (write5m = 1.25×, write1h = 1.25×, read = 0.1×).
 
 import { CostModel, PricingModel, PricingTier } from './types';
 
 const WRITE_5M_MULT = 1.25;
-const WRITE_1H_MULT = 2.0;
+const WRITE_1H_MULT = 1.25;
 const READ_MULT = 0.1;
 
 /** Base fresh-input rate in USD per MTok for each supported model. */
 const BASE_FRESH_RATES: Record<PricingModel, number> = {
   'claude-sonnet-4.6': 3.0,
   'claude-sonnet-4.5': 3.0,
-  'claude-opus-4.7': 15.0,
-  'claude-opus-4.6': 15.0,
+  'claude-opus-4.7': 5.0,
+  'claude-opus-4.6': 5.0,
 };
 
 /** Build the full four-tier cost model for a given Anthropic model. */

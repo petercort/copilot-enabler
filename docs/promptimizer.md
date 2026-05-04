@@ -112,25 +112,25 @@ and low risk.
 
 ## Cost model
 
-Pricing is taken from Anthropic's published rates. Base fresh-input rates
+Pricing is taken from GitHub Copilot's published rates (as of June 2026). Base fresh-input rates
 per million tokens:
 
 | Model | Fresh input (USD/MTok) |
 |---|---|
 | `claude-sonnet-4.6` | 3.00 |
 | `claude-sonnet-4.5` | 3.00 |
-| `claude-opus-4.7` | 15.00 |
-| `claude-opus-4.6` | 15.00 |
+| `claude-opus-4.7` | 5.00 |
+| `claude-opus-4.6` | 5.00 |
 
 Cache-tier multipliers are applied on top of the fresh rate: `write5m` is
-1.25x, `write1h` is 2.0x, and `read` is 0.1x.
+1.25x, `write1h` is 1.25x, and `read` is 0.1x.
 
 ### Worked example (Sonnet 4.6)
 
 ```
 fresh:    3.00 $/MTok input
 5m write: 3.75 $/MTok   (1.25x)
-1h write: 6.00 $/MTok   (2.00x)
+1h write: 3.75 $/MTok   (1.25x)
 read:     0.30 $/MTok   (0.10x)
 ```
 
