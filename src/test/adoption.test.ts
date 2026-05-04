@@ -956,6 +956,10 @@ describe('End-to-end realistic machine profile', () => {
       '.prompt.md', '#problems',
       'smart action', 'hooks', 'background agent', 'cloud agent',
       'subagent', '#fetch',
+      'chat.autopilot.enabled',                      // core-autopilot
+      'chat.imageCarousel.enabled',                  // tools-image-binary
+      'github.copilot.chat.localIndex.enabled',      // core-chronicle
+      'github.copilot.chat.cli.remote.enabled',      // core-cli-remote
     ]);
 
     const ctx = buildContext({ logHints: powerUserHints });
