@@ -5,3 +5,8 @@ export const roots = ['<rootDir>/src'];
 export const testMatch = ['**/*.test.ts'];
 export const moduleFileExtensions = ['ts', 'js', 'json'];
 export const collectCoverageFrom = ['src/**/*.ts', '!src/test/**', '!src/**/*.test.ts'];
+export const globals = {
+  'ts-jest': {
+    tsconfig: './tsconfig.test.json',
+  },
+};
