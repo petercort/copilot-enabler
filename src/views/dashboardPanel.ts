@@ -42,11 +42,6 @@ export class DashboardPanel {
           });
         } else if (message.command === 'implementOptimization') {
           vscode.commands.executeCommand('copilotEnabler.implement', { featureID: 'copilot-instructions' });
-        } else if (message.command === 'shareLinkedIn') {
-          const text = DashboardPanel.buildShareText(DashboardPanel.lastResult);
-          vscode.env.clipboard.writeText(text).then(() => {
-            vscode.env.openExternal(vscode.Uri.parse('https://www.linkedin.com/feed/?shareActive=true'));
-          });
         }
       },
       null,
@@ -254,22 +249,6 @@ export class DashboardPanel {
       font-size: 0.85em;
     }
     .info-popup .close-btn:hover { background: var(--vscode-button-hoverBackground, #1177bb); }
-    .share-bar { margin: 20px 0; display: flex; gap: 10px; align-items: center; }
-    .share-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.85em;
-      font-weight: 600;
-      background: #0a66c2;
-      color: #fff;
-    }
-    .share-btn:hover { background: #004182; }
-    .share-copied { font-size: 0.85em; opacity: 0.8; display: none; }
     /* ── Optimization To-Dos ── */
     .opt-section { margin-top: 32px; }
     .opt-empty { opacity: 0.6; font-style: italic; margin: 12px 0; }
@@ -375,11 +354,6 @@ export class DashboardPanel {
     </div>
   </div>
 
-  <div class="share-bar">
-    <button class="share-btn" id="shareLinkedIn">🔗 Share to LinkedIn</button>
-    <span class="share-copied" id="shareCopied">Summary copied to clipboard!</span>
-  </div>
-
   <h2>🔥 Top Recommendations</h2>
   <table>
     <thead>
@@ -404,12 +378,6 @@ export class DashboardPanel {
 
   <script>
     const vscode = acquireVsCodeApi();
-    document.getElementById('shareLinkedIn').addEventListener('click', () => {
-      vscode.postMessage({ command: 'shareLinkedIn' });
-      const badge = document.getElementById('shareCopied');
-      badge.style.display = 'inline';
-      setTimeout(() => { badge.style.display = 'none'; }, 3000);
-    });
     document.addEventListener('click', (e) => {
       const link = e.target.closest('[data-implement]');
       if (link) {
@@ -520,27 +488,6 @@ export class DashboardPanel {
     return html;
   }
 
-  static buildShareText(result: AnalysisResult | undefined): string {
-    if (!result) {
-      return 'I just analyzed my GitHub Copilot setup with Copilot Enabler for VS Code!';
-    }
-    const lines = [
-      `I just scored ${result.overallScore}/100 on my GitHub Copilot adoption scorecard! 🚀`,
-      '',
-      `📊 ${result.usedFeatures}/${result.totalFeatures} features detected`,
-    ];
-    if (result.topRecommendations.length > 0) {
-      lines.push('');
-      lines.push('Top recommendations:');
-      for (const rec of result.topRecommendations.slice(0, 3)) {
-        lines.push(`• ${rec.title}`);
-      }
-    }
-    lines.push('');
-    lines.push('Check your own score with the Copilot Enabler extension for VS Code.');
-    lines.push('#GitHubCopilot #DeveloperProductivity #AI');
-    return lines.join('\n');
-  }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
