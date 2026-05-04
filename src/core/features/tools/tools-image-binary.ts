@@ -14,7 +14,7 @@ export const toolsImageBinary = defineFeature({
     'In the Chat input, click the attachment button (paperclip icon) and choose an image or binary file.',
     'Alternatively, drag and drop an image directly into the Chat panel, or paste from clipboard.',
     'Ask Copilot to analyze it, e.g. "What is wrong in this screenshot?" or "Parse this binary file."',
-    'Enable `chat.imageCarousel.enabled` to view agent-generated images in a browseable carousel.',
+    'Enable `chat.imageCarousel.enabled` to view agent-generated images in a browsable carousel.',
   ],
   tutorialPrompt: `I'd like to learn how to use image and binary file attachments in GitHub Copilot Chat.
 
