@@ -30,6 +30,10 @@ import { coreBackgroundAgents } from './core/core-background-agents';
 import { coreCloudAgents } from './core/core-cloud-agents';
 import { toolsChanges } from './tools/tools-changes';
 import { customInstructions } from './customization/custom-instructions';
+import { coreAutopilot } from './core/core-autopilot';
+import { toolsImageBinary } from './tools/tools-image-binary';
+import { coreChronicle } from './core/core-chronicle';
+import { coreCliRemote } from './core/core-cli-remote';
 // ── END IMPORTS ──
 
 /**
@@ -45,6 +49,9 @@ export const allFeatureDefinitions: FeatureDefinition[] = [
   coreSubagent,
   coreBackgroundAgents,
   coreCloudAgents,
+  coreAutopilot,
+  coreChronicle,
+  coreCliRemote,
   toolsWorkspace,
   toolsTerminal,
   toolsVscode,
@@ -60,6 +67,7 @@ export const allFeatureDefinitions: FeatureDefinition[] = [
   toolsProblems,
   toolsWebSearch,
   toolsChanges,
+  toolsImageBinary,
   // ── Customization ──
   copilotInstructions,
   customPromptFiles,

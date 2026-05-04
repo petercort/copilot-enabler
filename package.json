@@ -198,7 +198,7 @@
         },
         "copilotEnabler.latestVersionChecked": {
           "type": "string",
-          "default": "1.110.0",
+          "default": "1.118.1",
           "description": "The most recent VS Code release the feature catalog has been reconciled against. Used by the auto-update workflow as a watermark to track which version has been reviewed."
         },
         "copilotEnabler.promptimizer.tokenizer": {
