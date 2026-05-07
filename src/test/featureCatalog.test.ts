@@ -1,4 +1,4 @@
-import { catalog, featuresByCategory, featureIDs, allCategories, Feature, visibleCatalog, getHiddenFeatureIDs, compareVersions, getFeatureAvailability } from '../core/featureCatalog';
+import { catalog, featuresByCategory, featureIDs, allCategories, Feature, visibleCatalog, getHiddenFeatureIDs, compareVersions, getFeatureAvailability, getLatestVersionChecked } from '../core/featureCatalog';
 
 // Mock vscode module for tests
 jest.mock('vscode', () => ({
@@ -178,6 +178,26 @@ describe('getFeatureAvailability', () => {
     const result = getFeatureAvailability(feature);
     // In test env without a real vscode.version this will be 'available'
     expect(['available', 'new']).toContain(result);
+  });
+});
+
+describe('getLatestVersionChecked', () => {
+  test('returns configured value when present', () => {
+    const vscode = require('vscode');
+    vscode.workspace.getConfiguration.mockReturnValueOnce({
+      get: jest.fn(() => '1.120.0'),
+    });
+
+    expect(getLatestVersionChecked()).toBe('1.120.0');
+  });
+
+  test('falls back to 1.119.0 when setting is missing', () => {
+    const vscode = require('vscode');
+    vscode.workspace.getConfiguration.mockReturnValueOnce({
+      get: jest.fn((_: string, fallback: string) => fallback),
+    });
+
+    expect(getLatestVersionChecked()).toBe('1.119.0');
   });
 });
 
