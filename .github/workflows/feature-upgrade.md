@@ -3,6 +3,8 @@ description: When a 'vscode-update' issue is filed, fetch the VS Code changelog,
 on:
   issues:
     types: [labeled, opened, reopened]
+  bots:
+    - "github-actions[bot]"
 permissions:
   contents: read
   issues: read
