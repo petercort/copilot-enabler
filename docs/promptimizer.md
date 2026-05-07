@@ -21,7 +21,6 @@ All analysis runs locally in the extension host. Nothing is uploaded.
 | `copilotEnabler.promptimizer.ingestFile` | Pick a JSONL or HAR file to analyze. |
 | `copilotEnabler.promptimizer.ingestCopilotChat` | Scan local Copilot Chat log directories. |
 | `copilotEnabler.promptimizer.refresh` | Re-run analysis against the currently loaded sessions. |
-| `copilotEnabler.promptimizer.openFinding` | Focus a finding in the dashboard (invoked from the tree view). |
 
 ## Ingest sources
 

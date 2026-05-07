@@ -16,9 +16,9 @@ Includes Copilot features organized across three categories:
 
 | Category | Features |
 |---|---|
-| **Core** | Ask Mode, Agent Mode, Plan Mode, Chat Panel, Run Subagent, Background Agents, Cloud Agents, Inline Chat, Quick Chat, Smart Actions, Multi-line Completions, Next Edit Suggestions (NES), Model Selection |
-| **Tools** | @workspace Participant, @terminal, @vscode Participant, #terminalSelection Variable, #codebase Variable, #problems Variable, Web Search, #Changes |
-| **Customization** | Custom Instructions File, Reusable Prompt Files, Agent Skills, Custom Agents, MCP Servers, Hooks |
+| **Core** | Agent Mode, Cloud Agents, Multi-line Completions, Model Selection |
+| **Tools** | #terminal, #codebase, #web, /chronicle|
+| **Customization** | Custom Instructions File, Agent Skills, Custom Agents, MCP Servers, Hooks |
 
 ### 🏆 Prioritized Recommendations
 
@@ -26,30 +26,21 @@ Recommendations are ranked using an **Impact × Difficulty matrix** so the highe
 
 ### 🤖 Personalized Interactive Implementation & Tutorials
 
+Click **Show me** on any supported recommendation and Copilot Enabler opens a **Copilot Chat session** with a tailored prompt that will show you how to use the feature within the context of your own repository. 
+
 Click **Set up** on any supported recommendation and Copilot Enabler opens a **Copilot Chat session** with a tailored prompt that:
 
 1. Reads your project structure and context
 2. Asks clarifying questions
 3. Generates and writes the configuration files for you
 
-Supported implementations include:
-- `.github/copilot-instructions.md` — project-specific coding guidelines
-- `.github/prompts/*.prompt.md` — reusable prompt templates
-- Custom agents and agent skills
-- `.vscode/mcp.json` — MCP server configuration
-- `.github/hooks/prerun.json` — Pre-run and post-run hooks
-
 ### 🧪 Promptimizer — Prompt Context Analysis
 
-Ingest agent prompt logs (Copilot Chat traces, Anthropic SDK JSONL dumps, or mitmproxy/Charles HAR captures) and see exactly where your context window is spent. Promptimizer classifies every block — system, custom instructions, skills, MCP tool schemas, messages, attachments — tokenizes each one, and flags stable prefixes that belong behind a prompt-caching breakpoint.
+Ingest Copilot session logs and get detailed analysis into your token usage. 
 
-A rule engine emits concrete caching recommendations (R-C1 through R-C5) with `$ / 100 turns` estimates based on published Anthropic pricing. All analysis runs locally — nothing is uploaded.
+Promptimizer classifies every block into atomic context blocks, system, custom instructions, skills, MCP tool schemas, messages, attachments, and gives you recommendations to your custom instructions to optimize your context window, driven by Copilot.
 
-See [docs/promptimizer.md](docs/promptimizer.md) for the full guide.
-
-### 📝 Export Reports
-
-Generate a full **Markdown adoption report** with scorecard, recommendations, and a feature adoption matrix — perfect for sharing with your team or tracking progress over time.
+See [docs/promptimizer.md](docs/promptimizer.md) for more.
 
 ---
 
@@ -57,13 +48,9 @@ Generate a full **Markdown adoption report** with scorecard, recommendations, an
 
 1. **Install** the extension from the VS Code Marketplace (or build from source).
 2. **Open a workspace** — the extension activates automatically and runs a background scan.
-3. **Check the status bar** — look for `$(pulse) Copilot: --/100` in the bottom-right corner.
-4. **Run a full analysis** — open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and select:
-   ```
-   Copilot Enabler: Run Full Analysis
-   ```
-5. **Browse results** — explore the sidebar tree views, dashboard, and recommendations.
-6. **Implement a recommendation** — click the 💡 icon on any implementable recommendation or run:
+3. **Check the status bar** — look for `$(pulse) Copilot: --/100` in the bottom-right corner and click to open the score card.
+4. **Browse results** — explore the sidebar tree views, dashboard, and recommendations.
+5. **Implement a recommendation** — click the 💡 icon on any implementable recommendation or run:
    ```
    Copilot Enabler: Implement Recommendation
    ```
@@ -86,6 +73,15 @@ Generate a full **Markdown adoption report** with scorecard, recommendations, an
 | `Copilot Enabler: Unhide Feature` | Restore a previously hidden feature |
 | `Copilot Enabler: Reset Hidden Features` | Restore all hidden features at once |
 | `Copilot Enabler: Settings` | Open the Copilot Enabler settings panel |
+| `Copilot Enabler: Open Promptimizer` | Open the Promptimizer dashboard |
+| `Copilot Enabler: Ingest Prompt Log` | Ingest and analyze a `.jsonl` or `.json` file containing Copilot session logs |
+| `Copilot Enabler: Ingest Copilot Chat Logs` | Ingest and analyze current VS Code Copilot Chat logs from disk |
+| `Copilot Enabler: Refresh Promptimizer` | Refresh the Promptimizer view |
+| `Copilot Enabler: Show Finding Detail` | View the detailed breakdown of a prompt optimization finding |
+| `Copilot Enabler: Show Session Detail` | View the detailed breakdown of an ingested chat session |
+| `Copilot Enabler: Promptimizer — Watch for Large Tool Results` | Start file watcher for large tool result payloads |
+| `Copilot Enabler: Promptimizer — Stop Tool Result Watcher` | Stop file watcher for large tool result payloads |
+| `Copilot Enabler: Promptimizer — Toggle Tool Result Watcher` | Toggle file watcher for large tool result payloads |
 
 ---
 
@@ -96,7 +92,7 @@ The extension analyzes four data sources — all **local and read-only** (nothin
 | Source | What It Checks |
 |---|---|
 | **VS Code Settings** | `github.copilot.*`, `github.copilot-chat.*`, `editor.inlineSuggest.*` configuration keys |
-| **Workspace Files** | `.github/copilot-instructions.md`, `.vscode/mcp.json`, `.github/prompts/*.prompt.md`, `.github/instructions/*`, `.github/skills/*`, `.github/hooks/*` |
+| **Workspace Files** | `.github/copilot-instructions.md`, `.vscode/mcp.json`, `.github/prompts/*.md`, `.github/agents/*.agent.md`, `.github/instructions/*`, `.github/skills/*`, `.github/hooks/*`, and equivalent user setting paths (like `~/.claude/settings.json`) |
 | **Extensions** | Installed extensions — Copilot Core, Copilot Chat, MCP-related, chat participants |
 | **Copilot Logs** | VS Code Copilot log files scanned for feature usage hints (completions, modes, participants, etc.) |
 

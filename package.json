@@ -93,10 +93,6 @@
         "icon": "$(refresh)"
       },
       {
-        "command": "copilotEnabler.promptimizer.openFinding",
-        "title": "Copilot Enabler: Show Finding Detail"
-      },
-      {
         "command": "copilotEnabler.promptimizer.openSession",
         "title": "Copilot Enabler: Show Session Detail"
       },
@@ -139,12 +135,7 @@
       ]
     },
     "menus": {
-      "commandPalette": [
-        {
-          "command": "copilotEnabler.promptimizer.openFinding",
-          "when": "false"
-        }
-      ],
+      "commandPalette": [],
       "view/title": [
         {
           "command": "copilotEnabler.refresh",

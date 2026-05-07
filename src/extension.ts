@@ -59,7 +59,6 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotEnabler.promptimizer.ingestFile', () => handlePromptimizerIngestFile(context)),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.ingestCopilotLogs', () => handlePromptimizerIngestCopilotLogs(context)),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.refresh', () => handlePromptimizerIngestCopilotLogs(context)),
-    vscode.commands.registerCommand('copilotEnabler.promptimizer.openFinding', (finding?: Finding) => handlePromptimizerOpenFinding(context, finding)),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.openSession', (session?: IngestedSession) => handlePromptimizerOpenSession(context, session)),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.startWatcher', () => startWatcher()),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.stopWatcher', () => stopWatcher()),
@@ -587,20 +586,6 @@ async function handlePromptimizerIngestCopilotLogs(context: vscode.ExtensionCont
     const msg = err instanceof Error ? err.message : String(err);
     console.error('Copilot Enabler: promptimizer ingest failed', err);
     vscode.window.showErrorMessage(`Copilot Enabler: promptimizer ingest failed — ${msg}`);
-  }
-}
-
-async function handlePromptimizerOpenFinding(
-  context: vscode.ExtensionContext,
-  finding?: Finding,
-): Promise<void> {
-  if (!lastPromptimizerResult) {
-    vscode.window.showWarningMessage('Run the Promptimizer first.');
-    return;
-  }
-  PromptimizerPanel.show(context.extensionUri, lastPromptimizerResult);
-  if (finding) {
-    vscode.window.showInformationMessage(`${finding.rule}: ${finding.message ?? ''}`);
   }
 }
 
