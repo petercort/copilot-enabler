@@ -17,7 +17,6 @@ import { Recommendation, buildRecommendation } from './core/agents';
 import type { PromptimizerResult, PricingModel } from './core/promptimizer';
 import { IngestedSession } from './core/promptimizer/types';
 import { PromptimizerTreeProvider } from './views/promptimizerTree';
-import { isWatcherActive, startWatcher, stopWatcher } from './views/promptimizerWatcher';
 
 let statusBar: StatusBarManager;
 let featureTree: FeatureTreeProvider;
@@ -52,11 +51,17 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotEnabler.promptimizer.open', () => handlePromptimizerOpen(context)),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.refresh', () => handlePromptimizerIngestCopilotLogs(context)),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.openSession', (session?: IngestedSession) => handlePromptimizerOpenSession(context, session)),
-    vscode.commands.registerCommand('copilotEnabler.promptimizer.startWatcher', () => startWatcher()),
-    vscode.commands.registerCommand('copilotEnabler.promptimizer.stopWatcher', () => stopWatcher()),
-    vscode.commands.registerCommand('copilotEnabler.promptimizer.toggleWatcher', () => {
-      if (isWatcherActive()) { stopWatcher(); } else { startWatcher(); }
-    }),
+    vscode.commands.registerCommand('copilotEnabler.promptimizer.startWatcher', () =>
+      import('./views/promptimizerWatcher').then((m) => m.startWatcher()),
+    ),
+    vscode.commands.registerCommand('copilotEnabler.promptimizer.stopWatcher', () =>
+      import('./views/promptimizerWatcher').then((m) => m.stopWatcher()),
+    ),
+    vscode.commands.registerCommand('copilotEnabler.promptimizer.toggleWatcher', () =>
+      import('./views/promptimizerWatcher').then((m) => {
+        if (m.isWatcherActive()) { m.stopWatcher(); } else { m.startWatcher(); }
+      }),
+    ),
   );
 
   autoStartIfEnabled();
@@ -90,7 +95,9 @@ export function activate(context: vscode.ExtensionContext): void {
 function autoStartIfEnabled(): void {
   // Defer loading the watcher module so it never blocks activation.
   setImmediate(() => {
-    void import('./views/promptimizerWatcher').then((m) => m.autoStartIfEnabled());
+    void import('./views/promptimizerWatcher')
+      .then((m) => m.autoStartIfEnabled())
+      .catch((err) => console.error('Copilot Enabler: watcher auto-start failed', err));
   });
 }
 
@@ -104,7 +111,10 @@ function scheduleAnalyze(context: vscode.ExtensionContext, silent = true): void 
 }
 
 export function deactivate(): void {
-  // Cleanup handled by disposables
+  if (analyzeTimer) {
+    clearTimeout(analyzeTimer);
+    analyzeTimer = undefined;
+  }
 }
 
 // ─── Command Handlers ───
@@ -152,7 +162,7 @@ async function doAnalysis(context: vscode.ExtensionContext, silent = false): Pro
     featureTree.refresh(usedIDs);
     recommendationTree.refresh(result.topRecommendations);
 
-    if (shouldRunPromptimizerOnActivation()) {
+    if (silent && shouldRunPromptimizerOnActivation()) {
       try {
         const { runPromptimizer } = await import('./core/promptimizer');
         const model = getPromptimizerModel();
