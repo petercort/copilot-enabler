@@ -17,4 +17,11 @@ eslint.config.mjs
 jest.config.js
 tsconfig.json
 tsconfig.test.json
+eslint.config.mjs
+.nvmrc
+.gitignore
+INDEX.md
+PLAN/**
+out/**/*.d.ts
+out/**/*.d.ts.map
 token-test-results/
