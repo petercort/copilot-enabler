@@ -18,8 +18,6 @@ All analysis runs locally in the extension host. Nothing is uploaded.
 | Command ID | What it does |
 |---|---|
 | `copilotEnabler.promptimizer.open` | Open the Promptimizer dashboard webview. |
-| `copilotEnabler.promptimizer.ingestFile` | Pick a JSONL or HAR file to analyze. |
-| `copilotEnabler.promptimizer.ingestCopilotChat` | Scan local Copilot Chat log directories. |
 | `copilotEnabler.promptimizer.refresh` | Re-run analysis against the currently loaded sessions. |
 
 ## Ingest sources
@@ -29,7 +27,7 @@ log formats and it reconstructs the prompts that were sent.
 
 ### Copilot Chat logs (auto-discovered)
 
-Run `copilotEnabler.promptimizer.ingestCopilotChat` and the extension walks
+Run `copilotEnabler.promptimizer.refresh` and the extension walks
 your local VS Code log tree and picks up any Copilot Chat log files:
 
 - macOS: `~/Library/Application Support/Code/logs/`
@@ -56,7 +54,7 @@ logging — see the Anthropic SDK docs
 (<https://docs.anthropic.com/en/api/client-sdks>) for the environment
 variable your language's SDK uses (for example, `ANTHROPIC_LOG=debug` for
 the TypeScript and Python SDKs). Redirect the debug output to a file and
-feed that file to `copilotEnabler.promptimizer.ingestFile`.
+feed that file to `copilotEnabler.promptimizer.refresh`.
 
 ### HAR (mitmproxy / Charles captures)
 

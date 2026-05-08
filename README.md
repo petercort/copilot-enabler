@@ -64,20 +64,12 @@ See [docs/promptimizer.md](docs/promptimizer.md) for more.
 | Command | Description |
 |---|---|
 | `Copilot Enabler: Run Full Analysis` | Scan settings, workspace, extensions, and logs — display the dashboard |
-| `Copilot Enabler: Refresh Analysis` | Re-scan in the background and update views |
 | `Copilot Enabler: Scorecard` | Open the dashboard focused on the feature adoption matrix |
-| `Copilot Enabler: Browse Feature Catalog` | Focus the Feature Catalog tree view in the sidebar |
 | `Copilot Enabler: Implement Recommendation` | Interactively implement a recommendation via Copilot Chat |
 | `Copilot Enabler: Show Me Tutorial` | Open a guided tutorial for a feature via Copilot Chat |
-| `Copilot Enabler: Hide Feature` | Hide a feature from analysis and recommendations |
-| `Copilot Enabler: Unhide Feature` | Restore a previously hidden feature |
-| `Copilot Enabler: Reset Hidden Features` | Restore all hidden features at once |
 | `Copilot Enabler: Settings` | Open the Copilot Enabler settings panel |
 | `Copilot Enabler: Open Promptimizer` | Open the Promptimizer dashboard |
-| `Copilot Enabler: Ingest Prompt Log` | Ingest and analyze a `.jsonl` or `.json` file containing Copilot session logs |
-| `Copilot Enabler: Ingest Copilot Chat Logs` | Ingest and analyze current VS Code Copilot Chat logs from disk |
 | `Copilot Enabler: Refresh Promptimizer` | Refresh the Promptimizer view |
-| `Copilot Enabler: Show Finding Detail` | View the detailed breakdown of a prompt optimization finding |
 | `Copilot Enabler: Show Session Detail` | View the detailed breakdown of an ingested chat session |
 | `Copilot Enabler: Promptimizer — Watch for Large Tool Results` | Start file watcher for large tool result payloads |
 | `Copilot Enabler: Promptimizer — Stop Tool Result Watcher` | Stop file watcher for large tool result payloads |

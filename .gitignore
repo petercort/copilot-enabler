@@ -143,3 +143,5 @@ vite.config.ts.timestamp-*
 
 # Pesky MacOS hidden files
 .DS_Store
+
+PLAN
