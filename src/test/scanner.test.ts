@@ -1,4 +1,4 @@
-import { detectHintsInText, analyzeLogs, readLogFiles, MAX_LOG_BYTES, MAX_ENTRIES, LOG_MTIME_CUTOFF_MS } from '../core/scanner/logs';
+import { detectHintsInText, analyzeLogs, readLogFiles, getWorkspaceStorageDebugLogPaths, MAX_LOG_BYTES, MAX_ENTRIES, LOG_MTIME_CUTOFF_MS, MAX_WORKSPACE_STORAGE_DIRS } from '../core/scanner/logs';
 import type { LogEntry } from '../core/scanner/logs';
 import * as fsp from 'fs/promises';
 import * as os from 'os';
@@ -98,14 +98,34 @@ describe('Scanner - analyzeLogs (debug log format)', () => {
 
 describe('Scanner - readLogFiles bounds', () => {
   let tmpDir: string;
+  let createdWorkspaceDirs: string[];
 
   beforeEach(async () => {
     tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'ce-scan-'));
+    createdWorkspaceDirs = [];
   });
 
   afterEach(async () => {
+    for (const workspaceDir of createdWorkspaceDirs) {
+      await fsp.rm(workspaceDir, { recursive: true, force: true });
+    }
     await fsp.rm(tmpDir, { recursive: true, force: true });
   });
+
+  function workspaceStorageBase(homeDir: string): string | undefined {
+    switch (process.platform) {
+      case 'win32': {
+        const appData = process.env['APPDATA'];
+        return appData ? path.join(appData, 'Code', 'User', 'workspaceStorage') : undefined;
+      }
+      case 'darwin':
+        return path.join(homeDir, 'Library', 'Application Support', 'Code', 'User', 'workspaceStorage');
+      case 'linux':
+        return path.join(homeDir, '.config', 'Code', 'User', 'workspaceStorage');
+      default:
+        return undefined;
+    }
+  }
 
   test('skips files older than the mtime cutoff', async () => {
     const oldFile = path.join(tmpDir, 'copilot-old.log');
@@ -160,5 +180,35 @@ describe('Scanner - readLogFiles bounds', () => {
     await readLogFiles(tmpDir, entries);
     expect(entries).toHaveLength(1);
     expect(entries[0].message).toBe('yes');
+  });
+
+  test('limits workspaceStorage debug-log scanning to the newest directories', async () => {
+    const storageBase = workspaceStorageBase(os.homedir());
+    if (!storageBase) {
+      return;
+    }
+
+    await fsp.mkdir(storageBase, { recursive: true });
+
+    const totalDirs = MAX_WORKSPACE_STORAGE_DIRS + 2;
+    const newestWorkspaceNames: string[] = [];
+    for (let i = 0; i < totalDirs; i++) {
+      const workspaceName = `ce-scan-ws-${process.pid}-${Date.now()}-${i}`;
+      const workspaceDir = path.join(storageBase, workspaceName);
+      const debugLogsDir = path.join(workspaceDir, 'GitHub.copilot-chat', 'debug-logs');
+      await fsp.mkdir(debugLogsDir, { recursive: true });
+      createdWorkspaceDirs.push(workspaceDir);
+      const mtime = new Date(Date.now() + i * 1_000);
+      await fsp.utimes(workspaceDir, mtime, mtime);
+      if (i >= totalDirs - MAX_WORKSPACE_STORAGE_DIRS) {
+        newestWorkspaceNames.unshift(workspaceName);
+      }
+    }
+
+    const paths = await getWorkspaceStorageDebugLogPaths();
+    const matchingPaths = paths.filter(p => createdWorkspaceDirs.some(dir => p.startsWith(dir)));
+
+    expect(matchingPaths).toHaveLength(MAX_WORKSPACE_STORAGE_DIRS);
+    expect(matchingPaths.map(p => path.basename(path.dirname(path.dirname(p))))).toEqual(newestWorkspaceNames);
   });
 });

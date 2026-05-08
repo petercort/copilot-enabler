@@ -173,8 +173,8 @@ async function readBoundedFile(filePath: string, size: number): Promise<string> 
   const fh = await fsp.open(filePath, 'r');
   try {
     const buf = Buffer.alloc(MAX_LOG_BYTES);
-    await fh.read(buf, 0, MAX_LOG_BYTES, size - MAX_LOG_BYTES);
-    const text = buf.toString('utf-8');
+    const { bytesRead } = await fh.read(buf, 0, MAX_LOG_BYTES, size - MAX_LOG_BYTES);
+    const text = buf.subarray(0, bytesRead).toString('utf-8');
     const nl = text.indexOf('\n');
     return nl >= 0 ? text.slice(nl + 1) : text;
   } finally {
@@ -183,7 +183,7 @@ async function readBoundedFile(filePath: string, size: number): Promise<string> 
 }
 
 /** Parse a single log file into entries. Returns an empty array on errors. */
-async function parseLogFile(filePath: string, size: number): Promise<LogEntry[]> {
+async function parseLogFile(filePath: string, size: number, maxEntries: number = Number.POSITIVE_INFINITY): Promise<LogEntry[]> {
   const entries: LogEntry[] = [];
   let content: string;
   try {
@@ -192,6 +192,9 @@ async function parseLogFile(filePath: string, size: number): Promise<LogEntry[]>
     return entries;
   }
   for (const line of content.split('\n')) {
+    if (entries.length >= maxEntries) {
+      break;
+    }
     const trimmed = line.trim();
     if (!trimmed) {
       continue;
@@ -258,11 +261,13 @@ export async function readLogFiles(logPath: string, entries: LogEntry[]): Promis
         continue;
       }
       if (st.mtimeMs < cutoff) { continue; }
-      const parsed = await parseLogFile(full, st.size);
+      const remainingEntries = MAX_ENTRIES - entries.length;
+      const parsed = await parseLogFile(full, st.size, remainingEntries);
       for (const e of parsed) {
         if (entries.length >= MAX_ENTRIES) { return true; }
         entries.push(e);
       }
+      if (entries.length >= MAX_ENTRIES) { return true; }
     }
     return false;
   };
