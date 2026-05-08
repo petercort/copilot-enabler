@@ -1,5 +1,6 @@
 import { detectHintsInText, analyzeLogs, readLogFiles, getWorkspaceStorageDebugLogPaths, MAX_LOG_BYTES, MAX_ENTRIES, LOG_MTIME_CUTOFF_MS, MAX_WORKSPACE_STORAGE_DIRS } from '../core/scanner/logs';
 import type { LogEntry } from '../core/scanner/logs';
+import { randomUUID } from 'crypto';
 import * as fsp from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
@@ -192,8 +193,9 @@ describe('Scanner - readLogFiles bounds', () => {
 
     const totalDirs = MAX_WORKSPACE_STORAGE_DIRS + 2;
     const newestWorkspaceNames: string[] = [];
+    const runId = randomUUID();
     for (let i = 0; i < totalDirs; i++) {
-      const workspaceName = `ce-scan-ws-${process.pid}-${Date.now()}-${i}`;
+      const workspaceName = `ce-scan-ws-${process.pid}-${runId}-${i}`;
       const workspaceDir = path.join(storageBase, workspaceName);
       const debugLogsDir = path.join(workspaceDir, 'GitHub.copilot-chat', 'debug-logs');
       await fsp.mkdir(debugLogsDir, { recursive: true });

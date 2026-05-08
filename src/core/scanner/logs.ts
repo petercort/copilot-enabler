@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as fsp from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
+import { StringDecoder } from 'string_decoder';
 import { catalog } from '../featureCatalog';
 
 /** Skip log files older than this (7 days). */
@@ -174,7 +175,7 @@ async function readBoundedFile(filePath: string, size: number): Promise<string> 
   try {
     const buf = Buffer.alloc(MAX_LOG_BYTES);
     const { bytesRead } = await fh.read(buf, 0, MAX_LOG_BYTES, size - MAX_LOG_BYTES);
-    const text = buf.subarray(0, bytesRead).toString('utf-8');
+    const text = new StringDecoder('utf8').write(buf.subarray(0, bytesRead));
     const nl = text.indexOf('\n');
     return nl >= 0 ? text.slice(nl + 1) : text;
   } finally {
