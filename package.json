@@ -224,8 +224,9 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "node esbuild.js --production && tsc -p ./ --noEmit",
+    "compile": "tsc -p ./ --noEmit && node esbuild.js --production",
     "watch": "node esbuild.js --watch",
+    "typecheck:watch": "tsc -p ./ --noEmit --watch",
     "lint": "eslint src/",
     "test": "jest --config jest.config.js",
     "installextension": "node -e \"require('fs').rmSync('out', { recursive: true, force: true });\" && vsce package && code --install-extension copilot-enabler-*.vsix",
