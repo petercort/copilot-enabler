@@ -2,7 +2,7 @@
   "name": "copilot-enabler",
   "displayName": "Copilot Enabler",
   "description": "Analyze and improve your GitHub Copilot adoption — discover unused features, get actionable recommendations, and implement them interactively.",
-  "version": "0.1.4",  
+  "version": "0.1.4",
   "publisher": "petercort",
   "license": "MIT",
   "repository": {
@@ -229,8 +229,9 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "compile": "tsc -p ./ --noEmit && node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "typecheck:watch": "tsc -p ./ --noEmit --watch",
     "lint": "eslint src/",
     "test": "jest --config jest.config.js",
     "installextension": "node -e \"require('fs').rmSync('out', { recursive: true, force: true });\" && vsce package && code --install-extension copilot-enabler-*.vsix",
@@ -241,6 +242,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^25.6.0",
     "@types/vscode": "^1.116.0",
+    "esbuild": "^0.28.0",
     "eslint": "^10.2.0",
     "globals": "^17.5.0",
     "jest": "^30.3.0",
