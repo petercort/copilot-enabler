@@ -64,7 +64,7 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
   );
 
-  autoStartIfEnabled();
+  autoStartWatcherIfEnabled();
 
   // --- File Watchers ---
   const watcher = vscode.workspace.createFileSystemWatcher(
@@ -92,7 +92,7 @@ export function activate(context: vscode.ExtensionContext): void {
   handleAnalyze(context, true);
 }
 
-function autoStartIfEnabled(): void {
+function autoStartWatcherIfEnabled(): void {
   // Defer loading the watcher module so it never blocks activation.
   setImmediate(() => {
     void import('./views/promptimizerWatcher')
