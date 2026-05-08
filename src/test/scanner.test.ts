@@ -37,6 +37,15 @@ describe('Scanner - Logs', () => {
       expect(hints.get('mcp server')).toBe(true);
     });
 
+    test('detects prefix hint when only the longer hint appears in text', () => {
+      // "mcp server" is a prefix of "mcp server started"; the regex matches the
+      // longer hint first, but the shorter prefix hint must also be recorded.
+      const hints = new Map<string, boolean>();
+      detectHintsInText('mcp server started successfully', hints);
+      expect(hints.get('mcp server started')).toBe(true);
+      expect(hints.get('mcp server')).toBe(true);
+    });
+
     test('scans 1000 lines and finds expected hints', () => {
       const hints = new Map<string, boolean>();
       const filler = 'just some unrelated noise without any matches here';

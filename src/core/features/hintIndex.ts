@@ -11,6 +11,12 @@ export interface HintIndex {
   filePathHints: string[];
   /** Single regex matching any keyword hint (global, case-insensitive flag not needed — text is pre-lowered). */
   textRegex: RegExp;
+  /**
+   * Maps each text hint to all shorter hints that are a prefix of it.
+   * Used so that when the regex matches a longer hint, its shorter prefix
+   * hints are also recorded (the alternation only captures the first match).
+   */
+  prefixHints: Map<string, string[]>;
 }
 
 let cached: HintIndex | undefined;
@@ -50,7 +56,18 @@ function build(): HintIndex {
     : '(?=(' + sorted.map(escapeRegex).join('|') + '))';
   const textRegex = new RegExp(pattern, 'g');
 
-  return { textHints: textHintList, filePathHints, textRegex };
+  // Precompute prefix relationships: for each hint, list all shorter hints
+  // that are a prefix of it. When the regex captures the longer hint, the
+  // caller can use this map to also mark the shorter prefix hints as detected.
+  const prefixHints = new Map<string, string[]>();
+  for (const hint of textHintList) {
+    const prefixes = textHintList.filter(p => p.length < hint.length && hint.startsWith(p));
+    if (prefixes.length > 0) {
+      prefixHints.set(hint, prefixes);
+    }
+  }
+
+  return { textHints: textHintList, filePathHints, textRegex, prefixHints };
 }
 
 export function getHintIndex(): HintIndex {

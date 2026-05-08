@@ -38,12 +38,18 @@ export function resetKnownHints(): void {
 
 /** detectHintsInText checks a lowercased text for known feature-usage hints. */
 export function detectHintsInText(text: string, hints: Map<string, boolean>): void {
-  const { textRegex } = getHintIndex();
+  const { textRegex, prefixHints } = getHintIndex();
   textRegex.lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = textRegex.exec(text)) !== null) {
     // m[1] is the captured hint inside the lookahead.
-    if (m[1]) { hints.set(m[1], true); }
+    if (m[1]) {
+      hints.set(m[1], true);
+      // Also mark any shorter hints that are a prefix of the matched hint,
+      // since the alternation only captures the longest match at each position.
+      const pf = prefixHints.get(m[1]);
+      if (pf) { for (const p of pf) { hints.set(p, true); } }
+    }
     // Lookahead is zero-width; advance manually to avoid an infinite loop.
     textRegex.lastIndex = m.index + 1;
   }
