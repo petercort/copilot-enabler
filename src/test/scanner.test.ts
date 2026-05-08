@@ -1,5 +1,8 @@
-import { detectHintsInText, analyzeLogs } from '../core/scanner/logs';
+import { detectHintsInText, analyzeLogs, readLogFiles, MAX_LOG_BYTES, MAX_ENTRIES, LOG_MTIME_CUTOFF_MS } from '../core/scanner/logs';
 import type { LogEntry } from '../core/scanner/logs';
+import * as fsp from 'fs/promises';
+import * as os from 'os';
+import * as path from 'path';
 
 describe('Scanner - Logs', () => {
   describe('detectHintsInText', () => {
@@ -90,5 +93,72 @@ describe('Scanner - analyzeLogs (debug log format)', () => {
     const summary = analyzeLogs(entries);
     expect(summary.hasVSCodeLogs).toBe(true);
     expect(summary.llmRequests).toBe(0);
+  });
+});
+
+describe('Scanner - readLogFiles bounds', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'ce-scan-'));
+  });
+
+  afterEach(async () => {
+    await fsp.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  test('skips files older than the mtime cutoff', async () => {
+    const oldFile = path.join(tmpDir, 'copilot-old.log');
+    const freshFile = path.join(tmpDir, 'copilot-fresh.log');
+    await fsp.writeFile(oldFile, JSON.stringify({ message: 'old' }) + '\n');
+    await fsp.writeFile(freshFile, JSON.stringify({ message: 'fresh' }) + '\n');
+
+    const ancient = (Date.now() - LOG_MTIME_CUTOFF_MS - 60_000) / 1000;
+    await fsp.utimes(oldFile, ancient, ancient);
+
+    const entries: LogEntry[] = [];
+    await readLogFiles(tmpDir, entries);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].message).toBe('fresh');
+  });
+
+  test('tail-reads files larger than MAX_LOG_BYTES and discards partial first line', async () => {
+    const big = path.join(tmpDir, 'copilot-big.log');
+    // Build a file that exceeds the cap. First half is junk we expect to be dropped.
+    const filler = 'x'.repeat(MAX_LOG_BYTES);
+    const tailLines = ['', JSON.stringify({ message: 'tail-line-1' }), JSON.stringify({ message: 'tail-line-2' })].join('\n');
+    await fsp.writeFile(big, filler + '\n' + tailLines);
+
+    const entries: LogEntry[] = [];
+    await readLogFiles(tmpDir, entries);
+    const messages = entries.map(e => e.message);
+    expect(messages).toEqual(expect.arrayContaining(['tail-line-1', 'tail-line-2']));
+    // The filler line should NOT be present as a single huge entry.
+    expect(messages.some(m => m.length >= MAX_LOG_BYTES)).toBe(false);
+  });
+
+  test('respects MAX_ENTRIES cap and signals stop', async () => {
+    // Write more than MAX_ENTRIES lines into a single file
+    const file = path.join(tmpDir, 'copilot-flood.log');
+    const lines: string[] = [];
+    const overflow = MAX_ENTRIES + 50;
+    for (let i = 0; i < overflow; i++) {
+      lines.push(JSON.stringify({ message: `m${i}` }));
+    }
+    await fsp.writeFile(file, lines.join('\n'));
+
+    const entries: LogEntry[] = [];
+    const stopped = await readLogFiles(tmpDir, entries);
+    expect(stopped).toBe(true);
+    expect(entries.length).toBe(MAX_ENTRIES);
+  });
+
+  test('ignores non-copilot files', async () => {
+    await fsp.writeFile(path.join(tmpDir, 'random.log'), JSON.stringify({ message: 'nope' }));
+    await fsp.writeFile(path.join(tmpDir, 'copilot-yes.log'), JSON.stringify({ message: 'yes' }));
+    const entries: LogEntry[] = [];
+    await readLogFiles(tmpDir, entries);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].message).toBe('yes');
   });
 });
