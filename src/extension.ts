@@ -95,7 +95,7 @@ export function deactivate(): void {
 // ─── Command Handlers ───
 
 async function collectData() {
-  const logEntries = scanCopilotLogs();
+  const logEntries = await scanCopilotLogs();
   const settings = scanSettings();
   const workspace = await scanWorkspace();
   const extensions = scanExtensions();
