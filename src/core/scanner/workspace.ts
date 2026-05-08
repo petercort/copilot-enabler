@@ -31,11 +31,17 @@ export async function scanWorkspace(): Promise<WorkspaceResult> {
 
   const fileHints = getHintIndex().filePathHints;
 
-  // Scan the workspace for each file-path hint pattern
-  for (const hint of fileHints) {
-    const pattern = new vscode.RelativePattern(folders[0], hint);
-    const isGlob = hint.includes('*');
-    const files = await vscode.workspace.findFiles(pattern, '**/node_modules/**', isGlob ? 10 : 1);
+  // Scan in parallel — findFiles is independent per pattern.
+  const results = await Promise.all(
+    fileHints.map(async (hint) => {
+      const isGlob = hint.includes('*');
+      const pattern = new vscode.RelativePattern(folders[0], hint);
+      const files = await vscode.workspace.findFiles(pattern, '**/node_modules/**', isGlob ? 10 : 1);
+      return [hint, files] as const;
+    }),
+  );
+
+  for (const [hint, files] of results) {
     for (const file of files) {
       const relPath = vscode.workspace.asRelativePath(file);
       r.filesFound.set(relPath, true);

@@ -1,5 +1,9 @@
-import { detectHintsInText, analyzeLogs } from '../core/scanner/logs';
+import { detectHintsInText, analyzeLogs, readLogFiles, MAX_LOG_BYTES, MAX_ENTRIES, LOG_MTIME_CUTOFF_MS, MAX_WORKSPACE_STORAGE_DIRS } from '../core/scanner/logs';
 import type { LogEntry } from '../core/scanner/logs';
+import { randomUUID } from 'crypto';
+import * as fsp from 'fs/promises';
+import * as os from 'os';
+import * as path from 'path';
 
 describe('Scanner - Logs', () => {
   describe('detectHintsInText', () => {
@@ -112,5 +116,136 @@ describe('Scanner - analyzeLogs (debug log format)', () => {
     const summary = analyzeLogs(entries);
     expect(summary.hasVSCodeLogs).toBe(true);
     expect(summary.llmRequests).toBe(0);
+  });
+});
+
+describe('Scanner - readLogFiles bounds', () => {
+  let tmpDir: string;
+  let originalAppData: string | undefined;
+
+  beforeEach(async () => {
+    tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'ce-scan-'));
+    originalAppData = process.env['APPDATA'];
+  });
+
+  afterEach(async () => {
+    if (originalAppData === undefined) {
+      delete process.env['APPDATA'];
+    } else {
+      process.env['APPDATA'] = originalAppData;
+    }
+    jest.resetModules();
+    jest.dontMock('os');
+    await fsp.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  async function getWorkspaceStorageDebugLogPathsForHome(homeDir: string): Promise<string[]> {
+    jest.resetModules();
+    jest.doMock('os', () => ({
+      ...jest.requireActual('os'),
+      homedir: () => homeDir,
+    }));
+    const logs = await import('../core/scanner/logs');
+    return logs.getWorkspaceStorageDebugLogPaths();
+  }
+
+  function workspaceStorageBase(homeDir: string): string | undefined {
+    switch (process.platform) {
+      case 'win32': {
+        const appData = process.env['APPDATA'];
+        return appData ? path.join(appData, 'Code', 'User', 'workspaceStorage') : undefined;
+      }
+      case 'darwin':
+        return path.join(homeDir, 'Library', 'Application Support', 'Code', 'User', 'workspaceStorage');
+      case 'linux':
+        return path.join(homeDir, '.config', 'Code', 'User', 'workspaceStorage');
+      default:
+        return undefined;
+    }
+  }
+
+  test('skips files older than the mtime cutoff', async () => {
+    const oldFile = path.join(tmpDir, 'copilot-old.log');
+    const freshFile = path.join(tmpDir, 'copilot-fresh.log');
+    await fsp.writeFile(oldFile, JSON.stringify({ message: 'old' }) + '\n');
+    await fsp.writeFile(freshFile, JSON.stringify({ message: 'fresh' }) + '\n');
+
+    const ancient = (Date.now() - LOG_MTIME_CUTOFF_MS - 60_000) / 1000;
+    await fsp.utimes(oldFile, ancient, ancient);
+
+    const entries: LogEntry[] = [];
+    await readLogFiles(tmpDir, entries);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].message).toBe('fresh');
+  });
+
+  test('tail-reads files larger than MAX_LOG_BYTES and discards a partial first line', async () => {
+    const big = path.join(tmpDir, 'copilot-big.log');
+    // Build a file that exceeds the cap. First half is junk we expect to be dropped.
+    const filler = 'x'.repeat(MAX_LOG_BYTES);
+    const tailLines = ['', JSON.stringify({ message: 'tail-line-1' }), JSON.stringify({ message: 'tail-line-2' })].join('\n');
+    await fsp.writeFile(big, filler + '\n' + tailLines);
+
+    const entries: LogEntry[] = [];
+    await readLogFiles(tmpDir, entries);
+    const messages = entries.map(e => e.message);
+    expect(messages).toEqual(expect.arrayContaining(['tail-line-1', 'tail-line-2']));
+    // The filler line should NOT be present as a single huge entry.
+    expect(messages.some(m => m.length >= MAX_LOG_BYTES)).toBe(false);
+  });
+
+  test('respects MAX_ENTRIES cap and signals stop', async () => {
+    // Write more than MAX_ENTRIES lines into a single file
+    const file = path.join(tmpDir, 'copilot-flood.log');
+    const lines: string[] = [];
+    const overflow = MAX_ENTRIES + 50;
+    for (let i = 0; i < overflow; i++) {
+      lines.push(JSON.stringify({ message: `m${i}` }));
+    }
+    await fsp.writeFile(file, lines.join('\n'));
+
+    const entries: LogEntry[] = [];
+    const stopped = await readLogFiles(tmpDir, entries);
+    expect(stopped).toBe(true);
+    expect(entries.length).toBe(MAX_ENTRIES);
+  });
+
+  test('ignores non-copilot files', async () => {
+    await fsp.writeFile(path.join(tmpDir, 'random.log'), JSON.stringify({ message: 'nope' }));
+    await fsp.writeFile(path.join(tmpDir, 'copilot-yes.log'), JSON.stringify({ message: 'yes' }));
+    const entries: LogEntry[] = [];
+    await readLogFiles(tmpDir, entries);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].message).toBe('yes');
+  });
+
+  test('limits workspaceStorage debug-log scanning to the newest directories', async () => {
+    process.env['APPDATA'] = path.join(tmpDir, 'AppData', 'Roaming');
+    const storageBase = workspaceStorageBase(tmpDir);
+    if (!storageBase) {
+      return;
+    }
+
+    await fsp.mkdir(storageBase, { recursive: true });
+
+    const totalDirs = MAX_WORKSPACE_STORAGE_DIRS + 2;
+    const newestWorkspaceNames: string[] = [];
+    const runId = randomUUID();
+    for (let i = 0; i < totalDirs; i++) {
+      const workspaceName = `ce-scan-ws-${process.pid}-${runId}-${i}`;
+      const workspaceDir = path.join(storageBase, workspaceName);
+      const debugLogsDir = path.join(workspaceDir, 'GitHub.copilot-chat', 'debug-logs');
+      await fsp.mkdir(debugLogsDir, { recursive: true });
+      const mtime = new Date(Date.now() + i * 1_000);
+      await fsp.utimes(workspaceDir, mtime, mtime);
+      if (i >= totalDirs - MAX_WORKSPACE_STORAGE_DIRS) {
+        newestWorkspaceNames.unshift(workspaceName);
+      }
+    }
+
+    const paths = await getWorkspaceStorageDebugLogPathsForHome(tmpDir);
+
+    expect(paths).toHaveLength(MAX_WORKSPACE_STORAGE_DIRS);
+    expect(paths.map(p => path.basename(path.dirname(path.dirname(p))))).toEqual(newestWorkspaceNames);
   });
 });
