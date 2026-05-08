@@ -2,7 +2,7 @@
   "name": "copilot-enabler",
   "displayName": "Copilot Enabler",
   "description": "Analyze and improve your GitHub Copilot adoption — discover unused features, get actionable recommendations, and implement them interactively.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "petercort",
   "license": "MIT",
   "repository": {
@@ -248,6 +248,6 @@
     "jest": "^30.3.0",
     "ts-jest": "^29.4.9",
     "typescript": "^6.0.2",
-    "typescript-eslint": "^8.58.2"
+    "typescript-eslint": "^8.59.2"
   }
 }
