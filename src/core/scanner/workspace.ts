@@ -1,18 +1,13 @@
 // Workspace scanner — detects Copilot config files using feature detectHints.
 
 import * as vscode from 'vscode';
-import { getFeatureDefinitions } from '../features/registry';
+import { getHintIndex } from '../features/hintIndex';
 
 /** WorkspaceResult holds results of scanning a workspace for Copilot config files. */
 export interface WorkspaceResult {
   root: string;
   filesFound: Map<string, boolean>;
   detectedHints: Map<string, boolean>;
-}
-
-/** Returns true when a detectHint string looks like a file path or glob pattern. */
-function isFilePathHint(hint: string): boolean {
-  return hint.includes('/') || hint.includes('*');
 }
 
 /**
@@ -34,16 +29,7 @@ export async function scanWorkspace(): Promise<WorkspaceResult> {
 
   r.root = folders[0].uri.fsPath;
 
-  // Collect every file-path hint from the feature registry
-  const fileHints: string[] = [];
-  for (const feature of getFeatureDefinitions()) {
-    for (const raw of feature.detectHints) {
-      const hint = typeof raw === 'string' ? raw : raw.hint;
-      if (isFilePathHint(hint)) {
-        fileHints.push(hint);
-      }
-    }
-  }
+  const fileHints = getHintIndex().filePathHints;
 
   // Scan in parallel — findFiles is independent per pattern.
   const results = await Promise.all(
