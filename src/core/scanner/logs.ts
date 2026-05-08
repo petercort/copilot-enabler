@@ -3,7 +3,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { catalog } from '../featureCatalog';
+import { getHintIndex, resetHintIndex } from '../features/hintIndex';
 
 /** LogEntry represents a single Copilot log entry. */
 export interface LogEntry {
@@ -31,44 +31,21 @@ export interface LogSummary {
   hasVSCodeLogs: boolean;
 }
 
-/**
- * Build the set of known hints dynamically from the feature catalog.
- * Each feature's detectHints (string or {hint}) are normalised to lowercase.
- * File-path-only hints (object form with path but no keyword) are skipped
- * since those are for the workspace scanner, not log text matching.
- */
-function buildKnownHints(): string[] {
-  const hints = new Set<string>();
-  for (const f of catalog()) {
-    for (const h of f.detectHints) {
-      if (typeof h === 'string') {
-        hints.add(h.toLowerCase());
-      } else if (h.hint) {
-        hints.add(h.hint.toLowerCase());
-      }
-    }
-  }
-  return Array.from(hints);
-}
-
-/** Lazily-initialised hint list derived from the feature catalog. */
-let _knownHints: string[] | undefined;
-function knownHints(): string[] {
-  if (!_knownHints) { _knownHints = buildKnownHints(); }
-  return _knownHints;
-}
-
-/** Reset the cached hints (useful for testing after catalog changes). */
+/** Reset the cached hint index (useful for testing after catalog changes). */
 export function resetKnownHints(): void {
-  _knownHints = undefined;
+  resetHintIndex();
 }
 
 /** detectHintsInText checks a lowercased text for known feature-usage hints. */
 export function detectHintsInText(text: string, hints: Map<string, boolean>): void {
-  for (const h of knownHints()) {
-    if (text.includes(h)) {
-      hints.set(h, true);
-    }
+  const { textRegex } = getHintIndex();
+  textRegex.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = textRegex.exec(text)) !== null) {
+    // m[1] is the captured hint inside the lookahead.
+    if (m[1]) { hints.set(m[1], true); }
+    // Lookahead is zero-width; advance manually to avoid an infinite loop.
+    textRegex.lastIndex = m.index + 1;
   }
 }
 

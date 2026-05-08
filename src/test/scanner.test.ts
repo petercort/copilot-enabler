@@ -36,6 +36,19 @@ describe('Scanner - Logs', () => {
       expect(hints.get('mcp.json')).toBe(true);
       expect(hints.get('mcp server')).toBe(true);
     });
+
+    test('scans 1000 lines and finds expected hints', () => {
+      const hints = new Map<string, boolean>();
+      const filler = 'just some unrelated noise without any matches here';
+      const matchingLine = 'agent mode and @workspace and inline chat together';
+      for (let i = 0; i < 999; i++) {
+        detectHintsInText(filler, hints);
+      }
+      detectHintsInText(matchingLine, hints);
+      expect(hints.get('agent mode')).toBe(true);
+      expect(hints.get('@workspace')).toBe(true);
+      expect(hints.get('inline chat')).toBe(true);
+    });
   });
 });
 
