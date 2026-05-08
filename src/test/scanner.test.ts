@@ -1,4 +1,4 @@
-import { detectHintsInText, analyzeLogs, readLogFiles, getWorkspaceStorageDebugLogPaths, MAX_LOG_BYTES, MAX_ENTRIES, LOG_MTIME_CUTOFF_MS, MAX_WORKSPACE_STORAGE_DIRS } from '../core/scanner/logs';
+import { detectHintsInText, analyzeLogs, readLogFiles, MAX_LOG_BYTES, MAX_ENTRIES, LOG_MTIME_CUTOFF_MS, MAX_WORKSPACE_STORAGE_DIRS } from '../core/scanner/logs';
 import type { LogEntry } from '../core/scanner/logs';
 import { randomUUID } from 'crypto';
 import * as fsp from 'fs/promises';
@@ -99,19 +99,33 @@ describe('Scanner - analyzeLogs (debug log format)', () => {
 
 describe('Scanner - readLogFiles bounds', () => {
   let tmpDir: string;
-  let createdWorkspaceDirs: string[];
+  let originalAppData: string | undefined;
 
   beforeEach(async () => {
     tmpDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'ce-scan-'));
-    createdWorkspaceDirs = [];
+    originalAppData = process.env['APPDATA'];
   });
 
   afterEach(async () => {
-    for (const workspaceDir of createdWorkspaceDirs) {
-      await fsp.rm(workspaceDir, { recursive: true, force: true });
+    if (originalAppData === undefined) {
+      delete process.env['APPDATA'];
+    } else {
+      process.env['APPDATA'] = originalAppData;
     }
+    jest.resetModules();
+    jest.dontMock('os');
     await fsp.rm(tmpDir, { recursive: true, force: true });
   });
+
+  async function getWorkspaceStorageDebugLogPathsForHome(homeDir: string): Promise<string[]> {
+    jest.resetModules();
+    jest.doMock('os', () => ({
+      ...jest.requireActual('os'),
+      homedir: () => homeDir,
+    }));
+    const logs = await import('../core/scanner/logs');
+    return logs.getWorkspaceStorageDebugLogPaths();
+  }
 
   function workspaceStorageBase(homeDir: string): string | undefined {
     switch (process.platform) {
@@ -143,7 +157,7 @@ describe('Scanner - readLogFiles bounds', () => {
     expect(entries[0].message).toBe('fresh');
   });
 
-  test('tail-reads files larger than MAX_LOG_BYTES and discards partial first line', async () => {
+  test('tail-reads files larger than MAX_LOG_BYTES and discards a partial first line', async () => {
     const big = path.join(tmpDir, 'copilot-big.log');
     // Build a file that exceeds the cap. First half is junk we expect to be dropped.
     const filler = 'x'.repeat(MAX_LOG_BYTES);
@@ -184,7 +198,8 @@ describe('Scanner - readLogFiles bounds', () => {
   });
 
   test('limits workspaceStorage debug-log scanning to the newest directories', async () => {
-    const storageBase = workspaceStorageBase(os.homedir());
+    process.env['APPDATA'] = path.join(tmpDir, 'AppData', 'Roaming');
+    const storageBase = workspaceStorageBase(tmpDir);
     if (!storageBase) {
       return;
     }
@@ -199,7 +214,6 @@ describe('Scanner - readLogFiles bounds', () => {
       const workspaceDir = path.join(storageBase, workspaceName);
       const debugLogsDir = path.join(workspaceDir, 'GitHub.copilot-chat', 'debug-logs');
       await fsp.mkdir(debugLogsDir, { recursive: true });
-      createdWorkspaceDirs.push(workspaceDir);
       const mtime = new Date(Date.now() + i * 1_000);
       await fsp.utimes(workspaceDir, mtime, mtime);
       if (i >= totalDirs - MAX_WORKSPACE_STORAGE_DIRS) {
@@ -207,10 +221,9 @@ describe('Scanner - readLogFiles bounds', () => {
       }
     }
 
-    const paths = await getWorkspaceStorageDebugLogPaths();
-    const matchingPaths = paths.filter(p => createdWorkspaceDirs.some(dir => p.startsWith(dir)));
+    const paths = await getWorkspaceStorageDebugLogPathsForHome(tmpDir);
 
-    expect(matchingPaths).toHaveLength(MAX_WORKSPACE_STORAGE_DIRS);
-    expect(matchingPaths.map(p => path.basename(path.dirname(path.dirname(p))))).toEqual(newestWorkspaceNames);
+    expect(paths).toHaveLength(MAX_WORKSPACE_STORAGE_DIRS);
+    expect(paths.map(p => path.basename(path.dirname(path.dirname(p))))).toEqual(newestWorkspaceNames);
   });
 });

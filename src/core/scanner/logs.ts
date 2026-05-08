@@ -175,7 +175,7 @@ async function readBoundedFile(filePath: string, size: number): Promise<string> 
   try {
     const buf = Buffer.alloc(MAX_LOG_BYTES);
     const { bytesRead } = await fh.read(buf, 0, MAX_LOG_BYTES, size - MAX_LOG_BYTES);
-    const text = new StringDecoder('utf8').write(buf.subarray(0, bytesRead));
+    const text = new StringDecoder('utf8').end(buf.subarray(0, bytesRead));
     const nl = text.indexOf('\n');
     return nl >= 0 ? text.slice(nl + 1) : text;
   } finally {
@@ -265,10 +265,9 @@ export async function readLogFiles(logPath: string, entries: LogEntry[]): Promis
       const remainingEntries = MAX_ENTRIES - entries.length;
       const parsed = await parseLogFile(full, st.size, remainingEntries);
       for (const e of parsed) {
-        if (entries.length >= MAX_ENTRIES) { return true; }
         entries.push(e);
+        if (entries.length >= MAX_ENTRIES) { return true; }
       }
-      if (entries.length >= MAX_ENTRIES) { return true; }
     }
     return false;
   };
