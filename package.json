@@ -2,7 +2,7 @@
   "name": "copilot-enabler",
   "displayName": "Copilot Enabler",
   "description": "Analyze and improve your GitHub Copilot adoption — discover unused features, get actionable recommendations, and implement them interactively.",
-  "version": "0.1.4",  
+  "version": "0.1.5",
   "publisher": "petercort",
   "license": "MIT",
   "repository": {
@@ -39,35 +39,12 @@
         "icon": "$(graph-line)"
       },
       {
-        "command": "copilotEnabler.featureCatalog",
-        "title": "Copilot Enabler: Browse Feature Catalog"
-      },
-      {
         "command": "copilotEnabler.implement",
         "title": "Copilot Enabler: Implement Recommendation"
       },
       {
         "command": "copilotEnabler.showMe",
         "title": "Copilot Enabler: Show Me Tutorial"
-      },
-      {
-        "command": "copilotEnabler.refresh",
-        "title": "Copilot Enabler: Refresh Analysis",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "copilotEnabler.hideFeature",
-        "title": "Copilot Enabler: Hide Feature",
-        "icon": "$(eye-closed)"
-      },
-      {
-        "command": "copilotEnabler.unhideFeature",
-        "title": "Copilot Enabler: Unhide Feature",
-        "icon": "$(eye)"
-      },
-      {
-        "command": "copilotEnabler.resetHiddenFeatures",
-        "title": "Copilot Enabler: Reset Hidden Features"
       },
       {
         "command": "copilotEnabler.settings",
@@ -80,21 +57,9 @@
         "icon": "$(graph-line)"
       },
       {
-        "command": "copilotEnabler.promptimizer.ingestFile",
-        "title": "Copilot Enabler: Ingest Prompt Log"
-      },
-      {
-        "command": "copilotEnabler.promptimizer.ingestCopilotLogs",
-        "title": "Copilot Enabler: Ingest Copilot Chat Logs"
-      },
-      {
         "command": "copilotEnabler.promptimizer.refresh",
         "title": "Copilot Enabler: Refresh Promptimizer",
         "icon": "$(refresh)"
-      },
-      {
-        "command": "copilotEnabler.promptimizer.openFinding",
-        "title": "Copilot Enabler: Show Finding Detail"
       },
       {
         "command": "copilotEnabler.promptimizer.openSession",
@@ -139,15 +104,10 @@
       ]
     },
     "menus": {
-      "commandPalette": [
-        {
-          "command": "copilotEnabler.promptimizer.openFinding",
-          "when": "false"
-        }
-      ],
+      "commandPalette": [],
       "view/title": [
         {
-          "command": "copilotEnabler.refresh",
+          "command": "copilotEnabler.analyze",
           "when": "view == copilotEnabler.features || view == copilotEnabler.recommendations",
           "group": "navigation"
         },
@@ -177,11 +137,6 @@
           "command": "copilotEnabler.implement",
           "when": "view == copilotEnabler.recommendations && viewItem == implementable",
           "group": "inline"
-        },
-        {
-          "command": "copilotEnabler.hideFeature",
-          "when": "view == copilotEnabler.features && viewItem =~ /^feature/",
-          "group": "inline"
         }
       ]
     },
@@ -194,7 +149,7 @@
             "type": "string"
           },
           "default": [],
-          "description": "Feature IDs to hide from analysis, recommendations, and tree views. Use the context menu on features to hide/unhide them, or the command palette to reset."
+          "description": "Feature IDs to hide from analysis, recommendations, and tree views. Use the Settings panel (Copilot Enabler: Settings) to manage hidden features."
         },
         "copilotEnabler.latestVersionChecked": {
           "type": "string",
@@ -230,6 +185,11 @@
           "type": "boolean",
           "default": false,
           "description": "Automatically start the Promptimizer Watcher (live alerts on large Copilot CLI tool results) when VS Code launches."
+        },
+        "copilotEnabler.promptimizer.runOnActivation": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically run the Promptimizer during the silent activation analysis pass. Off by default — the Promptimizer can be heavy, so it is loaded lazily when you open the panel or run 'Refresh Promptimizer'."
         }
       }
     },
@@ -269,8 +229,9 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "compile": "tsc -p ./ --noEmit && node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "typecheck:watch": "tsc -p ./ --noEmit --watch",
     "lint": "eslint src/",
     "test": "jest --config jest.config.js",
     "installextension": "node -e \"require('fs').rmSync('out', { recursive: true, force: true });\" && vsce package && code --install-extension copilot-enabler-*.vsix",
@@ -281,11 +242,12 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^25.6.0",
     "@types/vscode": "^1.116.0",
+    "esbuild": "^0.28.0",
     "eslint": "^10.2.0",
     "globals": "^17.5.0",
     "jest": "^30.3.0",
     "ts-jest": "^29.4.9",
     "typescript": "^6.0.2",
-    "typescript-eslint": "^8.58.2"
+    "typescript-eslint": "^8.59.2"
   }
 }

@@ -1,9 +1,20 @@
 // Port of internal/scanner/logs.go — file-based Copilot log scanning.
 
 import * as fs from 'fs';
+import * as fsp from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
-import { catalog } from '../featureCatalog';
+import { StringDecoder } from 'string_decoder';
+import { getHintIndex, resetHintIndex } from '../features/hintIndex';
+
+/** Skip log files older than this (7 days). */
+export const LOG_MTIME_CUTOFF_MS = 7 * 86_400_000;
+/** Per-file size cap (2 MB) — larger files are tail-read. */
+export const MAX_LOG_BYTES = 2 * 1024 * 1024;
+/** Hard cap on total parsed entries per scan. */
+export const MAX_ENTRIES = 50_000;
+/** Limit how many workspaceStorage debug-log folders we walk (most-recent first). */
+export const MAX_WORKSPACE_STORAGE_DIRS = 10;
 
 /** LogEntry represents a single Copilot log entry. */
 export interface LogEntry {
@@ -31,44 +42,27 @@ export interface LogSummary {
   hasVSCodeLogs: boolean;
 }
 
-/**
- * Build the set of known hints dynamically from the feature catalog.
- * Each feature's detectHints (string or {hint}) are normalised to lowercase.
- * File-path-only hints (object form with path but no keyword) are skipped
- * since those are for the workspace scanner, not log text matching.
- */
-function buildKnownHints(): string[] {
-  const hints = new Set<string>();
-  for (const f of catalog()) {
-    for (const h of f.detectHints) {
-      if (typeof h === 'string') {
-        hints.add(h.toLowerCase());
-      } else if (h.hint) {
-        hints.add(h.hint.toLowerCase());
-      }
-    }
-  }
-  return Array.from(hints);
-}
-
-/** Lazily-initialised hint list derived from the feature catalog. */
-let _knownHints: string[] | undefined;
-function knownHints(): string[] {
-  if (!_knownHints) { _knownHints = buildKnownHints(); }
-  return _knownHints;
-}
-
-/** Reset the cached hints (useful for testing after catalog changes). */
+/** Reset the cached hint index (useful for testing after catalog changes). */
 export function resetKnownHints(): void {
-  _knownHints = undefined;
+  resetHintIndex();
 }
 
 /** detectHintsInText checks a lowercased text for known feature-usage hints. */
 export function detectHintsInText(text: string, hints: Map<string, boolean>): void {
-  for (const h of knownHints()) {
-    if (text.includes(h)) {
-      hints.set(h, true);
+  const { textRegex, prefixHints } = getHintIndex();
+  textRegex.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = textRegex.exec(text)) !== null) {
+    // m[1] is the captured hint inside the lookahead.
+    if (m[1]) {
+      hints.set(m[1], true);
+      // Also mark any shorter hints that are a prefix of the matched hint,
+      // since the alternation only captures the longest match at each position.
+      const pf = prefixHints.get(m[1]);
+      if (pf) { for (const p of pf) { hints.set(p, true); } }
     }
+    // Lookahead is zero-width; advance manually to avoid an infinite loop.
+    textRegex.lastIndex = m.index + 1;
   }
 }
 
@@ -87,8 +81,10 @@ function getCopilotLogPath(): string | undefined {
   }
 }
 
-/** Get paths to all GitHub Copilot Chat debug-logs folders in workspaceStorage. */
-export function getWorkspaceStorageDebugLogPaths(): string[] {
+/** Get paths to GitHub Copilot Chat debug-logs folders in workspaceStorage,
+ *  capped to the {@link MAX_WORKSPACE_STORAGE_DIRS} most recently modified
+ *  workspace folders. */
+export async function getWorkspaceStorageDebugLogPaths(): Promise<string[]> {
   const homeDir = os.homedir();
   let storageBase: string;
   switch (process.platform) {
@@ -108,21 +104,38 @@ export function getWorkspaceStorageDebugLogPaths(): string[] {
       return [];
   }
 
-  const debugLogPaths: string[] = [];
   try {
-    const workspaceFolders = fs.readdirSync(storageBase, { withFileTypes: true })
-      .filter(d => d.isDirectory())
-      .map(d => path.join(storageBase, d.name));
-    for (const wsFolder of workspaceFolders) {
-      const debugLogsPath = path.join(wsFolder, 'GitHub.copilot-chat', 'debug-logs');
-      if (fs.existsSync(debugLogsPath)) {
+    const dirents = await fsp.readdir(storageBase, { withFileTypes: true });
+    const candidates: { dir: string; mtimeMs: number }[] = [];
+    await Promise.all(
+      dirents
+        .filter(d => d.isDirectory())
+        .map(async d => {
+          const dir = path.join(storageBase, d.name);
+          try {
+            const st = await fsp.stat(dir);
+            candidates.push({ dir, mtimeMs: st.mtimeMs });
+          } catch {
+            // Skip
+          }
+        }),
+    );
+    candidates.sort((a, b) => b.mtimeMs - a.mtimeMs);
+
+    const debugLogPaths: string[] = [];
+    for (const { dir } of candidates.slice(0, MAX_WORKSPACE_STORAGE_DIRS)) {
+      const debugLogsPath = path.join(dir, 'GitHub.copilot-chat', 'debug-logs');
+      try {
+        await fsp.access(debugLogsPath);
         debugLogPaths.push(debugLogsPath);
+      } catch {
+        // Skip missing
       }
     }
+    return debugLogPaths;
   } catch {
-    // Skip on access errors
+    return [];
   }
-  return debugLogPaths;
 }
 
 /** Check if a file path is a Copilot log. */
@@ -134,87 +147,138 @@ function isCopilotLog(filePath: string): boolean {
   );
 }
 
-/** Parse a single log file into entries. */
-function parseLogFile(filePath: string): LogEntry[] {
-  const entries: LogEntry[] = [];
+/** Read at most {@link MAX_LOG_BYTES} from `filePath`. For oversized files we
+ *  open and read the trailing window so the most recent entries survive,
+ *  discarding the first (likely partial) line. */
+async function readBoundedFile(filePath: string, size: number): Promise<string> {
+  if (size <= MAX_LOG_BYTES) {
+    return fsp.readFile(filePath, 'utf-8');
+  }
+  const fh = await fsp.open(filePath, 'r');
   try {
-    const content = fs.readFileSync(filePath, 'utf-8');
-    for (const line of content.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed) {
-        continue;
-      }
-      try {
-        const parsed = JSON.parse(trimmed);
-        // Detect workspaceStorage debug-log format (has numeric ts and string type)
-        if (typeof parsed.ts === 'number' && typeof parsed.type === 'string') {
-          const attrs = (parsed.attrs ?? {}) as Record<string, unknown>;
-          const entry: LogEntry = {
-            timestamp: new Date(parsed.ts).toISOString(),
-            level: parsed.status === 'error' ? 'error' : 'info',
-            message: (parsed.name ?? parsed.type) as string,
-            source: filePath,
-            data: { type: parsed.type, name: parsed.name, dur: parsed.dur, ...attrs },
-          };
-          entries.push(entry);
-        } else {
-          const entry: LogEntry = {
-            timestamp: parsed.timestamp ?? new Date().toISOString(),
-            level: parsed.level ?? 'info',
-            message: parsed.message ?? parsed.msg ?? trimmed,
-            source: filePath,
-            data: parsed.data ?? parsed,
-          };
-          entries.push(entry);
-        }
-      } catch {
+    const buf = Buffer.alloc(MAX_LOG_BYTES);
+    const { bytesRead } = await fh.read(buf, 0, MAX_LOG_BYTES, size - MAX_LOG_BYTES);
+    const text = new StringDecoder('utf8').end(buf.subarray(0, bytesRead));
+    const nl = text.indexOf('\n');
+    return nl >= 0 ? text.slice(nl + 1) : text;
+  } finally {
+    await fh.close();
+  }
+}
+
+/** Parse a single log file into entries. Returns an empty array on errors. */
+async function parseLogFile(filePath: string, size: number, maxEntries: number = Number.POSITIVE_INFINITY): Promise<LogEntry[]> {
+  const entries: LogEntry[] = [];
+  let content: string;
+  try {
+    content = await readBoundedFile(filePath, size);
+  } catch {
+    return entries;
+  }
+  for (const line of content.split('\n')) {
+    if (entries.length >= maxEntries) {
+      break;
+    }
+    const trimmed = line.trim();
+    if (!trimmed) {
+      continue;
+    }
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (typeof parsed.ts === 'number' && typeof parsed.type === 'string') {
+        const attrs = (parsed.attrs ?? {}) as Record<string, unknown>;
         entries.push({
-          timestamp: new Date().toISOString(),
-          level: 'info',
-          message: trimmed,
+          timestamp: new Date(parsed.ts).toISOString(),
+          level: parsed.status === 'error' ? 'error' : 'info',
+          message: (parsed.name ?? parsed.type) as string,
           source: filePath,
+          data: { type: parsed.type, name: parsed.name, dur: parsed.dur, ...attrs },
+        });
+      } else {
+        entries.push({
+          timestamp: parsed.timestamp ?? new Date().toISOString(),
+          level: parsed.level ?? 'info',
+          message: parsed.message ?? parsed.msg ?? trimmed,
+          source: filePath,
+          data: parsed.data ?? parsed,
         });
       }
+    } catch {
+      entries.push({
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: trimmed,
+        source: filePath,
+      });
     }
-  } catch {
-    // Skip unreadable files
   }
   return entries;
 }
 
-/** Recursively read log files from a directory. */
-function readLogFiles(logPath: string): LogEntry[] {
-  const entries: LogEntry[] = [];
-  try {
-    const walk = (dir: string) => {
-      const items = fs.readdirSync(dir, { withFileTypes: true });
-      for (const item of items) {
-        const full = path.join(dir, item.name);
-        if (item.isDirectory()) {
-          walk(full);
-        } else if (isCopilotLog(full)) {
-          entries.push(...parseLogFile(full));
-        }
+/** Recursively read log files from a directory, applying mtime/size/count caps.
+ *  Walks the tree and pushes entries into `entries`; returns true when the
+ *  global {@link MAX_ENTRIES} cap has been hit and walking should stop.
+ *  Exported for testing. */
+export async function readLogFiles(logPath: string, entries: LogEntry[]): Promise<boolean> {
+  const cutoff = Date.now() - LOG_MTIME_CUTOFF_MS;
+
+  const walk = async (dir: string): Promise<boolean> => {
+    let items: fs.Dirent[];
+    try {
+      items = await fsp.readdir(dir, { withFileTypes: true });
+    } catch {
+      return false;
+    }
+    for (const item of items) {
+      if (entries.length >= MAX_ENTRIES) { return true; }
+      const full = path.join(dir, item.name);
+      if (item.isDirectory()) {
+        const stop = await walk(full);
+        if (stop) { return true; }
+        continue;
       }
-    };
-    walk(logPath);
-  } catch {
-    // Directory may not exist
-  }
-  return entries;
+      if (!isCopilotLog(full)) { continue; }
+      let st: fs.Stats;
+      try {
+        st = await fsp.stat(full);
+      } catch {
+        continue;
+      }
+      if (st.mtimeMs < cutoff) { continue; }
+      const remainingEntries = MAX_ENTRIES - entries.length;
+      const parsed = await parseLogFile(full, st.size, remainingEntries);
+      for (const e of parsed) {
+        entries.push(e);
+        if (entries.length >= MAX_ENTRIES) { return true; }
+      }
+    }
+    return false;
+  };
+
+  return walk(logPath);
 }
 
-/** ScanCopilotLogs scans VS Code Copilot logs and returns parsed entries. */
-export function scanCopilotLogs(): LogEntry[] {
+/** ScanCopilotLogs scans VS Code Copilot logs and returns parsed entries.
+ *  Bounded by mtime, per-file size, and total entry caps so activation does
+ *  not block on tens of MB of historical logs. */
+export async function scanCopilotLogs(): Promise<LogEntry[]> {
   const entries: LogEntry[] = [];
 
   const logPath = getCopilotLogPath();
-  if (logPath && fs.existsSync(logPath)) {
-    entries.push(...readLogFiles(logPath));
+  if (logPath) {
+    try {
+      await fsp.access(logPath);
+      const stop = await readLogFiles(logPath, entries);
+      if (stop) { return entries; }
+    } catch {
+      // Path missing — skip
+    }
   }
 
-  for (const debugLogPath of getWorkspaceStorageDebugLogPaths()) {
-    entries.push(...readLogFiles(debugLogPath));
+  for (const debugLogPath of await getWorkspaceStorageDebugLogPaths()) {
+    if (entries.length >= MAX_ENTRIES) { break; }
+    const stop = await readLogFiles(debugLogPath, entries);
+    if (stop) { break; }
   }
 
   return entries;

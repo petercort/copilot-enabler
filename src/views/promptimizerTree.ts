@@ -144,12 +144,6 @@ export class FindingNode extends vscode.TreeItem {
       parts.push('', `Blocks: ${blocks.join(', ')}`);
     }
     this.tooltip = new vscode.MarkdownString(parts.join('\n'));
-
-    this.command = {
-      command: 'copilotEnabler.promptimizer.openFinding',
-      title: 'Open Finding',
-      arguments: [finding],
-    };
   }
 }
 

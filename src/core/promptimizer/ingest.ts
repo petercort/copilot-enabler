@@ -657,6 +657,29 @@ interface VscodeDebugLogEntry {
 }
 
 /**
+ * Build a map from CLI session UUID → AI-generated custom title by reading
+ * `~/.copilot/vscode.session.metadata.cache.json`. This is the authoritative
+ * source for session titles: the Copilot CLI writes `customTitle` values here
+ * when VS Code generates a title for an agent-mode session.
+ */
+function discoverVscodeSessionTitles(): Map<string, string> {
+  const titles = new Map<string, string>();
+  const cacheFile = path.join(os.homedir(), '.copilot', 'vscode.session.metadata.cache.json');
+  let raw: string;
+  try { raw = fs.readFileSync(cacheFile, 'utf-8'); } catch { return titles; }
+  let parsed: Record<string, unknown>;
+  try { parsed = JSON.parse(raw) as Record<string, unknown>; } catch { return titles; }
+  for (const [id, entry] of Object.entries(parsed)) {
+    if (!entry || typeof entry !== 'object') { continue; }
+    const customTitle = (entry as Record<string, unknown>)['customTitle'];
+    if (typeof customTitle === 'string' && customTitle.trim()) {
+      titles.set(id, customTitle.trim());
+    }
+  }
+  return titles;
+}
+
+/**
  * Discover `main.jsonl` files under VS Code workspaceStorage debug-logs.
  * Path: `<workspaceStorage>/<hash>/GitHub.copilot-chat/debug-logs/<session>/main.jsonl`.
  */
@@ -986,29 +1009,48 @@ function firstPromptSummary(text: string, maxLen = 60): string {
   return `${oneLine.slice(0, maxLen - 1)}…`;
 }
 
+/**
+ * Read the session title from the CLI session's `workspace.yaml`.
+ * The `name` field is set by VS Code when the user or AI names the session;
+ * fall back to `summary` which is set after the first AI response.
+ */
 function readSessionTitle(sessionDir: string): string | undefined {
-  const jsonFile = path.join(sessionDir, 'session.json');
+  const yamlFile = path.join(sessionDir, 'workspace.yaml');
   try {
-    const raw = fs.readFileSync(jsonFile, 'utf-8');
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    const t = parsed['title'];
-    return typeof t === 'string' && t.trim() ? t.trim() : undefined;
+    const raw = fs.readFileSync(yamlFile, 'utf-8');
+    // Use line-by-line parsing to avoid a YAML dependency.
+    for (const line of raw.split('\n')) {
+      const m = line.match(/^name:\s*(.+)$/);
+      if (m) {
+        const val = m[1].trim();
+        if (val) { return val; }
+      }
+    }
+    // Fall back to summary field
+    for (const line of raw.split('\n')) {
+      const m = line.match(/^summary:\s*(.+)$/);
+      if (m) {
+        const val = m[1].trim();
+        if (val) { return val; }
+      }
+    }
+    return undefined;
   } catch {
     return undefined;
   }
 }
 
 function labelFor(context: Record<string, string> | undefined, firstPrompt: string | undefined, shortId: string, copilotTitle?: string): string {
-  if (copilotTitle) { return `${copilotTitle} [${shortId}]`; }
+  if (copilotTitle) { return copilotTitle; }
   const parts: string[] = [];
   if (context?.['repository']) {
     parts.push(context['branch'] ? `${context['repository']}@${context['branch']}` : context['repository']);
   } else if (context?.['cwd']) {
     parts.push(path.basename(context['cwd']));
   }
-  if (firstPrompt) { parts.push(`“${firstPromptSummary(firstPrompt)}”`); }
+  if (firstPrompt) { parts.push(firstPromptSummary(firstPrompt)); }
   if (parts.length === 0) { return shortId; }
-  return `${parts.join(' — ')} [${shortId}]`;
+  return parts.join(' — ');
 }
 
 function buildSessionFromEvents(sessionId: string, events: CopilotEvent[], copilotTitle?: string): IngestedSession | undefined {
@@ -1171,6 +1213,7 @@ export function ingestCopilotSessions(): IngestedSession[] {
   } catch {
     return out;
   }
+  const vscodeSessionTitles = discoverVscodeSessionTitles();
   for (const d of dirs) {
     if (!d.isDirectory()) { continue; }
     const sessionDir = path.join(root, d.name);
@@ -1178,7 +1221,7 @@ export function ingestCopilotSessions(): IngestedSession[] {
     if (!fs.existsSync(file)) { continue; }
     const events = readCopilotEvents(file);
     if (events.length === 0) { continue; }
-    const copilotTitle = readSessionTitle(sessionDir);
+    const copilotTitle = vscodeSessionTitles.get(d.name) ?? readChatSessionTitle(sessionDir) ?? readSessionTitle(sessionDir);
     const session = buildSessionFromEvents(`copilot-session:${d.name}`, events, copilotTitle);
     if (session) { out.push(session); }
   }
@@ -1354,6 +1397,7 @@ export function ingestCopilotHistorySessions(): IngestedSession[] {
   let entries: fs.Dirent[];
   try { entries = fs.readdirSync(root, { withFileTypes: true }); }
   catch { return out; }
+  const vscodeSessionTitles = discoverVscodeSessionTitles();
   for (const e of entries) {
     if (!e.isFile() || !e.name.endsWith('.json')) { continue; }
     const full = path.join(root, e.name);
@@ -1362,6 +1406,9 @@ export function ingestCopilotHistorySessions(): IngestedSession[] {
     let parsed: HistoryFile;
     try { parsed = JSON.parse(raw) as HistoryFile; } catch { continue; }
     const sid = parsed.sessionId ?? e.name.replace(/\.json$/, '');
+    const sessionStateDir = path.join(copilotSessionRoot(), sid);
+    const chatTitle = vscodeSessionTitles.get(sid) ?? readChatSessionTitle(sessionStateDir) ?? (parsed.title || undefined);
+    if (chatTitle) { parsed.title = chatTitle; }
     const session = buildSessionFromHistory(parsed, `copilot-history:${sid}`);
     if (session) { out.push(session); }
   }
