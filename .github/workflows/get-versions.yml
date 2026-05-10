@@ -7,14 +7,22 @@ on:
 
 permissions:
   contents: read
-  issues: write
 
 jobs:
   update-version:
     runs-on: ubuntu-latest
     steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@a8d616148505b5069dccd32f177bb87d7f39123b
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Get latest VS Code release
         id: vscode
@@ -22,7 +30,7 @@ jobs:
           LATEST=$(gh release list --repo microsoft/vscode --limit 1 --json tagName --jq '.[0].tagName' | sed 's/^[^0-9]*//')
           echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Read tracked version
         id: tracked
@@ -53,7 +61,7 @@ jobs:
             --jq 'length')
           echo "open_count=$COUNT" >> "$GITHUB_OUTPUT"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Create issue for new VS Code version
         if: steps.check.outputs.new_version == 'true' && steps.existing.outputs.open_count == '0'
@@ -74,4 +82,4 @@ jobs:
 
           Once the catalog has been updated, bump \`copilotEnabler.latestVersionChecked\` in \`package.json\` to \`$LATEST\`."
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
