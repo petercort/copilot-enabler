@@ -1,4 +1,4 @@
-import { catalog, featuresByCategory, featureIDs, allCategories, Feature, visibleCatalog, getHiddenFeatureIDs, compareVersions, getFeatureAvailability } from '../core/featureCatalog';
+import { catalog, featuresByCategory, featureIDs, allCategories, Feature, visibleCatalog, getHiddenFeatureIDs, compareVersions, getFeatureAvailability, getLatestVersionChecked } from '../core/featureCatalog';
 
 // Mock vscode module for tests
 jest.mock('vscode', () => ({
@@ -104,6 +104,16 @@ describe('Feature Catalog', () => {
     expect(hidden.has('core-agent-mode')).toBe(true);
     expect(hidden.has('custom-instructions')).toBe(true);
   });
+
+  test('catalog includes VS Code 1.119.0 features', () => {
+    const browserTabs = features.find((f) => f.id === 'tools-browser-tabs');
+    const agentTracing = features.find((f) => f.id === 'core-agent-tracing');
+
+    expect(browserTabs).toBeDefined();
+    expect(browserTabs?.addedIn).toBe('1.119.0');
+    expect(agentTracing).toBeDefined();
+    expect(agentTracing?.addedIn).toBe('1.119.0');
+  });
 });
 
 describe('compareVersions', () => {
@@ -178,6 +188,17 @@ describe('getFeatureAvailability', () => {
     const result = getFeatureAvailability(feature);
     // In test env without a real vscode.version this will be 'available'
     expect(['available', 'new']).toContain(result);
+  });
+});
+
+describe('getLatestVersionChecked', () => {
+  test('defaults to the reconciled VS Code release', () => {
+    const vscode = require('vscode');
+    vscode.workspace.getConfiguration.mockReturnValueOnce({
+      get: jest.fn((_key: string, fallback?: string) => fallback),
+    });
+
+    expect(getLatestVersionChecked()).toBe('1.119.0');
   });
 });
 

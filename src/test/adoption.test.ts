@@ -218,6 +218,12 @@ describe('detectHintsInText — per-feature detection from realistic logs', () =
     expect(hints.get('@vscode')).toBe(true);
   });
 
+  test('agent-tracing: detected via OpenTelemetry setting hint', () => {
+    const feature = byId('core-agent-tracing');
+    const hints = hintsFrom(['github.copilot.chat.otel.enabled']);
+    expect(featureDetected(feature, hints)).toBe(true);
+  });
+
   // ── Completion ──
 
   test('completion-inline: detects "completion" from real fetchCompletions log', () => {
@@ -960,6 +966,7 @@ describe('End-to-end realistic machine profile', () => {
       'chat.imageCarousel.enabled',                  // tools-image-binary
       'github.copilot.chat.localIndex.enabled',      // core-chronicle
       'github.copilot.chat.cli.remote.enabled',      // core-cli-remote
+      'github.copilot.chat.otel.enabled',            // core-agent-tracing
     ]);
 
     const ctx = buildContext({ logHints: powerUserHints });
