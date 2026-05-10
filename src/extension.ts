@@ -42,6 +42,9 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   // --- Commands ---
+  const onWatcherLoadFailure = (err: unknown) =>
+    console.error('Copilot Enabler: failed to load promptimizer watcher', err);
+
   context.subscriptions.push(
     vscode.commands.registerCommand('copilotEnabler.analyze', () => handleAnalyze(context)),
     vscode.commands.registerCommand('copilotEnabler.featureMatrix', () => handleFeatureMatrix(context)),
@@ -52,15 +55,15 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotEnabler.promptimizer.refresh', () => handlePromptimizerIngestCopilotLogs(context)),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.openSession', (session?: IngestedSession) => handlePromptimizerOpenSession(context, session)),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.startWatcher', () =>
-      import('./views/promptimizerWatcher').then((m) => m.startWatcher()),
+      loadWatcher().then((m) => m.startWatcher()).catch(onWatcherLoadFailure),
     ),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.stopWatcher', () =>
-      import('./views/promptimizerWatcher').then((m) => m.stopWatcher()),
+      loadWatcher().then((m) => m.stopWatcher()).catch(onWatcherLoadFailure),
     ),
     vscode.commands.registerCommand('copilotEnabler.promptimizer.toggleWatcher', () =>
-      import('./views/promptimizerWatcher').then((m) => {
+      loadWatcher().then((m) => {
         if (m.isWatcherActive()) { m.stopWatcher(); } else { m.startWatcher(); }
-      }),
+      }).catch(onWatcherLoadFailure),
     ),
   );
 
@@ -70,8 +73,9 @@ export function activate(context: vscode.ExtensionContext): void {
   const watcher = vscode.workspace.createFileSystemWatcher(
     '**/{.github/copilot-instructions.md,.copilotignore,.vscode/mcp.json,mcp.json,.github/prompts/*.prompt.md}',
   );
-  watcher.onDidCreate(() => scheduleAnalyze(context, true));
-  watcher.onDidDelete(() => scheduleAnalyze(context, true));
+  watcher.onDidCreate(() => scheduleAnalyze(context));
+  watcher.onDidDelete(() => scheduleAnalyze(context));
+  watcher.onDidChange(() => scheduleAnalyze(context));
   context.subscriptions.push(watcher);
 
   vscode.workspace.onDidChangeConfiguration((e) => {
@@ -80,33 +84,46 @@ export function activate(context: vscode.ExtensionContext): void {
       e.affectsConfiguration('editor.inlineSuggest') ||
       e.affectsConfiguration('copilotEnabler.hiddenFeatures')
     ) {
-      scheduleAnalyze(context, true);
+      scheduleAnalyze(context);
     }
   }, null, context.subscriptions);
 
   vscode.extensions.onDidChange(() => {
-    scheduleAnalyze(context, true);
+    scheduleAnalyze(context);
   }, null, context.subscriptions);
 
   // --- Initial scan on activation ---
   handleAnalyze(context, true);
 }
 
+// Single shared lazy loader for the watcher module — keeps it out of the
+// activation path and centralizes the import path so error handling stays DRY.
+// We retain the resolved module after the first successful load so deactivate()
+// can clean up without re-importing on shutdown (and without depending on
+// require.cache, which is unreliable under esbuild bundling).
+let loadedWatcher: typeof import('./views/promptimizerWatcher') | undefined;
+function loadWatcher(): Promise<typeof import('./views/promptimizerWatcher')> {
+  return import('./views/promptimizerWatcher').then((m) => {
+    loadedWatcher = m;
+    return m;
+  });
+}
+
 function autoStartWatcherIfEnabled(): void {
   // Defer loading the watcher module so it never blocks activation.
   setImmediate(() => {
-    void import('./views/promptimizerWatcher')
+    void loadWatcher()
       .then((m) => m.autoStartIfEnabled())
       .catch((err) => console.error('Copilot Enabler: watcher auto-start failed', err));
   });
 }
 
 let analyzeTimer: NodeJS.Timeout | undefined;
-function scheduleAnalyze(context: vscode.ExtensionContext, silent = true): void {
+function scheduleAnalyze(context: vscode.ExtensionContext): void {
   if (analyzeTimer) { clearTimeout(analyzeTimer); }
   analyzeTimer = setTimeout(() => {
     analyzeTimer = undefined;
-    void handleAnalyze(context, silent);
+    void handleAnalyze(context, true);
   }, 750);
 }
 
@@ -114,6 +131,12 @@ export function deactivate(): void {
   if (analyzeTimer) {
     clearTimeout(analyzeTimer);
     analyzeTimer = undefined;
+  }
+  // Stop the watcher only if it was already loaded — never trigger a lazy
+  // import on shutdown.
+  if (loadedWatcher) {
+    try { loadedWatcher.stopWatcher(true); } catch { /* ignore */ }
+    loadedWatcher = undefined;
   }
 }
 
