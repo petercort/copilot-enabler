@@ -34,6 +34,8 @@ import { coreAutopilot } from './core/core-autopilot';
 import { toolsImageBinary } from './tools/tools-image-binary';
 import { coreChronicle } from './core/core-chronicle';
 import { coreCliRemote } from './core/core-cli-remote';
+import { coreAgentTracing } from './core/core-agent-tracing';
+import { toolsBrowserTabs } from './tools/tools-browser-tabs';
 // ── END IMPORTS ──
 
 /**
@@ -52,6 +54,7 @@ export const allFeatureDefinitions: FeatureDefinition[] = [
   coreAutopilot,
   coreChronicle,
   coreCliRemote,
+  coreAgentTracing,
   toolsWorkspace,
   toolsTerminal,
   toolsVscode,
@@ -68,6 +71,7 @@ export const allFeatureDefinitions: FeatureDefinition[] = [
   toolsWebSearch,
   toolsChanges,
   toolsImageBinary,
+  toolsBrowserTabs,
   // ── Customization ──
   copilotInstructions,
   customPromptFiles,
