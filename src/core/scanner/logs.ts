@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as fsp from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
+import { StringDecoder } from 'string_decoder';
 import { getHintIndex, resetHintIndex } from '../features/hintIndex';
 
 /** Skip log files older than this (7 days). */

@@ -53,8 +53,10 @@ To capture JSONL from an app using the Anthropic SDK, enable SDK debug
 logging — see the Anthropic SDK docs
 (<https://docs.anthropic.com/en/api/client-sdks>) for the environment
 variable your language's SDK uses (for example, `ANTHROPIC_LOG=debug` for
-the TypeScript and Python SDKs). Redirect the debug output to a file and
-feed that file to `copilotEnabler.promptimizer.refresh`.
+the TypeScript and Python SDKs). Redirect the debug output to a file.
+The current extension commands do not accept JSONL or HAR file paths;
+`copilotEnabler.promptimizer.refresh` re-ingests only auto-discovered
+Copilot sources.
 
 ### HAR (mitmproxy / Charles captures)
 
@@ -178,7 +180,7 @@ interface for real tokenizers is already in place for a future release.
 
 **How do I capture a log?**
 
-The simplest path is `copilotEnabler.promptimizer.ingestCopilotChat`,
+The simplest path is `copilotEnabler.promptimizer.refresh`,
 which reads existing VS Code Copilot Chat logs in place. For apps using
 the Anthropic SDK directly, enable SDK debug logging
 (`ANTHROPIC_LOG=debug`) and pipe the output to a `.jsonl` file. For any

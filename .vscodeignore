@@ -17,7 +17,6 @@ eslint.config.mjs
 jest.config.js
 tsconfig.json
 tsconfig.test.json
-eslint.config.mjs
 .nvmrc
 .gitignore
 INDEX.md

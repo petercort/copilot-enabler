@@ -189,7 +189,7 @@
         "copilotEnabler.promptimizer.runOnActivation": {
           "type": "boolean",
           "default": false,
-          "description": "Automatically run the Promptimizer during the silent activation analysis pass. Off by default — the Promptimizer can be heavy, so it is loaded lazily when you open the panel or run 'Ingest Prompt Log'."
+          "description": "Automatically run the Promptimizer during the silent activation analysis pass. Off by default — the Promptimizer can be heavy, so it is loaded lazily when you open the panel or run 'Refresh Promptimizer'."
         }
       }
     },
