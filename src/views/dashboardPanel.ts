@@ -340,13 +340,8 @@ export class DashboardPanel {
       <div class="label">Features Detected</div>
     </div>
     <div class="score-card">
-      <div class="value">${result.logSummary.llmRequests > 0
-        ? `${result.logSummary.totalInputTokens.toLocaleString()} / ${result.logSummary.totalOutputTokens.toLocaleString()}`
-        : '—'}</div>
-      <div class="label">Input / Output Tokens</div>
-      ${result.logSummary.hasVSCodeLogs
-        ? `<div class="score-card-note" title="Enable debug output logging to capture per-call token data">⚠ Cache token data unavailable for VS Code log entries</div>`
-        : ''}
+      <div class="value">${(result.staticFindings ?? []).length}</div>
+      <div class="label">Optimizations</div>
     </div>
   </div>
 
