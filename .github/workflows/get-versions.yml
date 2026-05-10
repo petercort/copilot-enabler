@@ -4,14 +4,13 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "0 1 * * *"
-  bots:
-    - peter-corpilot[bot]
 
 permissions:
   contents: read
 
 jobs:
   update-version:
+    if: github.actor == 'peter-corpilot[bot]' || github.triggering_actor == 'peter-corpilot[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Generate GitHub App token
