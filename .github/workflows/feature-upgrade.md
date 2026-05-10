@@ -4,7 +4,7 @@ on:
   issues:
     types: [labeled, opened, reopened]
   bots:
-    - "github-actions[bot]"
+    - "peter-corpilot[bot]"
 permissions:
   contents: read
   issues: read
