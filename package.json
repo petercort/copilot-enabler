@@ -234,7 +234,7 @@
     "typecheck:watch": "tsc -p ./ --noEmit --watch",
     "lint": "eslint src/",
     "test": "jest --config jest.config.js",
-    "installextension": "node -e \"require('fs').rmSync('out', { recursive: true, force: true });\" && vsce package && code --install-extension copilot-enabler-*.vsix",
+    "installextension": "node -e \"require('fs').rmSync('out', { recursive: true, force: true });\" && vsce package && code --install-extension copilot-enabler-*.vsix --force",
     "new-feature": "node scripts/new-feature.js"
   },
   "devDependencies": {
