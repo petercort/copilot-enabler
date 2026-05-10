@@ -5,6 +5,7 @@ on:
     types: [labeled, opened, reopened]
   bots:
     - "peter-corpilot[bot]"
+  roles: all
 permissions:
   contents: read
   issues: read
@@ -19,6 +20,9 @@ tools:
   web-fetch:
   github:
     toolsets: [default]
+    min-integrity: approved
+    trusted-users:
+      - "peter-corpilot[bot]"
 safe-outputs:
   add-comment:
     max: 2

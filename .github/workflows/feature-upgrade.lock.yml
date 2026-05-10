@@ -1,4 +1,4 @@
-# gh-aw-metadata: {"schema_version":"v3","frontmatter_hash":"3d3c81bd2e5564f5d5664be076ac7bc75da6081abfb285d130db4818c37479da","compiler_version":"v0.68.3","strict":true,"agent_id":"copilot"}
+# gh-aw-metadata: {"schema_version":"v3","frontmatter_hash":"e7cbd63516195bec67db287297fca74de5b51e385003c376d67138dbfc5871cf","compiler_version":"v0.68.3","strict":true,"agent_id":"copilot"}
 # gh-aw-manifest: {"version":1,"secrets":["COPILOT_GITHUB_TOKEN","GH_AW_AGENT_TOKEN","GH_AW_GITHUB_MCP_SERVER_TOKEN","GH_AW_GITHUB_TOKEN","GITHUB_TOKEN"],"actions":[{"repo":"actions/checkout","sha":"de0fac2e4500dabe0009e67214ff5f5447ce83dd","version":"v6.0.2"},{"repo":"actions/download-artifact","sha":"3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c","version":"v8.0.1"},{"repo":"actions/github-script","sha":"373c709c69115d41ff229c7e5df9f8788daa9553","version":"v9"},{"repo":"actions/upload-artifact","sha":"043fb46d1a93c77aae656e7c1c64a875d1fc6a0a","version":"v7.0.1"},{"repo":"github/gh-aw-actions/setup","sha":"ba90f2186d7ad780ec640f364005fa24e797b360","version":"v0.68.3"}],"containers":[{"image":"ghcr.io/github/gh-aw-firewall/agent:0.25.20","digest":"sha256:9161f2415a3306a344aca34dd671ee69f122317e0a512e66dc64c94b9c508682","pinned_image":"ghcr.io/github/gh-aw-firewall/agent:0.25.20@sha256:9161f2415a3306a344aca34dd671ee69f122317e0a512e66dc64c94b9c508682"},{"image":"ghcr.io/github/gh-aw-firewall/api-proxy:0.25.20","digest":"sha256:6971639e381e82e45134bcd333181f456df3a52cd6f818a3e3d6de068ff91519","pinned_image":"ghcr.io/github/gh-aw-firewall/api-proxy:0.25.20@sha256:6971639e381e82e45134bcd333181f456df3a52cd6f818a3e3d6de068ff91519"},{"image":"ghcr.io/github/gh-aw-firewall/squid:0.25.20","digest":"sha256:5411d903f73ee597e6a084971c2adef3eb0bd405910df3ed7bf5e3d6bd58a236","pinned_image":"ghcr.io/github/gh-aw-firewall/squid:0.25.20@sha256:5411d903f73ee597e6a084971c2adef3eb0bd405910df3ed7bf5e3d6bd58a236"},{"image":"ghcr.io/github/gh-aw-mcpg:v0.2.19","digest":"sha256:44d4d8de7e6c37aaea484eba489940c52df6a0b54078ddcbc9327592d5b3c3dd","pinned_image":"ghcr.io/github/gh-aw-mcpg:v0.2.19@sha256:44d4d8de7e6c37aaea484eba489940c52df6a0b54078ddcbc9327592d5b3c3dd"},{"image":"ghcr.io/github/github-mcp-server:v0.32.0","digest":"sha256:2763823c63bcca718ce53850a1d7fcf2f501ec84028394f1b63ce7e9f4f9be28","pinned_image":"ghcr.io/github/github-mcp-server:v0.32.0@sha256:2763823c63bcca718ce53850a1d7fcf2f501ec84028394f1b63ce7e9f4f9be28"},{"image":"node:lts-alpine","digest":"sha256:d1b3b4da11eefd5941e7f0b9cf17783fc99d9c6fc34884a665f40a06dbdfc94f","pinned_image":"node:lts-alpine@sha256:d1b3b4da11eefd5941e7f0b9cf17783fc99d9c6fc34884a665f40a06dbdfc94f"}]}
 #    ___                   _   _      
 #   / _ \                 | | (_)     
@@ -55,6 +55,7 @@ name: "feature-upgrade"
     - labeled
     - opened
     - reopened
+  # roles: all # Roles processed as role check in pre-activation job
 
 permissions: {}
 
@@ -65,8 +66,6 @@ run-name: "feature-upgrade"
 
 jobs:
   activation:
-    needs: pre_activation
-    if: needs.pre_activation.outputs.activated == 'true'
     runs-on: ubuntu-slim
     permissions:
       actions: read
@@ -89,7 +88,6 @@ jobs:
         with:
           destination: ${{ runner.temp }}/gh-aw/actions
           job-name: ${{ github.job }}
-          trace-id: ${{ needs.pre_activation.outputs.setup-trace-id }}
       - name: Generate agentic run info
         id: generate_aw_info
         env:
@@ -179,14 +177,14 @@ jobs:
         run: |
           bash "${RUNNER_TEMP}/gh-aw/actions/create_prompt_first.sh"
           {
-          cat << 'GH_AW_PROMPT_9a030620dada7901_EOF'
+          cat << 'GH_AW_PROMPT_06babb2c88520ff1_EOF'
           <system>
-          GH_AW_PROMPT_9a030620dada7901_EOF
+          GH_AW_PROMPT_06babb2c88520ff1_EOF
           cat "${RUNNER_TEMP}/gh-aw/prompts/xpia.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/temp_folder_prompt.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/markdown.md"
           cat "${RUNNER_TEMP}/gh-aw/prompts/safe_outputs_prompt.md"
-          cat << 'GH_AW_PROMPT_9a030620dada7901_EOF'
+          cat << 'GH_AW_PROMPT_06babb2c88520ff1_EOF'
           <safe-output-tools>
           Tools: add_comment(max:2), assign_to_agent, assign_to_user, missing_tool, missing_data, noop
           </safe-output-tools>
@@ -218,12 +216,12 @@ jobs:
           {{/if}}
           </github-context>
           
-          GH_AW_PROMPT_9a030620dada7901_EOF
+          GH_AW_PROMPT_06babb2c88520ff1_EOF
           cat "${RUNNER_TEMP}/gh-aw/prompts/github_mcp_tools_with_safeoutputs_prompt.md"
-          cat << 'GH_AW_PROMPT_9a030620dada7901_EOF'
+          cat << 'GH_AW_PROMPT_06babb2c88520ff1_EOF'
           </system>
           {{#runtime-import .github/workflows/feature-upgrade.md}}
-          GH_AW_PROMPT_9a030620dada7901_EOF
+          GH_AW_PROMPT_06babb2c88520ff1_EOF
           } > "$GH_AW_PROMPT"
       - name: Interpolate variables and render templates
         uses: actions/github-script@373c709c69115d41ff229c7e5df9f8788daa9553 # v9
@@ -247,7 +245,6 @@ jobs:
           GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
           GH_AW_GITHUB_WORKSPACE: ${{ github.workspace }}
-          GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_ACTIVATED: ${{ needs.pre_activation.outputs.activated }}
         with:
           script: |
             const { setupGlobals } = require('${{ runner.temp }}/gh-aw/actions/setup_globals.cjs');
@@ -266,8 +263,7 @@ jobs:
                 GH_AW_GITHUB_EVENT_PULL_REQUEST_NUMBER: process.env.GH_AW_GITHUB_EVENT_PULL_REQUEST_NUMBER,
                 GH_AW_GITHUB_REPOSITORY: process.env.GH_AW_GITHUB_REPOSITORY,
                 GH_AW_GITHUB_RUN_ID: process.env.GH_AW_GITHUB_RUN_ID,
-                GH_AW_GITHUB_WORKSPACE: process.env.GH_AW_GITHUB_WORKSPACE,
-                GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_ACTIVATED: process.env.GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_ACTIVATED
+                GH_AW_GITHUB_WORKSPACE: process.env.GH_AW_GITHUB_WORKSPACE
               }
             });
       - name: Validate prompt placeholders
@@ -377,16 +373,14 @@ jobs:
           GH_HOST: github.com
       - name: Install AWF binary
         run: bash "${RUNNER_TEMP}/gh-aw/actions/install_awf_binary.sh" v0.25.20
-      - name: Determine automatic lockdown mode for GitHub MCP Server
-        id: determine-automatic-lockdown
-        uses: actions/github-script@373c709c69115d41ff229c7e5df9f8788daa9553 # v9
+      - name: Parse integrity filter lists
+        id: parse-guard-vars
         env:
-          GH_AW_GITHUB_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN }}
-          GH_AW_GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN }}
-        with:
-          script: |
-            const determineAutomaticLockdown = require('${{ runner.temp }}/gh-aw/actions/determine_automatic_lockdown.cjs');
-            await determineAutomaticLockdown(github, context, core);
+          GH_AW_BLOCKED_USERS_VAR: ${{ vars.GH_AW_GITHUB_BLOCKED_USERS || '' }}
+          GH_AW_TRUSTED_USERS_EXTRA: peter-corpilot[bot]
+          GH_AW_TRUSTED_USERS_VAR: ${{ vars.GH_AW_GITHUB_TRUSTED_USERS || '' }}
+          GH_AW_APPROVAL_LABELS_VAR: ${{ vars.GH_AW_GITHUB_APPROVAL_LABELS || '' }}
+        run: bash "${RUNNER_TEMP}/gh-aw/actions/parse_guard_list.sh"
       - name: Download container images
         run: bash "${RUNNER_TEMP}/gh-aw/actions/download_docker_images.sh" ghcr.io/github/gh-aw-firewall/agent:0.25.20@sha256:9161f2415a3306a344aca34dd671ee69f122317e0a512e66dc64c94b9c508682 ghcr.io/github/gh-aw-firewall/api-proxy:0.25.20@sha256:6971639e381e82e45134bcd333181f456df3a52cd6f818a3e3d6de068ff91519 ghcr.io/github/gh-aw-firewall/squid:0.25.20@sha256:5411d903f73ee597e6a084971c2adef3eb0bd405910df3ed7bf5e3d6bd58a236 ghcr.io/github/gh-aw-mcpg:v0.2.19@sha256:44d4d8de7e6c37aaea484eba489940c52df6a0b54078ddcbc9327592d5b3c3dd ghcr.io/github/github-mcp-server:v0.32.0@sha256:2763823c63bcca718ce53850a1d7fcf2f501ec84028394f1b63ce7e9f4f9be28 node:lts-alpine@sha256:d1b3b4da11eefd5941e7f0b9cf17783fc99d9c6fc34884a665f40a06dbdfc94f
       - name: Write Safe Outputs Config
@@ -394,9 +388,9 @@ jobs:
           mkdir -p "${RUNNER_TEMP}/gh-aw/safeoutputs"
           mkdir -p /tmp/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/mcp-logs/safeoutputs
-          cat > "${RUNNER_TEMP}/gh-aw/safeoutputs/config.json" << 'GH_AW_SAFE_OUTPUTS_CONFIG_8b1dc2c391794807_EOF'
+          cat > "${RUNNER_TEMP}/gh-aw/safeoutputs/config.json" << 'GH_AW_SAFE_OUTPUTS_CONFIG_f1a0b2e8aa8be893_EOF'
           {"add_comment":{"max":2},"assign_to_agent":{"max":1},"assign_to_user":{"max":1},"create_report_incomplete_issue":{},"missing_data":{},"missing_tool":{},"noop":{"max":1,"report-as-issue":"true"},"report_incomplete":{}}
-          GH_AW_SAFE_OUTPUTS_CONFIG_8b1dc2c391794807_EOF
+          GH_AW_SAFE_OUTPUTS_CONFIG_f1a0b2e8aa8be893_EOF
       - name: Write Safe Outputs Tools
         env:
           GH_AW_TOOLS_META_JSON: |
@@ -606,8 +600,6 @@ jobs:
           GH_AW_SAFE_OUTPUTS: ${{ steps.set-runtime-paths.outputs.GH_AW_SAFE_OUTPUTS }}
           GH_AW_SAFE_OUTPUTS_API_KEY: ${{ steps.safe-outputs-start.outputs.api_key }}
           GH_AW_SAFE_OUTPUTS_PORT: ${{ steps.safe-outputs-start.outputs.port }}
-          GITHUB_MCP_GUARD_MIN_INTEGRITY: ${{ steps.determine-automatic-lockdown.outputs.min_integrity }}
-          GITHUB_MCP_GUARD_REPOS: ${{ steps.determine-automatic-lockdown.outputs.repos }}
           GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN || secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           set -eo pipefail
@@ -628,7 +620,7 @@ jobs:
           export MCP_GATEWAY_DOCKER_COMMAND='docker run -i --rm --network host -v /var/run/docker.sock:/var/run/docker.sock -e MCP_GATEWAY_PORT -e MCP_GATEWAY_DOMAIN -e MCP_GATEWAY_API_KEY -e MCP_GATEWAY_PAYLOAD_DIR -e MCP_GATEWAY_PAYLOAD_SIZE_THRESHOLD -e DEBUG -e MCP_GATEWAY_LOG_DIR -e GH_AW_MCP_LOG_DIR -e GH_AW_SAFE_OUTPUTS -e GH_AW_SAFE_OUTPUTS_CONFIG_PATH -e GH_AW_SAFE_OUTPUTS_TOOLS_PATH -e GH_AW_ASSETS_BRANCH -e GH_AW_ASSETS_MAX_SIZE_KB -e GH_AW_ASSETS_ALLOWED_EXTS -e DEFAULT_BRANCH -e GITHUB_MCP_SERVER_TOKEN -e GITHUB_MCP_GUARD_MIN_INTEGRITY -e GITHUB_MCP_GUARD_REPOS -e GITHUB_REPOSITORY -e GITHUB_SERVER_URL -e GITHUB_SHA -e GITHUB_WORKSPACE -e GITHUB_TOKEN -e GITHUB_RUN_ID -e GITHUB_RUN_NUMBER -e GITHUB_RUN_ATTEMPT -e GITHUB_JOB -e GITHUB_ACTION -e GITHUB_EVENT_NAME -e GITHUB_EVENT_PATH -e GITHUB_ACTOR -e GITHUB_ACTOR_ID -e GITHUB_TRIGGERING_ACTOR -e GITHUB_WORKFLOW -e GITHUB_WORKFLOW_REF -e GITHUB_WORKFLOW_SHA -e GITHUB_REF -e GITHUB_REF_NAME -e GITHUB_REF_TYPE -e GITHUB_HEAD_REF -e GITHUB_BASE_REF -e GH_AW_SAFE_OUTPUTS_PORT -e GH_AW_SAFE_OUTPUTS_API_KEY -v /tmp/gh-aw/mcp-payloads:/tmp/gh-aw/mcp-payloads:rw -v /opt:/opt:ro -v /tmp:/tmp:rw -v '"${GITHUB_WORKSPACE}"':'"${GITHUB_WORKSPACE}"':rw ghcr.io/github/gh-aw-mcpg:v0.2.19'
           
           mkdir -p /home/runner/.copilot
-          cat << GH_AW_MCP_CONFIG_56ad2ea479dd9ba1_EOF | bash "${RUNNER_TEMP}/gh-aw/actions/start_mcp_gateway.sh"
+          cat << GH_AW_MCP_CONFIG_7ea27966b805080a_EOF | bash "${RUNNER_TEMP}/gh-aw/actions/start_mcp_gateway.sh"
           {
             "mcpServers": {
               "github": {
@@ -642,8 +634,11 @@ jobs:
                 },
                 "guard-policies": {
                   "allow-only": {
-                    "min-integrity": "$GITHUB_MCP_GUARD_MIN_INTEGRITY",
-                    "repos": "$GITHUB_MCP_GUARD_REPOS"
+                    "approval-labels": ${{ steps.parse-guard-vars.outputs.approval_labels }},
+                    "blocked-users": ${{ steps.parse-guard-vars.outputs.blocked_users }},
+                    "min-integrity": "approved",
+                    "repos": "all",
+                    "trusted-users": ${{ steps.parse-guard-vars.outputs.trusted_users }}
                   }
                 }
               },
@@ -669,7 +664,7 @@ jobs:
               "payloadDir": "${MCP_GATEWAY_PAYLOAD_DIR}"
             }
           }
-          GH_AW_MCP_CONFIG_56ad2ea479dd9ba1_EOF
+          GH_AW_MCP_CONFIG_7ea27966b805080a_EOF
       - name: Download activation artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -845,6 +840,8 @@ jobs:
             /tmp/gh-aw/sandbox/agent/logs/
             /tmp/gh-aw/redacted-urls.log
             /tmp/gh-aw/mcp-logs/
+            /tmp/gh-aw/proxy-logs/
+            !/tmp/gh-aw/proxy-logs/proxy-tls/
             /tmp/gh-aw/agent_usage.json
             /tmp/gh-aw/agent-stdio.log
             /tmp/gh-aw/agent/
@@ -1150,33 +1147,6 @@ jobs:
             const { setupGlobals } = require('${{ runner.temp }}/gh-aw/actions/setup_globals.cjs');
             setupGlobals(core, github, context, exec, io, getOctokit);
             const { main } = require('${{ runner.temp }}/gh-aw/actions/parse_threat_detection_results.cjs');
-            await main();
-
-  pre_activation:
-    runs-on: ubuntu-slim
-    outputs:
-      activated: ${{ steps.check_membership.outputs.is_team_member == 'true' }}
-      matched_command: ''
-      setup-trace-id: ${{ steps.setup.outputs.trace-id }}
-    steps:
-      - name: Setup Scripts
-        id: setup
-        uses: github/gh-aw-actions/setup@ba90f2186d7ad780ec640f364005fa24e797b360 # v0.68.3
-        with:
-          destination: ${{ runner.temp }}/gh-aw/actions
-          job-name: ${{ github.job }}
-      - name: Check team membership for workflow
-        id: check_membership
-        uses: actions/github-script@373c709c69115d41ff229c7e5df9f8788daa9553 # v9
-        env:
-          GH_AW_REQUIRED_ROLES: "admin,maintainer,write"
-          GH_AW_ALLOWED_BOTS: "peter-corpilot[bot]"
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { setupGlobals } = require('${{ runner.temp }}/gh-aw/actions/setup_globals.cjs');
-            setupGlobals(core, github, context, exec, io, getOctokit);
-            const { main } = require('${{ runner.temp }}/gh-aw/actions/check_membership.cjs');
             await main();
 
   safe_outputs:
