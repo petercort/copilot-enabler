@@ -2,7 +2,7 @@
 description: When a 'vscode-update' issue is filed, fetch the VS Code changelog, classify Copilot-relevant changes, and triage the issue (assign reporter for clarifications, or Copilot to start work).
 on:
   issues:
-    types: [labeled, opened, reopened]
+    types: [labeled]
   bots:
     - "peter-corpilot[bot]"
   roles: all
