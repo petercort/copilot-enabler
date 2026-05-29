@@ -39,6 +39,8 @@ import { toolsBrowserTabs } from './tools/tools-browser-tabs';
 import { coreAgentsWindow } from './core/core-agents-window';
 import { toolsTerminalCompression } from './tools/tools-terminal-compression';
 import { toolsTerminalRisk } from './tools/tools-terminal-risk';
+import { coreRemoteAgents } from './core/core-remote-agents';
+import { coreUtilityModels } from './core/core-utility-models';
 // ── END IMPORTS ──
 
 /**
@@ -59,6 +61,8 @@ export const allFeatureDefinitions: FeatureDefinition[] = [
   coreCliRemote,
   coreAgentTracing,
   coreAgentsWindow,
+  coreRemoteAgents,
+  coreUtilityModels,
   toolsWorkspace,
   toolsTerminal,
   toolsVscode,

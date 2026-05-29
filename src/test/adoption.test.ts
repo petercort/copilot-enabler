@@ -970,6 +970,8 @@ describe('End-to-end realistic machine profile', () => {
       'extensions.supportAgentsWindow',              // core-agents-window
       'chat.tools.compressOutput.enabled',           // tools-terminal-compression
       'chat.tools.riskAssessment.enabled',           // tools-terminal-risk
+      'agents.remote',                               // core-remote-agents
+      'chat.utilityModel',                           // core-utility-models
     ]);
 
     const ctx = buildContext({ logHints: powerUserHints });
