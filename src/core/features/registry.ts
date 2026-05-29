@@ -36,6 +36,9 @@ import { coreChronicle } from './core/core-chronicle';
 import { coreCliRemote } from './core/core-cli-remote';
 import { coreAgentTracing } from './core/core-agent-tracing';
 import { toolsBrowserTabs } from './tools/tools-browser-tabs';
+import { coreAgentsWindow } from './core/core-agents-window';
+import { toolsTerminalCompression } from './tools/tools-terminal-compression';
+import { toolsTerminalRisk } from './tools/tools-terminal-risk';
 // ── END IMPORTS ──
 
 /**
@@ -55,6 +58,7 @@ export const allFeatureDefinitions: FeatureDefinition[] = [
   coreChronicle,
   coreCliRemote,
   coreAgentTracing,
+  coreAgentsWindow,
   toolsWorkspace,
   toolsTerminal,
   toolsVscode,
@@ -72,6 +76,8 @@ export const allFeatureDefinitions: FeatureDefinition[] = [
   toolsChanges,
   toolsImageBinary,
   toolsBrowserTabs,
+  toolsTerminalCompression,
+  toolsTerminalRisk,
   // ── Customization ──
   copilotInstructions,
   customPromptFiles,

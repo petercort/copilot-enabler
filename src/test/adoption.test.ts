@@ -967,6 +967,9 @@ describe('End-to-end realistic machine profile', () => {
       'github.copilot.chat.localIndex.enabled',      // core-chronicle
       'github.copilot.chat.cli.remote.enabled',      // core-cli-remote
       'github.copilot.chat.otel.enabled',            // core-agent-tracing
+      'extensions.supportAgentsWindow',              // core-agents-window
+      'chat.tools.compressOutput.enabled',           // tools-terminal-compression
+      'chat.tools.riskAssessment.enabled',           // tools-terminal-risk
     ]);
 
     const ctx = buildContext({ logHints: powerUserHints });
