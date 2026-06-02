@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import { AnalysisResult } from '../core/analyzer';
 import { allCategories, Feature, featuresByCategory, visibleCatalog, getFeatureAvailability } from '../core/featureCatalog';
 import { implementableFeatures, tutorialPrompts } from '../core/prompts';
-import { StaticFinding } from '../core/promptimizer/types';
+import { StaticFinding } from '../core/optimization/types';
 
 export class DashboardPanel {
   private static currentPanel: DashboardPanel | undefined;

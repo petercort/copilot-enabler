@@ -50,32 +50,6 @@
         "command": "copilotEnabler.settings",
         "title": "Copilot Enabler: Settings",
         "icon": "$(gear)"
-      },
-      {
-        "command": "copilotEnabler.promptimizer.open",
-        "title": "Copilot Enabler: Open Promptimizer",
-        "icon": "$(graph-line)"
-      },
-      {
-        "command": "copilotEnabler.promptimizer.refresh",
-        "title": "Copilot Enabler: Refresh Promptimizer",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "copilotEnabler.promptimizer.openSession",
-        "title": "Copilot Enabler: Show Session Detail"
-      },
-      {
-        "command": "copilotEnabler.promptimizer.startWatcher",
-        "title": "Copilot Enabler: Promptimizer — Watch for Large Tool Results"
-      },
-      {
-        "command": "copilotEnabler.promptimizer.stopWatcher",
-        "title": "Copilot Enabler: Promptimizer — Stop Tool Result Watcher"
-      },
-      {
-        "command": "copilotEnabler.promptimizer.toggleWatcher",
-        "title": "Copilot Enabler: Promptimizer — Toggle Tool Result Watcher"
       }
     ],
     "viewsContainers": {
@@ -96,10 +70,6 @@
         {
           "id": "copilotEnabler.recommendations",
           "name": "Recommendations"
-        },
-        {
-          "id": "copilotEnabler.promptimizer",
-          "name": "Promptimizer"
         }
       ]
     },
@@ -119,16 +89,6 @@
         {
           "command": "copilotEnabler.featureMatrix",
           "when": "view == copilotEnabler.features || view == copilotEnabler.recommendations",
-          "group": "navigation"
-        },
-        {
-          "command": "copilotEnabler.promptimizer.open",
-          "when": "view == copilotEnabler.promptimizer",
-          "group": "navigation"
-        },
-        {
-          "command": "copilotEnabler.promptimizer.refresh",
-          "when": "view == copilotEnabler.promptimizer",
           "group": "navigation"
         }
       ],
@@ -155,41 +115,6 @@
           "type": "string",
           "default": "1.118.1",
           "description": "The most recent VS Code release the feature catalog has been reconciled against. Used by the auto-update workflow as a watermark to track which version has been reviewed."
-        },
-        "copilotEnabler.promptimizer.tokenizer": {
-          "type": "string",
-          "enum": [
-            "heuristic"
-          ],
-          "default": "heuristic",
-          "description": "Tokenizer used by the Promptimizer for token accounting. Currently only a heuristic tokenizer is shipped; additional backends (e.g., model-accurate tokenizers) may be added in the future."
-        },
-        "copilotEnabler.promptimizer.model": {
-          "type": "string",
-          "enum": [
-            "claude-sonnet-4.6",
-            "claude-sonnet-4.5",
-            "claude-opus-4.7",
-            "claude-opus-4.6"
-          ],
-          "default": "claude-sonnet-4.6",
-          "description": "Anthropic pricing model used by the Promptimizer to estimate USD/100-turn savings."
-        },
-        "copilotEnabler.promptimizer.largeToolResultTokens": {
-          "type": "number",
-          "default": 3000,
-          "minimum": 200,
-          "description": "Tool results larger than this many tokens trigger a real-time warning when the Promptimizer Watcher is running."
-        },
-        "copilotEnabler.promptimizer.watchOnStartup": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically start the Promptimizer Watcher (live alerts on large Copilot CLI tool results) when VS Code launches."
-        },
-        "copilotEnabler.promptimizer.runOnActivation": {
-          "type": "boolean",
-          "default": false,
-          "description": "Automatically run the Promptimizer during the silent activation analysis pass. Off by default — the Promptimizer can be heavy, so it is loaded lazily when you open the panel or run 'Refresh Promptimizer'."
         }
       }
     },

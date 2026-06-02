@@ -4,8 +4,8 @@ import * as vscode from 'vscode';
 import { visibleCatalog, getFeatureAvailability } from './featureCatalog';
 import { allAgents, AgentReport, Recommendation } from './agents';
 import { LogEntry, LogSummary, SettingsResult, WorkspaceResult, ExtensionsResult, analyzeLogs } from './scanner';
-import { scanCustomizationFiles } from './promptimizer/staticScan';
-import { StaticFinding } from './promptimizer/types';
+import { scanCustomizationFiles } from './optimization/staticScan';
+import { StaticFinding } from './optimization/types';
 
 /** Result is the unified output of the full analysis pipeline. */
 export interface AnalysisResult {
