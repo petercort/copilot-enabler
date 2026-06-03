@@ -39,6 +39,11 @@ import { toolsBrowserTabs } from './tools/tools-browser-tabs';
 import { coreAgentsWindow } from './core/core-agents-window';
 import { toolsTerminalCompression } from './tools/tools-terminal-compression';
 import { toolsTerminalRisk } from './tools/tools-terminal-risk';
+import { coreRemoteAgents } from './core/core-remote-agents';
+import { coreUtilityModels } from './core/core-utility-models';
+import { coreResearchAgent } from './core/core-research-agent';
+import { coreSessionSync } from './core/core-session-sync';
+import { toolsSandboxNetworkRetry } from './tools/tools-sandbox-network-retry';
 // ── END IMPORTS ──
 
 /**
@@ -59,6 +64,10 @@ export const allFeatureDefinitions: FeatureDefinition[] = [
   coreCliRemote,
   coreAgentTracing,
   coreAgentsWindow,
+  coreRemoteAgents,
+  coreUtilityModels,
+  coreResearchAgent,
+  coreSessionSync,
   toolsWorkspace,
   toolsTerminal,
   toolsVscode,
@@ -78,6 +87,7 @@ export const allFeatureDefinitions: FeatureDefinition[] = [
   toolsBrowserTabs,
   toolsTerminalCompression,
   toolsTerminalRisk,
+  toolsSandboxNetworkRetry,
   // ── Customization ──
   copilotInstructions,
   customPromptFiles,

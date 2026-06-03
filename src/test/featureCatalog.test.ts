@@ -114,6 +114,19 @@ describe('Feature Catalog', () => {
     expect(agentTracing).toBeDefined();
     expect(agentTracing?.addedIn).toBe('1.119.0');
   });
+
+  test('catalog includes VS Code 1.123.0 features', () => {
+    const researchAgent = features.find((f) => f.id === 'core-research-agent');
+    const sessionSync = features.find((f) => f.id === 'core-session-sync');
+    const sandboxNetworkRetry = features.find((f) => f.id === 'tools-sandbox-network-retry');
+
+    expect(researchAgent).toBeDefined();
+    expect(researchAgent?.addedIn).toBe('1.123.0');
+    expect(sessionSync).toBeDefined();
+    expect(sessionSync?.addedIn).toBe('1.123.0');
+    expect(sandboxNetworkRetry).toBeDefined();
+    expect(sandboxNetworkRetry?.addedIn).toBe('1.123.0');
+  });
 });
 
 describe('compareVersions', () => {
@@ -198,7 +211,7 @@ describe('getLatestVersionChecked', () => {
       get: jest.fn((_key: string, fallback?: string) => fallback),
     });
 
-    expect(getLatestVersionChecked()).toBe('1.120.0');
+    expect(getLatestVersionChecked()).toBe('1.123.0');
   });
 });
 

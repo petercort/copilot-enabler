@@ -14,16 +14,11 @@ import { StatusBarManager } from './views/statusBar';
 import { DashboardPanel } from './views/dashboardPanel';
 import { SettingsPanel } from './views/settingsPanel';
 import { Recommendation, buildRecommendation } from './core/agents';
-import type { PromptimizerResult, PricingModel } from './core/promptimizer';
-import { IngestedSession } from './core/promptimizer/types';
-import { PromptimizerTreeProvider } from './views/promptimizerTree';
 
 let statusBar: StatusBarManager;
 let featureTree: FeatureTreeProvider;
 let recommendationTree: RecommendationTreeProvider;
 let lastResult: AnalysisResult | undefined;
-let promptimizerTree: PromptimizerTreeProvider;
-let lastPromptimizerResult: PromptimizerResult | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
   // --- Status Bar ---
@@ -33,17 +28,13 @@ export function activate(context: vscode.ExtensionContext): void {
   // --- Tree Views ---
   featureTree = new FeatureTreeProvider();
   recommendationTree = new RecommendationTreeProvider();
-  promptimizerTree = new PromptimizerTreeProvider();
 
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider('copilotEnabler.features', featureTree),
     vscode.window.registerTreeDataProvider('copilotEnabler.recommendations', recommendationTree),
-    vscode.window.registerTreeDataProvider('copilotEnabler.promptimizer', promptimizerTree),
   );
 
   // --- Commands ---
-  const onWatcherLoadFailure = (err: unknown) =>
-    console.error('Copilot Enabler: failed to load promptimizer watcher', err);
 
   context.subscriptions.push(
     vscode.commands.registerCommand('copilotEnabler.analyze', () => handleAnalyze(context)),
@@ -51,23 +42,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotEnabler.implement', (rec?: Recommendation) => handleImplement(rec)),
     vscode.commands.registerCommand('copilotEnabler.showMe', (rec?: Recommendation) => handleShowMe(rec)),
     vscode.commands.registerCommand('copilotEnabler.settings', () => SettingsPanel.show()),
-    vscode.commands.registerCommand('copilotEnabler.promptimizer.open', () => handlePromptimizerOpen(context)),
-    vscode.commands.registerCommand('copilotEnabler.promptimizer.refresh', () => handlePromptimizerIngestCopilotLogs(context)),
-    vscode.commands.registerCommand('copilotEnabler.promptimizer.openSession', (session?: IngestedSession) => handlePromptimizerOpenSession(context, session)),
-    vscode.commands.registerCommand('copilotEnabler.promptimizer.startWatcher', () =>
-      loadWatcher().then((m) => m.startWatcher()).catch(onWatcherLoadFailure),
-    ),
-    vscode.commands.registerCommand('copilotEnabler.promptimizer.stopWatcher', () =>
-      loadWatcher().then((m) => m.stopWatcher()).catch(onWatcherLoadFailure),
-    ),
-    vscode.commands.registerCommand('copilotEnabler.promptimizer.toggleWatcher', () =>
-      loadWatcher().then((m) => {
-        if (m.isWatcherActive()) { m.stopWatcher(); } else { m.startWatcher(); }
-      }).catch(onWatcherLoadFailure),
-    ),
   );
-
-  autoStartWatcherIfEnabled();
 
   // --- File Watchers ---
   const watcher = vscode.workspace.createFileSystemWatcher(
@@ -96,27 +71,6 @@ export function activate(context: vscode.ExtensionContext): void {
   handleAnalyze(context, true);
 }
 
-// Single shared lazy loader for the watcher module — keeps it out of the
-// activation path and centralizes the import path so error handling stays DRY.
-// We retain the resolved module after the first successful load so deactivate()
-// can clean up without re-importing on shutdown (and without depending on
-// require.cache, which is unreliable under esbuild bundling).
-let loadedWatcher: typeof import('./views/promptimizerWatcher') | undefined;
-function loadWatcher(): Promise<typeof import('./views/promptimizerWatcher')> {
-  return import('./views/promptimizerWatcher').then((m) => {
-    loadedWatcher = m;
-    return m;
-  });
-}
-
-function autoStartWatcherIfEnabled(): void {
-  // Defer loading the watcher module so it never blocks activation.
-  setImmediate(() => {
-    void loadWatcher()
-      .then((m) => m.autoStartIfEnabled())
-      .catch((err) => console.error('Copilot Enabler: watcher auto-start failed', err));
-  });
-}
 
 let analyzeTimer: NodeJS.Timeout | undefined;
 function scheduleAnalyze(context: vscode.ExtensionContext): void {
@@ -131,12 +85,6 @@ export function deactivate(): void {
   if (analyzeTimer) {
     clearTimeout(analyzeTimer);
     analyzeTimer = undefined;
-  }
-  // Stop the watcher only if it was already loaded — never trigger a lazy
-  // import on shutdown.
-  if (loadedWatcher) {
-    try { loadedWatcher.stopWatcher(true); } catch { /* ignore */ }
-    loadedWatcher = undefined;
   }
 }
 
@@ -184,27 +132,6 @@ async function doAnalysis(context: vscode.ExtensionContext, silent = false): Pro
     }
     featureTree.refresh(usedIDs);
     recommendationTree.refresh(result.topRecommendations);
-
-    if (silent && shouldRunPromptimizerOnActivation()) {
-      try {
-        const { runPromptimizer } = await import('./core/promptimizer');
-        const model = getPromptimizerModel();
-        const promptResult = runPromptimizer({
-          sources: [
-            { type: 'log-entries', entries: logEntries },
-            { type: 'copilot-chat' },
-            { type: 'copilot-sessions' },
-            { type: 'copilot-history' },
-            { type: 'vscode-debug-logs' },
-          ],
-          model,
-        });
-        lastPromptimizerResult = promptResult;
-        promptimizerTree.refresh(promptResult);
-      } catch (err) {
-        console.error('Copilot Enabler: promptimizer auto-run failed', err);
-      }
-    }
 
     // Only show dashboard webview when explicitly requested
     if (!silent) {
@@ -405,107 +332,4 @@ async function handleShowMe(arg?: Recommendation | { recommendation: Recommendat
   }
 }
 
-// ─── Promptimizer Handlers ───
 
-function getPromptimizerModel(): PricingModel {
-  const config = vscode.workspace.getConfiguration('copilotEnabler');
-  return config.get<PricingModel>('promptimizer.model', 'claude-sonnet-4.6');
-}
-
-function shouldRunPromptimizerOnActivation(): boolean {
-  const config = vscode.workspace.getConfiguration('copilotEnabler');
-  return config.get<boolean>('promptimizer.runOnActivation', false);
-}
-
-function mergePromptimizerResult(next: PromptimizerResult): void {
-  if (!lastPromptimizerResult) {
-    lastPromptimizerResult = next;
-  } else {
-    // Deduplicate sessions by session_id — re-ingesting the same log files must not produce duplicates.
-    const existingSessionIds = new Set(lastPromptimizerResult.sessions.map((s) => s.session_id));
-    const newSessions = next.sessions.filter((s) => !existingSessionIds.has(s.session_id));
-    const sessions = [...lastPromptimizerResult.sessions, ...newSessions];
-
-    // Deduplicate findings by rule + all evidence blocks — using only blocks[0] risks
-    // collision across sessions since block IDs like "msg-u-0-0" are session-scoped.
-    const findingKey = (f: { rule: string; evidence: { blocks: string[] } }) =>
-      `${f.rule}:${f.evidence.blocks.join(',')}`;
-    const existingFindingKeys = new Set(lastPromptimizerResult.findings.map(findingKey));
-    const newFindings = next.findings.filter((f) => !existingFindingKeys.has(findingKey(f)));
-    const findings = [...lastPromptimizerResult.findings, ...newFindings].sort(
-      (a, b) => (b.estimated_savings?.usd_per_100_turns ?? 0) - (a.estimated_savings?.usd_per_100_turns ?? 0),
-    );
-
-    const staticFindings = [
-      ...lastPromptimizerResult.staticFindings,
-      ...next.staticFindings.filter((sf) =>
-        !lastPromptimizerResult!.staticFindings.some((e) => e.rule === sf.rule && e.file === sf.file),
-      ),
-    ];
-
-    lastPromptimizerResult = { sessions, findings, model: next.model, staticFindings };
-  }
-  promptimizerTree.refresh(lastPromptimizerResult);
-}
-
-function sessionTurnCounts(result: PromptimizerResult): { sessions: number; turns: number } {
-  let turns = 0;
-  for (const s of result.sessions) {
-    turns += s.turns.length;
-  }
-  return { sessions: result.sessions.length, turns };
-}
-
-async function handlePromptimizerOpen(context: vscode.ExtensionContext): Promise<void> {
-  if (!lastPromptimizerResult) {
-    await handlePromptimizerIngestCopilotLogs(context);
-  }
-  if (lastPromptimizerResult) {
-    const { PromptimizerPanel } = await import('./views/promptimizerPanel');
-    PromptimizerPanel.show(context.extensionUri, lastPromptimizerResult);
-  }
-}
-
-async function handlePromptimizerIngestCopilotLogs(context: vscode.ExtensionContext): Promise<void> {
-  try {
-    const { runPromptimizer } = await import('./core/promptimizer');
-    const model = getPromptimizerModel();
-    const result = await vscode.window.withProgress(
-      { location: vscode.ProgressLocation.Notification, title: 'Copilot Enabler: Ingesting Copilot chat logs...' },
-      async () => runPromptimizer({
-        sources: [
-          { type: 'copilot-chat' },
-          { type: 'copilot-sessions' },
-          { type: 'copilot-history' },
-          { type: 'vscode-debug-logs' },
-        ],
-        model,
-      }),
-    );
-    mergePromptimizerResult(result);
-    const counts = sessionTurnCounts(result);
-    vscode.window.showInformationMessage(
-      `Promptimizer: ingested ${counts.sessions} session(s), ${counts.turns} turn(s).`,
-    );
-    if (lastPromptimizerResult) {
-      const { PromptimizerPanel } = await import('./views/promptimizerPanel');
-      PromptimizerPanel.show(context.extensionUri, lastPromptimizerResult);
-    }
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error('Copilot Enabler: promptimizer ingest failed', err);
-    vscode.window.showErrorMessage(`Copilot Enabler: promptimizer ingest failed — ${msg}`);
-  }
-}
-
-async function handlePromptimizerOpenSession(
-  context: vscode.ExtensionContext,
-  session?: IngestedSession,
-): Promise<void> {
-  if (!lastPromptimizerResult) {
-    vscode.window.showWarningMessage('Run the Promptimizer first.');
-    return;
-  }
-  const { PromptimizerPanel } = await import('./views/promptimizerPanel');
-  PromptimizerPanel.showWithSession(context.extensionUri, lastPromptimizerResult, session?.session_id);
-}
