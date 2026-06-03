@@ -34,14 +34,6 @@ Click **Set up** on any supported recommendation and Copilot Enabler opens a **C
 2. Asks clarifying questions
 3. Generates and writes the configuration files for you
 
-### 🧪 Promptimizer — Prompt Context Analysis
-
-Ingest Copilot session logs and get detailed analysis into your token usage. 
-
-Promptimizer classifies every block into atomic context blocks, system, custom instructions, skills, MCP tool schemas, messages, attachments, and gives you recommendations to your custom instructions to optimize your context window, driven by Copilot.
-
-See [docs/promptimizer.md](docs/promptimizer.md) for more.
-
 ---
 
 ## 🚀 Getting Started
@@ -68,12 +60,6 @@ See [docs/promptimizer.md](docs/promptimizer.md) for more.
 | `Copilot Enabler: Implement Recommendation` | Interactively implement a recommendation via Copilot Chat |
 | `Copilot Enabler: Show Me Tutorial` | Open a guided tutorial for a feature via Copilot Chat |
 | `Copilot Enabler: Settings` | Open the Copilot Enabler settings panel |
-| `Copilot Enabler: Open Promptimizer` | Open the Promptimizer dashboard |
-| `Copilot Enabler: Refresh Promptimizer` | Refresh the Promptimizer view |
-| `Copilot Enabler: Show Session Detail` | View the detailed breakdown of an ingested chat session |
-| `Copilot Enabler: Promptimizer — Watch for Large Tool Results` | Start file watcher for large tool result payloads |
-| `Copilot Enabler: Promptimizer — Stop Tool Result Watcher` | Stop file watcher for large tool result payloads |
-| `Copilot Enabler: Promptimizer — Toggle Tool Result Watcher` | Toggle file watcher for large tool result payloads |
 
 ---
 
