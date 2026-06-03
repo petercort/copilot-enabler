@@ -834,7 +834,7 @@ describe('AdoptionAgent', () => {
     const report = agent.analyze(ctx);
     const total = report.featuresUsed.length + report.featuresUnused.length;
     expect(total).toBe(detectable.length);
-    expect(total).toBeLessThan(25); // Context features excluded
+    expect(total).toBeLessThan(28); // Context features excluded
   });
 
   test('handles single feature catalog', () => {
@@ -972,6 +972,9 @@ describe('End-to-end realistic machine profile', () => {
       'chat.tools.riskAssessment.enabled',           // tools-terminal-risk
       'agents.remote',                               // core-remote-agents
       'chat.utilityModel',                           // core-utility-models
+      'github.copilot.chat.executionSubagent.enabled', // core-research-agent
+      'chat.sessionSync.enabled',                    // core-session-sync
+      'chat.agent.sandbox.retryWithAllowNetworkRequests', // tools-sandbox-network-retry
     ]);
 
     const ctx = buildContext({ logHints: powerUserHints });
