@@ -11,14 +11,12 @@ Most teams use only a small slice of Copilot. This extension shows what you are 
 - To make Copilot adoption measurable instead of guesswork
 - To surface high-impact features you have not enabled yet
 - To turn recommendations into action with guided "show me" and "set up" flows
-- To improve prompt/context quality and reduce waste with Promptimizer
 
 ## Core capabilities
 
 - **Adoption scorecard:** A clear snapshot of your current Copilot usage and feature coverage
 - **Prioritized recommendations:** Impact vs. difficulty ranking so quick wins come first
 - **Interactive enablement:** One-click guidance and setup through Copilot Chat for supported features
-- **Promptimizer:** Session-level context and token analysis with actionable optimization suggestions
 
 ## Quick start
 
@@ -28,7 +26,7 @@ Most teams use only a small slice of Copilot. This extension shows what you are 
 
 ## Privacy
 
-Analysis is local and read-only. The extension inspects your local VS Code/Copilot environment to generate recommendations.
+Analysis is local and read-only. The extension inspects your local VSCode/Copilot environment to generate recommendations.
 
 ## License
 
