@@ -167,7 +167,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^25.9.1",
     "@types/vscode": "^1.120.0",
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.1",
     "eslint": "^10.4.0",
     "globals": "^17.5.0",
     "jest": "^30.4.2",
