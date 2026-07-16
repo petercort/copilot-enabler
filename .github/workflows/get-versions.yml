@@ -45,9 +45,7 @@ jobs:
           TRACKED="${{ steps.tracked.outputs.tracked }}"
 
           normalize_version() {
-            IFS='.' read -r major minor patch <<EOF
-          $1
-          EOF
+            IFS='.' read -r major minor patch <<< "$1"
             patch=${patch:-0}
             echo "$major.$minor.$patch"
           }
