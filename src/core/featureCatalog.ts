@@ -113,14 +113,14 @@ export function getRunningVscodeVersion(): string | undefined {
   }
 }
 
-/** Returns the value of `copilotEnabler.latestVersionChecked`, defaulting to '1.123.1'. */
+/** Returns the value of `copilotEnabler.latestVersionChecked`, defaulting to '1.123.2'. */
 export function getLatestVersionChecked(): string {
   try {
     const vscode = require('vscode');
     const config = vscode.workspace.getConfiguration('copilotEnabler');
-    return (config.get('latestVersionChecked', '1.123.1') as string) || '1.123.1';
+    return (config.get('latestVersionChecked', '1.123.2') as string) || '1.123.2';
   } catch {
-    return '1.123.1';
+    return '1.123.2';
   }
 }
 

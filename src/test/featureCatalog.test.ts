@@ -211,7 +211,7 @@ describe('getLatestVersionChecked', () => {
       get: jest.fn((_key: string, fallback?: string) => fallback),
     });
 
-    expect(getLatestVersionChecked()).toBe('1.123.1');
+    expect(getLatestVersionChecked()).toBe('1.123.2');
   });
 });
 
