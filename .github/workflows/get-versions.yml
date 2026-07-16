@@ -43,7 +43,19 @@ jobs:
         run: |
           LATEST="${{ steps.vscode.outputs.latest }}"
           TRACKED="${{ steps.tracked.outputs.tracked }}"
-          if [ "$LATEST" != "$TRACKED" ]; then
+
+          normalize_version() {
+            IFS='.' read -r major minor patch <<EOF
+          $1
+          EOF
+            patch=${patch:-0}
+            echo "$major.$minor.$patch"
+          }
+
+          NORMALIZED_LATEST=$(normalize_version "$LATEST")
+          NORMALIZED_TRACKED=$(normalize_version "$TRACKED")
+
+          if [ "$NORMALIZED_LATEST" != "$NORMALIZED_TRACKED" ]; then
             echo "new_version=true" >> "$GITHUB_OUTPUT"
           else
             echo "new_version=false" >> "$GITHUB_OUTPUT"
