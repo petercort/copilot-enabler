@@ -5,7 +5,7 @@ export const coreSessionSync = defineFeature({
   name: 'Session Sync',
   category: 'Core',
   description:
-    'Automatically backs up and syncs your Copilot chat sessions to your GitHub account so you can search and revisit past work across machines. Stores files touched, chat content, repository context, branches, and linked PRs and issues.',
+    'Automatically backs up and syncs your Copilot chat sessions to your GitHub account so you can search and revisit past work across machines. Each session captures richer metadata: chat content, files touched, repository context, active branch, commit references, and linked PRs and issues.',
   docsURL: 'https://code.visualstudio.com/docs/copilot/chat/chat-sessions',
   detectHints: ['chat.sessionSync.enabled', 'session sync', 'session history'],
   impact: 'medium',
@@ -14,14 +14,14 @@ export const coreSessionSync = defineFeature({
     'Enable `chat.sessionSync.enabled` in your VS Code settings.',
     'Sign in with your GitHub account if prompted — sessions are stored linked to your account.',
     'Use the Copilot status dashboard in the VS Code Status Bar to manage and search your session history.',
-    'Ask natural-language questions about past sessions, e.g. "What did I work on last Friday?"',
+    'Ask natural-language questions about past sessions, e.g. "What did I work on last Friday?" or "Show me sessions related to the auth module".',
   ],
   tutorialPrompt: `I'd like to learn about Session Sync in VS Code Copilot.
 
 Please help me understand this feature by:
 1. What Session Sync is:
    - How it automatically backs up chat sessions to your GitHub account
-   - What is stored per session (chat content, files touched, repo context, branches, PRs, issues)
+   - What is stored per session (chat content, files touched, repo context, active branch, commit references, PRs, issues)
    - How it differs from the local Chronicle index (which stores data only on the current machine)
 2. How to enable it:
    - Enabling \`chat.sessionSync.enabled\`
