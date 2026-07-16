@@ -24,24 +24,15 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
 
-      - name: Get latest VS Code release
-        id: vscode
-        run: |
-          LATEST=$(gh release list --repo microsoft/vscode --limit 1 --json tagName --jq '.[0].tagName' | sed 's/^[^0-9]*//')
-          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-
       - name: Read tracked version
         id: tracked
         run: |
           TRACKED=$(jq -r '.contributes.configuration.properties["copilotEnabler.latestVersionChecked"].default' package.json)
           echo "tracked=$TRACKED" >> "$GITHUB_OUTPUT"
 
-      - name: Check if update is needed
-        id: check
+      - name: Determine unreconciled VS Code releases
+        id: versions
         run: |
-          LATEST="${{ steps.vscode.outputs.latest }}"
           TRACKED="${{ steps.tracked.outputs.tracked }}"
 
           normalize_version() {
@@ -52,18 +43,38 @@ jobs:
             echo "$major.$minor.$patch"
           }
 
-          NORMALIZED_LATEST=$(normalize_version "$LATEST")
           NORMALIZED_TRACKED=$(normalize_version "$TRACKED")
+          CANDIDATES=$(
+            gh release list --repo microsoft/vscode --limit 100 --json tagName --jq '.[].tagName' \
+              | sed 's/^[^0-9]*//' \
+              | grep -E '^[0-9]+\.[0-9]+(\.[0-9]+)?$' \
+              | while IFS= read -r version; do
+                  normalized=$(normalize_version "$version")
+                  if [ "$normalized" != "$NORMALIZED_TRACKED" ] \
+                    && [ "$(printf '%s\n%s\n' "$NORMALIZED_TRACKED" "$normalized" | sort -V | head -n 1)" = "$NORMALIZED_TRACKED" ]; then
+                    echo "$normalized"
+                  fi
+                done \
+              | sort -V
+          )
 
-          if [ "$NORMALIZED_LATEST" != "$NORMALIZED_TRACKED" ]; then
-            echo "new_version=true" >> "$GITHUB_OUTPUT"
-          else
+          if [ -z "$CANDIDATES" ]; then
             echo "new_version=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          NEXT_VERSION=$(printf '%s\n' "$CANDIDATES" | head -n 1)
+          LATEST_VERSION=$(printf '%s\n' "$CANDIDATES" | tail -n 1)
+
+          echo "new_version=true" >> "$GITHUB_OUTPUT"
+          echo "next=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "latest=$LATEST_VERSION" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Check for existing open issue
         id: existing
-        if: steps.check.outputs.new_version == 'true'
+        if: steps.versions.outputs.new_version == 'true'
         run: |
           COUNT=$(gh issue list \
             --repo "$GITHUB_REPOSITORY" \
@@ -76,22 +87,26 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Create issue for new VS Code version
-        if: steps.check.outputs.new_version == 'true' && steps.existing.outputs.open_count == '0'
+        if: steps.versions.outputs.new_version == 'true' && steps.existing.outputs.open_count == '0'
         run: |
-          LATEST="${{ steps.vscode.outputs.latest }}"
+          NEXT_VERSION="${{ steps.versions.outputs.next }}"
+          LATEST_VERSION="${{ steps.versions.outputs.latest }}"
           gh issue create \
             --repo "$GITHUB_REPOSITORY" \
-            --title "[VSCode Update]: $LATEST" \
+            --title "[VSCode Update]: $NEXT_VERSION" \
             --label "vscode-update" \
             --body "## VS Code has been updated!
 
-          A new VS Code release has been detected. Please review the release notes and reconcile the feature catalog.
+          A new VS Code release needs to be reconciled. This workflow now advances one release at a time so the catalog can be reviewed incrementally.
 
-          **VSCode Version:** $LATEST
+          **Next version to review:** $NEXT_VERSION
           **Previously tracked:** ${{ steps.tracked.outputs.tracked }}
+          **Latest available release:** $LATEST_VERSION
 
-          Release notes: https://github.com/microsoft/vscode/releases/tag/$LATEST
+          Release notes: https://github.com/microsoft/vscode/releases/tag/$NEXT_VERSION
 
-          Once the catalog has been updated, bump \`copilotEnabler.latestVersionChecked\` in \`package.json\` to \`$LATEST\`."
+          Once the catalog has been updated, bump \`copilotEnabler.latestVersionChecked\` in \`package.json\` to \`$NEXT_VERSION\`.
+
+          After this issue is closed, the version check workflow will run again and open the next update issue if newer releases are still pending."
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
