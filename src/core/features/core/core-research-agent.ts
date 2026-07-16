@@ -5,7 +5,7 @@ export const coreResearchAgent = defineFeature({
   name: 'Research Agent',
   category: 'Core',
   description:
-    'A Copilot agent that performs deep research on any topic and returns a well-cited Markdown report. Powered by a search-capable subagent, it pulls information from your codebase, relevant GitHub repositories, and the public web — without modifying any files.',
+    'A Copilot agent that performs deep research on any topic and returns a well-cited Markdown report. Powered by a search-capable subagent, it pulls information from your codebase, relevant GitHub repositories, and the public web — without modifying any files. Available in the Chat view and in Copilot CLI local agent sessions.',
   docsURL: 'https://code.visualstudio.com/docs/copilot/agents/research-agent',
   detectHints: ['github.copilot.chat.executionSubagent.enabled', '/research', 'research agent'],
   impact: 'medium',
@@ -13,6 +13,7 @@ export const coreResearchAgent = defineFeature({
   setupSteps: [
     'Enable `github.copilot.chat.executionSubagent.enabled` in your VS Code settings.',
     'Open Copilot Chat and type `/research <topic>` to start a deep research session.',
+    'Alternatively, use the `/research` command inside a Copilot CLI local agent session for inline deep research.',
     'Review the cited Markdown report returned by the agent.',
     'Follow the inline citations to verify sources and dive deeper into any area of interest.',
   ],
@@ -26,6 +27,7 @@ Please help me understand this feature by:
 2. How to enable and use it:
    - Enabling \`github.copilot.chat.executionSubagent.enabled\`
    - Using the /research command in Copilot Chat
+   - Using the /research command inside a Copilot CLI local agent session
    - Understanding the structure of the returned Markdown report and its citations
 3. Practical use cases:
    - Onboarding to a new codebase or library

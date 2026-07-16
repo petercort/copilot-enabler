@@ -5,7 +5,7 @@ export const coreModelSelection = defineFeature({
   name: 'Model Selection',
   category: 'Core',
   description:
-    'Choose which AI model Copilot uses for suggestions and chat responses.',
+    'Choose which AI model Copilot uses for suggestions and chat responses. Compatible Anthropic and OpenAI models now support 1M-token context windows, enabling Copilot to reason over very large codebases and documents in a single request.',
   docsURL:
     'https://code.visualstudio.com/docs/copilot/copilot-settings',
   detectHints: [
@@ -22,6 +22,7 @@ export const coreModelSelection = defineFeature({
   difficulty: 'low',
   setupSteps: [
     'Click the model name in the Copilot Chat panel header to switch models.',
+    'Select a compatible Anthropic or OpenAI model to take advantage of the 1M-token context window for large codebases or documents.',
   ],
   tutorialPrompt: `I'd like to learn about Model Selection in GitHub Copilot and how to choose the right AI model for my tasks.
 
@@ -39,11 +40,14 @@ Please help me understand this feature by:
    - Clicking the model selector in the Copilot Chat panel
    - When to switch models during a session
    - Persisting your model choice
-4. Matching models to tasks:
+4. Large context windows:
+   - Which Anthropic and OpenAI models support 1M-token context
+   - When to use a large-context model (big codebases, long documents, multi-file analysis)
+5. Matching models to tasks:
    - Simple refactoring → Faster models
    - Complex architectural decisions → Advanced models
    - Quick explanations → Lightweight models
-5. Cost and performance tradeoffs:
+6. Cost and performance tradeoffs:
    - Speed vs. quality considerations
    - When to spend more tokens for better answers
 
