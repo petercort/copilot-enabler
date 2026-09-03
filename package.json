@@ -165,14 +165,14 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/jest": "^30.0.0",
-    "@types/node": "^26.1.1",
-    "@types/vscode": "^1.125.0",
-    "esbuild": "^0.28.1",
-    "eslint": "^10.6.0",
-    "globals": "^17.7.0",
-    "jest": "^30.4.2",
-    "ts-jest": "^29.4.11",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.63.0"
+    "@types/node": "^26.4.0",
+    "@types/vscode": "^1.134.0",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.9.1",
+    "globals": "^17.11.0",
+    "jest": "^30.5.0",
+    "ts-jest": "^29.4.12",
+    "typescript": "^7.0.2",
+    "typescript-eslint": "^8.68.0"
   }
 }
